@@ -1,0 +1,81 @@
+import { getJsonSchemaType, JsonSchemaType } from '@spgoding/datapack-language-server/lib/data/JsonSchema';
+import { JsonDocument as JsonDocumentB, JsonNode } from '@spgoding/datapack-language-server/lib/nodes';
+import { getRel, getUri } from '@spgoding/datapack-language-server/lib/services/common';
+import { DatapackDocument, isRelIncluded, JsonDocument, McfunctionDocument, SyntaxComponent, Uri, ValidateResult } from '@spgoding/datapack-language-server/lib/types';
+import { StringReader } from '@spgoding/datapack-language-server/lib/utils/StringReader';
+import { JsonSchemaHelper } from '@spgoding/datapack-language-server/lib/utils/JsonSchemaHelper';
+import { getLanguageService as getJsonLanguageService } from 'vscode-json-languageservice';
+import { SynchronousPromise } from 'synchronous-promise';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { config, roots } from '..';
+import { getParsingContext, jsonSchemas } from './contextGenerator';
+import { generateSyntaxComponentParsers } from './pluginLoader';
+
+export async function parseDocument(textDoc: TextDocument): Promise<McfunctionDocument | JsonDocument | undefined> {
+    const uri = getUri(textDoc.uri);
+    return await rawParseDocument(textDoc, uri);
+}
+
+async function rawParseDocument(textDoc: TextDocument, uri: Uri): Promise<McfunctionDocument | JsonDocument | undefined> {
+    let ans: DatapackDocument | undefined;
+    const rel = getRel(uri, roots);
+    if (isRelIncluded(rel, config)) {
+        if (textDoc.languageId === 'json') {
+            if (rel) {
+                const schemaType = getJsonSchemaType(rel);
+                if (schemaType) {
+                    ans = {
+                        type: 'json',
+                        nodes: [await parseJsonNode({ uri, textDoc, schemaType })]
+                    };
+                }
+            }
+        } else if (textDoc.languageId === 'mcfunction') {
+            ans = {
+                type: 'mcfunction',
+                nodes: await parse(uri, textDoc)
+            };
+        }
+    }
+    return ans;
+}
+
+const jsonService = getJsonLanguageService({ promiseConstructor: SynchronousPromise });
+
+export async function parseJsonNode({ textDoc, uri, schemaType }: { textDoc: TextDocument, uri: Uri, schemaType: JsonSchemaType }): Promise<JsonNode> {
+    const ans: JsonNode = {
+        json: jsonService.parseJSONDocument(textDoc) as unknown as JsonDocumentB,
+        schemaType,
+        ...ValidateResult.create()
+    };
+    const ctx = await getParsingContext(uri, textDoc);
+    JsonSchemaHelper.validate(ans, ans.json.root, jsonSchemas.get(schemaType), ctx);
+    return ans;
+}
+
+async function parse(uri: Uri, textDoc: TextDocument, end = textDoc.getText().length): Promise<SyntaxComponent[]> {
+    const ans: SyntaxComponent[] = [];
+    const string = textDoc.getText();
+    const reader = new StringReader(string, 0, end);
+    const ctx = await getParsingContext(uri, textDoc);
+    const componentParsers = await generateSyntaxComponentParsers(textDoc.languageId);
+    const currentLine = () => textDoc.positionAt(reader.cursor).line;
+    const finalLine = textDoc.positionAt(end).line;
+    let lastLine = -1;
+    while (lastLine < currentLine() && currentLine() <= finalLine) {
+        const matchedParsers = componentParsers
+            .map(v => ({ parser: v, testResult: v.test(reader.clone(), ctx) }))
+            .filter(v => v.testResult[0])
+            .sort((a, b) => b.testResult[1] - a.testResult[1]);
+        if (matchedParsers.length > 0) {
+            const result = matchedParsers[0].parser.parse(reader, ctx);
+            ans.push(result);
+        } else {
+            console.error(`[parseSyntaxComponents] No matched parser at [${reader.cursor}] with “${reader.remainingString}”.`);
+            break;
+        }
+        lastLine = currentLine();
+        reader.nextLine(textDoc);
+    }
+    return ans;
+}

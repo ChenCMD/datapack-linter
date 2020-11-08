@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Config, constructConfig } from '@spgoding/datapack-language-server/lib/types/Config';
+import { Config, constructConfig } from '@spgoding/datapack-language-server/lib/types';
 import { TextDecoder } from 'util';
 import * as fs from 'fs';
 

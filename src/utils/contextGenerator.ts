@@ -1,44 +1,51 @@
 import { getCommandTree } from '@spgoding/datapack-language-server/lib/data/CommandTree';
 import { requestText } from '@spgoding/datapack-language-server';
 import { getVanillaData, VanillaData } from '@spgoding/datapack-language-server/lib/data/VanillaData';
-import { ParsingContext, constructContext, CommandTree, VersionInformation, CacheFile, Config } from '@spgoding/datapack-language-server/lib/types';
+import { ParsingContext, constructContext, CommandTree, VersionInformation, Uri } from '@spgoding/datapack-language-server/lib/types';
 import { getJsonSchemas } from '@spgoding/datapack-language-server/lib/data/JsonSchema';
 import { SchemaRegistry } from '@spgoding/datapack-language-server/node_modules/@mcschema/core/lib/Registries';
 import { ParserCollection } from '@spgoding/datapack-language-server/lib/parsers/ParserCollection';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import path from 'path';
+import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
+import { getRootIndex } from '@spgoding/datapack-language-server/lib/services/common';
+import { cacheFile, config, roots } from '..';
 
 export const globalStoragePath = path.join(__dirname, '_storage');
 
 let init = false;
 let vanillaData: VanillaData;
 let commandTree: CommandTree;
-let jsonSchemas: SchemaRegistry;
+export let jsonSchemas: SchemaRegistry;
 
 async function initData(): Promise<void> {
     console.time('init data');
     init = true;
-    vanillaData = await getVanillaData('latest release', 'GitHub', await getLatestVersions(), globalStoragePath);
-    commandTree = await getCommandTree('1.16');
-    jsonSchemas = await getJsonSchemas('1.16', vanillaData.Registry);
+    vanillaData = await getVanillaData(config.env.dataVersion, config.env.dataSource, await getLatestVersions(), globalStoragePath);
+    jsonSchemas = await getJsonSchemas(config.env.jsonVersion, vanillaData.Registry);
+    commandTree = await getCommandTree(config.env.cmdVersion);
     console.timeEnd('init data');
 }
 
-export async function getParsingContext(textDoc: TextDocument, cacheFile: CacheFile, config: Config): Promise<ParsingContext> {
+export async function getParsingContext(uri: Uri, textDoc: TextDocument): Promise<ParsingContext> {
     if (!init)
         await initData();
+    const idResult = IdentityNode.fromRel(uri.fsPath);
     return constructContext({
-        commandTree,
-        jsonSchemas,
-        cursor: -1,
-        blockDefinition: vanillaData.BlockDefinition,
-        namespaceSummary: vanillaData.NamespaceSummary,
-        nbtdoc: vanillaData.Nbtdoc,
-        registry: vanillaData.Registry,
-        parsers: new ParserCollection(),
-        textDoc,
+        blockDefinition: vanillaData?.BlockDefinition,
         cache: cacheFile.cache,
-        config: config
+        commandTree,
+        config,
+        cursor: -1,
+        id: idResult?.id,
+        jsonSchemas,
+        namespaceSummary: vanillaData?.NamespaceSummary,
+        nbtdoc: vanillaData?.Nbtdoc,
+        parsers: new ParserCollection(),
+        registry: vanillaData?.Registry,
+        rootIndex: getRootIndex(uri, roots),
+        roots: roots,
+        textDoc
     });
 }
 
