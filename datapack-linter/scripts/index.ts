@@ -60,7 +60,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                     core.info(`\u001b[91m✗\u001b[39m ${title}`);
                     output.forEach(v => {
                         if (v.severity === DiagnosticSeverity.Error)
-                            core.error(v.message);
+                            core.error(`  ${v.message}`);
                         else
                             core.warning(v.message);
                     });
