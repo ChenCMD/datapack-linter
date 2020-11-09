@@ -84,6 +84,6 @@ export const cacheFile: CacheFile = DefaultCacheFile;
             async (_, rel) => isRelIncluded(rel, config)
         )
     ));
-    if (result)
+    if (!result)
         core.setFailed('check failed');
 })();
