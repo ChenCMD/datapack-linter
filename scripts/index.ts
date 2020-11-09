@@ -10,6 +10,7 @@ import { initCache } from './utils/cache';
 import { parseDocument } from './utils/parser';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import * as core from '@actions/core';
+import { color } from './utils/color';
 
 export const dir = process.cwd();
 export const config = getConfiguration(path.join(dir, '.vscode', 'settings.json'));
@@ -44,7 +45,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                         if (isSuccess) {
                             result = false;
                             isSuccess = false;
-                            core.startGroup(`\u001b[91m ✗\u001b[39m  ${id?.id}`);
+                            core.startGroup(`${color.fore.light.red} ✗${color.fore.reset}  ${id?.id}`);
                         }
                         for (const parsingError of node.errors) {
                             const startPos = textDoc.positionAt(parsingError.range.start);
@@ -60,22 +61,21 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                                     character: 0
                                 })).character
                             };
-
-                            core.error(`${(`   ${startPos.line}`).slice(-3)} "${textDoc.getText({
-                                start: textStart,
-                                end: startPos
-                            })}\u001b[91m${textDoc.getText({
-                                start: startPos,
-                                end: endPos
-                            })}\u001b[39m${textEnd.character !== 0 ? textDoc.getText({
-                                start: endPos,
-                                end: textEnd
-                            }) : ''}"`);
+                            core.error(
+                                (`   ${startPos.line}`).slice(-3)
+                                + '"'
+                                + textDoc.getText({ start: textStart, end: startPos })
+                                + color.fore.light.red
+                                + textDoc.getText({ start: startPos, end: endPos })
+                                + color.fore.reset
+                                + (textEnd.character !== 0 ? textDoc.getText({ start: endPos, end: textEnd }) : '')
+                                + '"'
+                            );
                             core.error(`    ${parsingError.message}`);
                         }
                     });
                     if (isSuccess)
-                        core.info(`\u001b[92m ✓\u001b[39m  ${id?.id}`);
+                        core.info(`${color.fore.normal.green} ✓${color.fore.reset}  ${id?.id}`);
                     else
                         core.endGroup();
                 }
@@ -85,7 +85,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
         )
     ));
     if (!result)
-        core.setFailed('Check failed');
+        core.info('Check failed');
     else
         core.info('Check successful');
 })();
