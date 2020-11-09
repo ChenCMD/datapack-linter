@@ -18,6 +18,8 @@ export let roots: Uri[];
 export const cacheFile: CacheFile = DefaultCacheFile;
 
 (async () => {
+    let group = true;
+    core.startGroup('init log');
     // find datapack roots
     roots = await findDatapackRoots(Uri.file(dir), config);
     // Cache Generate Region
@@ -34,10 +36,14 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                 const uri = Uri.file(file);
                 const textDoc = TextDocument.create(uri.toString(), ext, 0, new TextDecoder().decode(fs.readFileSync(file)));
 
-                if (textDoc.languageId === 'mcfunction') {
+                if (textDoc.languageId === 'mcfunction' || textDoc.languageId === 'json') {
                     const parseData = await parseDocument(textDoc);
                     const id = IdentityNode.fromRel(rel);
                     let isSuccess = true;
+                    if (group) {
+                        group = false;
+                        core.endGroup()
+                    }
                     parseData?.nodes.forEach((node: DocNode) => {
                         if (node.errors.length === 0) // Success
                             return;
@@ -45,7 +51,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                         if (isSuccess) {
                             result = false;
                             isSuccess = false;
-                            core.startGroup(`::error::${color.fore.light.red} ✗${color.fore.reset}  ${id?.id}`);
+                            core.info(`${color.fore.light.red}✗${color.fore.reset} ${id?.id}`);
                         }
                         for (const parsingError of node.errors) {
                             const startPos = textDoc.positionAt(parsingError.range.start);
@@ -63,7 +69,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                             };
                             core.error(
                                 (`   ${startPos.line}`).slice(-3)
-                                + '"'
+                                + '  "'
                                 + textDoc.getText({ start: textStart, end: startPos })
                                 + color.fore.light.red
                                 + textDoc.getText({ start: startPos, end: endPos })
@@ -75,7 +81,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                         }
                     });
                     if (isSuccess)
-                        core.info(`${color.fore.normal.green} ✓${color.fore.reset}  ${id?.id}`);
+                        core.info(`${color.fore.normal.green}✓${color.fore.reset} ${id?.id}`);
                     else
                         core.endGroup();
                 }
