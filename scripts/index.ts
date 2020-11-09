@@ -45,7 +45,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                         if (isSuccess) {
                             result = false;
                             isSuccess = false;
-                            core.startGroup(`${color.fore.light.red} ✗${color.fore.reset}  ${id?.id}`);
+                            core.startGroup(`::error::${color.fore.light.red} ✗${color.fore.reset}  ${id?.id}`);
                         }
                         for (const parsingError of node.errors) {
                             const startPos = textDoc.positionAt(parsingError.range.start);
@@ -85,7 +85,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
         )
     ));
     if (!result)
-        core.info('Check failed');
+        core.setFailed('Check failed');
     else
         core.info('Check successful');
 })();
