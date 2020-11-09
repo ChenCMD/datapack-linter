@@ -1,5 +1,5 @@
 import { walkFile } from '@spgoding/datapack-language-server/lib/services/common';
-import { CacheFile, DefaultCacheFile, DocNode, isRelIncluded, Uri } from '@spgoding/datapack-language-server/lib/types';
+import { CacheFile, DefaultCacheFile, DocNode, isRelIncluded, ParsingError, Uri } from '@spgoding/datapack-language-server/lib/types';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { loadLocale } from '@spgoding/datapack-language-server/lib/locales';
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -38,46 +38,25 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                 if (textDoc.languageId === 'mcfunction' || textDoc.languageId === 'json') {
                     const parseData = await parseDocument(textDoc);
                     const id = IdentityNode.fromRel(rel);
-                    const severityToString = (severity: number) => {
-                        switch (severity) {
-                            case 0: return 'Error      ';
-                            case 1: return 'Warning    ';
-                            case 2: return 'Information';
-                            case 3: return 'Hint       ';
-                        }
-                    };
-                    let isSuccess = true;
                     if (group) {
                         group = false;
                         core.endGroup();
                     }
+                    const messages: string[] = [];
                     parseData?.nodes.forEach((node: DocNode) => {
                         if (node.errors.length === 0) // Success
                             return;
                         // Failed
-                        if (isSuccess) {
-                            result = false;
-                            isSuccess = false;
-                            core.info(`✗ ${id?.id}`);
-                        }
-                        for (const parsingError of node.errors) {
-                            const pos = textDoc.positionAt(parsingError.range.start);
-                            core.error(
-                                // eslint-disable-next-line prefer-template, space-unary-ops
-                                ' '
-                                + `   ${pos.line}`.slice(-4)
-                                + ':'
-                                + (`${pos.character}     `).slice(0, 5)
-                                + ' '
-                                + severityToString(parsingError.severity)
-                                + ' '
-                                + parsingError.message
-                            );
-                        }
-
+                        result = false;
+                        messages.push(...getErrorMessages(node.errors, textDoc));
                     });
-                    if (isSuccess)
-                        core.info(`✓ ${id?.id}`);
+                    if (messages.length === 0) {
+                        core.info(`  \u001b[92m✓\u001b[39m   ${id?.id}`);
+                    } else {
+                        core.error(`${id?.id}`);
+                        for (const mes of messages)
+                            core.error(mes);
+                    }
                 }
             },
             // eslint-disable-next-line require-await
@@ -89,3 +68,26 @@ export const cacheFile: CacheFile = DefaultCacheFile;
     else
         core.info('Check successful');
 })();
+
+function getErrorMessages(errors: ParsingError[], textDoc: TextDocument): string[] {
+    const severityToString = (severity: number) => {
+        switch (severity) {
+            case 0: return 'Error      ';
+            case 1: return 'Warning    ';
+            case 2: return 'Information';
+            case 3: return 'Hint       ';
+        }
+    };
+    return errors.map(error => {
+        const pos = textDoc.positionAt(error.range.start);
+        // eslint-disable-next-line prefer-template, space-unary-ops
+        return ' '
+            + `   ${pos.line + 1}`.slice(-4)
+            + ':'
+            + (`${pos.character + 1}     `).slice(0, 5)
+            + ' '
+            + severityToString(error.severity)
+            + ' '
+            + error.message;
+    });
+}
