@@ -1,16 +1,13 @@
 import { walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import { CacheFile, DefaultCacheFile, DocNode, isRelIncluded, Uri } from '@spgoding/datapack-language-server/lib/types';
+import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
+import { loadLocale, locale } from '@spgoding/datapack-language-server/lib/locales/index';
 import { Position, TextDocument } from 'vscode-languageserver-textdocument';
+import { color, findDatapackRoots, getConfiguration, initCache, parseDocument } from './utils';
+import * as core from '@actions/core';
 import * as fs from 'fs';
 import { TextDecoder } from 'util';
-import { findDatapackRoots } from './utils/common';
 import path from 'path';
-import { getConfiguration } from './utils/config';
-import { initCache } from './utils/cache';
-import { parseDocument } from './utils/parser';
-import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
-import * as core from '@actions/core';
-import { color } from './utils/color';
 
 export const dir = process.cwd();
 export const config = getConfiguration(path.join(dir, '.vscode', 'settings.json'));
@@ -20,6 +17,8 @@ export const cacheFile: CacheFile = DefaultCacheFile;
 (async () => {
     let group = true;
     core.startGroup('init log');
+    // init locale
+    loadLocale(config.env.language, 'en');
     // find datapack roots
     roots = await findDatapackRoots(Uri.file(dir), config);
     // Cache Generate Region
@@ -69,13 +68,14 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                             };
                             core.error(
                                 (`   ${startPos.line}`).slice(-3)
-                                + '  "'
-                                + textDoc.getText({ start: textStart, end: startPos })
-                                + color.fore.light.red
-                                + textDoc.getText({ start: startPos, end: endPos })
-                                + color.fore.reset
-                                + (textEnd.character !== 0 ? textDoc.getText({ start: endPos, end: textEnd }) : '')
-                                + '"'
+                                + '  '
+                                + locale('punc.quote',
+                                    textDoc.getText({ start: textStart, end: startPos })
+                                    + color.fore.light.red
+                                    + textDoc.getText({ start: startPos, end: endPos })
+                                    + color.fore.reset
+                                    + (textEnd.character !== 0 ? textDoc.getText({ start: endPos, end: textEnd }) : '')
+                                )
                             );
                             core.error(`    ${parsingError.message}`);
                         }
