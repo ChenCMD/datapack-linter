@@ -9,12 +9,10 @@ let contributions: Contributions;
 let languageConfigs: Map<string, LanguageConfig>;
 
 async function initPlugin(): Promise<void> {
-    console.time('init plugin');
     init = true;
     plugins = await PluginLoader.load();
     contributions = await PluginLoader.getContributions(plugins);
     languageConfigs = await PluginLoader.getLanguageConfigs(plugins, contributions);
-    console.timeEnd('init plugin');
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -10,6 +10,7 @@ import { getConfiguration } from './utils/config';
 import { initCache } from './utils/cache';
 import { parseDocument } from './utils/parser';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
+import * as core from '@actions/core';
 
 export const dir = process.cwd();
 export const config = getConfiguration(path.join(dir, '.vscode', 'settings.json'));
@@ -19,10 +20,10 @@ export const cacheFile: CacheFile = DefaultCacheFile;
 (async () => {
     // find datapack roots
     roots = await findDatapackRoots(Uri.file(dir), config);
-    console.log(`datapack roots: ${roots.join(', ')}`);
     // Cache Generate Region
     await initCache();
     // Lint Region
+    let result = true;
     await Promise.all(roots.map(async root =>
         await walkFile(
             root.fsPath,
@@ -42,38 +43,48 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                             return;
                         // Failed
                         if (isSuccess) {
+                            result = false;
                             isSuccess = false;
-                            console.error(`\u001b[91m✗\u001b[39m  ${id?.id}`);
+                            core.startGroup(`\u001b[91m ✗\u001b[39m  ${id?.id}`);
                         }
                         for (const parsingError of node.errors) {
+                            const startPos = textDoc.positionAt(parsingError.range.start);
+                            const endPos = textDoc.positionAt(parsingError.range.end);
                             const textStart: Position = {
-                                line: textDoc.positionAt(parsingError.range.start).line,
+                                line: startPos.line,
                                 character: 0
                             };
-                            const textEnd = textDoc.positionAt(textDoc.offsetAt({
-                                line: textDoc.positionAt(parsingError.range.end).line + 1,
-                                character: 0
-                            }));
+                            const textEnd: Position = {
+                                line: endPos.line,
+                                character: textDoc.positionAt(textDoc.offsetAt({
+                                    line: endPos.line + 1,
+                                    character: 0
+                                })).character
+                            };
 
-                            console.error(`    ${textDoc.getText({
+                            core.error(`${(`   ${startPos.line}`).slice(-3)} "${textDoc.getText({
                                 start: textStart,
-                                end: textDoc.positionAt(parsingError.range.start)
+                                end: startPos
                             })}\u001b[91m${textDoc.getText({
-                                start: textDoc.positionAt(parsingError.range.start),
-                                end: textDoc.positionAt(parsingError.range.end)
-                            })}\u001b[39m${textDoc.getText({
-                                start: textDoc.positionAt(parsingError.range.end),
+                                start: startPos,
+                                end: endPos
+                            })}\u001b[39m${textEnd.character !== 0 ? textDoc.getText({
+                                start: endPos,
                                 end: textEnd
-                            })}`);
-                            console.error(`    ${parsingError.message}`);
+                            }) : ''}"`);
+                            core.error(`    ${parsingError.message}`);
                         }
                     });
                     if (isSuccess)
-                        console.info(`\u001b[92m✓\u001b[39m  ${id?.id}`);
+                        core.info(`\u001b[92m ✓\u001b[39m  ${id?.id}`);
+                    else
+                        core.endGroup();
                 }
             },
             // eslint-disable-next-line require-await
             async (_, rel) => isRelIncluded(rel, config)
         )
     ));
+    if (result)
+        core.setFailed('check failed');
 })();

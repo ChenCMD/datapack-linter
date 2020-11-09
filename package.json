@@ -4,6 +4,7 @@
   "description": "Processing to lint datapack with GitHub Action",
   "main": "src/index.ts",
   "scripts": {
+    "build": "tsc -p ./",
     "lint": "eslint --fix src/**/*.ts",
     "lint-dp": "ts-node src/index"
   },

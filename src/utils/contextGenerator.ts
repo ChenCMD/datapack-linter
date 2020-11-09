@@ -19,12 +19,10 @@ let commandTree: CommandTree;
 export let jsonSchemas: SchemaRegistry;
 
 async function initData(): Promise<void> {
-    console.time('init data');
     init = true;
     vanillaData = await getVanillaData(config.env.dataVersion, config.env.dataSource, await getLatestVersions(), globalStoragePath);
     jsonSchemas = await getJsonSchemas(config.env.jsonVersion, vanillaData.Registry);
     commandTree = await getCommandTree(config.env.cmdVersion);
-    console.timeEnd('init data');
 }
 
 export async function getParsingContext(uri: Uri, textDoc: TextDocument): Promise<ParsingContext> {
