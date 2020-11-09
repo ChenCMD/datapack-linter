@@ -41,7 +41,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                     return;
                 const parseData = await parseDocument(textDoc);
                 const id = IdentityNode.fromRel(rel);
-                const title = `${id?.id} (${path.parse(root.fsPath).name}\\${rel})`;
+                const title = `${id?.id} (${path.parse(root.fsPath).name}/${rel})`;
                 if (group) {
                     group = false;
                     core.endGroup();
