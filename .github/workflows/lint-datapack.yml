@@ -27,8 +27,11 @@ jobs:
           cd datapack-linter
           npm i
 
+      - name: enable problem matcher
+        run: |
+          echo "::add-matcher::datapack-linter/matcher.json"
+
       - name: lint
         run: |
           cd datapack-linter
-          echo "::add-matcher::matcher.json"
           npm run lint-dp
