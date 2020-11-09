@@ -7,7 +7,7 @@
             "es6"
         ],
         "sourceMap": true,
-        "rootDir": "src",
+        "rootDir": "scripts",
         "esModuleInterop": true,
         "resolveJsonModule": true,
         "strict": true /* enable all strict type-checking options */
@@ -20,7 +20,7 @@
         "node_modules"
     ],
     "include": [
-        "src/**/*.json",
-        "src/**/*.ts"
+        "scripts/**/*.json",
+        "scripts/**/*.ts"
     ]
 }
