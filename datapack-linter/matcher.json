@@ -4,8 +4,9 @@
             "owner": "datapack-linter",
             "pattern": [
                 {
-                    "regexp": "^[^(]+\\((.+)\\)$",
-                    "file": 1
+                    "regexp": "^.*✗[^(]+\\((.+)\\)$",
+                    "file": 1,
+                    "message": 1
                 }
             ]
         }
