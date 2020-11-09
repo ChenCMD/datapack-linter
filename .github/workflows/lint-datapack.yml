@@ -30,4 +30,5 @@ jobs:
       - name: lint
         run: |
           cd datapack-linter
+          echo "::add-matcher::matcher.json"
           npm run lint-dp

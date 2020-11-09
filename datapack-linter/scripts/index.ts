@@ -1,9 +1,9 @@
 import { walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import { CacheFile, DefaultCacheFile, DocNode, isRelIncluded, Uri } from '@spgoding/datapack-language-server/lib/types';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
-import { loadLocale, locale } from '@spgoding/datapack-language-server/lib/locales';
-import { Position, TextDocument } from 'vscode-languageserver-textdocument';
-import { color, findDatapackRoots, getConfiguration, initCache, parseDocument } from './utils';
+import { loadLocale } from '@spgoding/datapack-language-server/lib/locales';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { findDatapackRoots, getConfiguration, initCache, parseDocument } from './utils';
 import * as core from '@actions/core';
 import * as fs from 'fs';
 import { TextDecoder } from 'util';
@@ -38,6 +38,14 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                 if (textDoc.languageId === 'mcfunction' || textDoc.languageId === 'json') {
                     const parseData = await parseDocument(textDoc);
                     const id = IdentityNode.fromRel(rel);
+                    const severityToString = (severity: number) => {
+                        switch (severity) {
+                            case 0: return 'Error      ';
+                            case 1: return 'Warning    ';
+                            case 2: return 'Information';
+                            case 3: return 'Hint       ';
+                        }
+                    };
                     let isSuccess = true;
                     if (group) {
                         group = false;
@@ -50,37 +58,26 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                         if (isSuccess) {
                             result = false;
                             isSuccess = false;
-                            core.info(`${color.fore.light.red}✗${color.fore.reset} ${id?.id}`);
+                            core.info(`✗ ${id?.id}`);
                         }
                         for (const parsingError of node.errors) {
-                            const startPos = textDoc.positionAt(parsingError.range.start);
-                            const endPos = textDoc.positionAt(parsingError.range.end);
-                            const textStart: Position = {
-                                line: startPos.line,
-                                character: 0
-                            };
-                            const textEnd: Position = {
-                                line: endPos.line,
-                                character: textDoc.positionAt(textDoc.offsetAt({
-                                    line: endPos.line + 1,
-                                    character: 0
-                                })).character
-                            };
+                            const pos = textDoc.positionAt(parsingError.range.start);
                             core.error(
-                                // eslint-disable-next-line prefer-template
-                                `${(`   ${startPos.line}`).slice(-3)}  `
-                                + locale('punc.quote',
-                                    textDoc.getText({ start: textStart, end: startPos })
-                                    + color.fore.light.red
-                                    + textDoc.getText({ start: startPos, end: endPos })
-                                    + color.fore.reset
-                                    + (textEnd.character !== 0 ? textDoc.getText({ start: endPos, end: textEnd }) : '')
-                                )
-                                + `\n     ${parsingError.message}`);
+                                // eslint-disable-next-line prefer-template, space-unary-ops
+                                ' '
+                                + `   ${pos.line}`.slice(-4)
+                                + ':'
+                                + (`${pos.character}     `).slice(0, 5)
+                                + ' '
+                                + severityToString(parsingError.severity)
+                                + ' '
+                                + parsingError.message
+                            );
                         }
+
                     });
                     if (isSuccess)
-                        core.info(`${color.fore.normal.green}✓${color.fore.reset} ${id?.id}`);
+                        core.info(`✓ ${id?.id}`);
                 }
             },
             // eslint-disable-next-line require-await
