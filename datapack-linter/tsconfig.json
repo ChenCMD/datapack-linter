@@ -7,7 +7,7 @@
             "es6"
         ],
         "sourceMap": true,
-        "rootDir": "scripts",
+        "rootDir": "datapack-linter/scripts",
         "esModuleInterop": true,
         "resolveJsonModule": true,
         "strict": true /* enable all strict type-checking options */
@@ -20,7 +20,7 @@
         "node_modules"
     ],
     "include": [
-        "scripts/**/*.json",
-        "scripts/**/*.ts"
+        "datapack-linter/scripts/**/*.json",
+        "datapack-linter/scripts/**/*.ts"
     ]
 }

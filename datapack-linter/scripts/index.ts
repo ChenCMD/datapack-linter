@@ -1,7 +1,7 @@
 import { walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import { CacheFile, DefaultCacheFile, DocNode, isRelIncluded, Uri } from '@spgoding/datapack-language-server/lib/types';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
-import { loadLocale, locale } from '@spgoding/datapack-language-server/lib/locales/index';
+import { loadLocale, locale } from '@spgoding/datapack-language-server/lib/locales';
 import { Position, TextDocument } from 'vscode-languageserver-textdocument';
 import { color, findDatapackRoots, getConfiguration, initCache, parseDocument } from './utils';
 import * as core from '@actions/core';
@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import { TextDecoder } from 'util';
 import path from 'path';
 
-export const dir = process.cwd();
+export const dir = path.dirname(process.cwd());
 export const config = getConfiguration(path.join(dir, '.vscode', 'settings.json'));
 export let roots: Uri[];
 export const cacheFile: CacheFile = DefaultCacheFile;
