@@ -3,7 +3,6 @@ import { CacheFile, DefaultCacheFile, DocNode, isRelIncluded, Uri } from '@spgod
 import { Position, TextDocument } from 'vscode-languageserver-textdocument';
 import * as fs from 'fs';
 import { TextDecoder } from 'util';
-import './utils/methodExtensions';
 import { findDatapackRoots } from './utils/common';
 import path from 'path';
 import { getConfiguration } from './utils/config';

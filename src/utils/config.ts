@@ -4,7 +4,6 @@ import { Config, constructConfig } from '@spgoding/datapack-language-server/lib/
 import { TextDecoder } from 'util';
 import * as fs from 'fs';
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function getConfiguration(configPath: string): Config {
     const json = new TextDecoder().decode(fs.readFileSync(configPath));
     const result = {};
