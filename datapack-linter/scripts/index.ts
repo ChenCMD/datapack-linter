@@ -72,13 +72,11 @@ export const cacheFile: CacheFile = DefaultCacheFile;
 function getErrorMessages(errors: ParsingError[], textDoc: TextDocument): string[] {
     const severityToString = (severity: number) => {
         switch (severity) {
-            case 0: return 'Error      ';
-            case 1: return 'Warning    ';
-            case 2: return 'Information';
-            case 3: return 'Hint       ';
+            case 0: return 'Error  ';
+            case 1: return 'Warning';
         }
     };
-    return errors.map(error => {
+    return errors.filter(v => v.severity < 2).map(error => {
         const pos = textDoc.positionAt(error.range.start);
         // eslint-disable-next-line prefer-template, space-unary-ops
         return ' '
