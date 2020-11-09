@@ -41,7 +41,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                     return;
                 const parseData = await parseDocument(textDoc);
                 const id = IdentityNode.fromRel(rel);
-                const title = `${id.id} (${path.parse(root.fsPath).name}\\${rel})`;
+                const title = `${id?.id} (${path.parse(root.fsPath).name}\\${rel})`;
                 if (group) {
                     group = false;
                     core.endGroup();
@@ -52,9 +52,9 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                         return;
                     // Failed
                     result = false;
-                    outputErrorMessage(node.errors, textDoc);
+                    output.push(...getErrorMessage(node.errors, textDoc));
                 });
-                if (output.length !== 0) {
+                if (output.length === 0) {
                     core.info(`\u001b[92m✓\u001b[39m ${title}`);
                 } else {
                     core.info(`\u001b[91m✗\u001b[39m ${title}`);
@@ -76,7 +76,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
         core.info('Check successful');
 })();
 
-function outputErrorMessage(errors: ParsingError[], textDoc: TextDocument): Output[] {
+function getErrorMessage(errors: ParsingError[], textDoc: TextDocument): Output[] {
     return errors.filter(v => v.severity < 3).map(error => {
         const pos = textDoc.positionAt(error.range.start);
         return {
@@ -89,7 +89,7 @@ function outputErrorMessage(errors: ParsingError[], textDoc: TextDocument): Outp
                 (error.severity === 1 ? 'Error  ' : 'Warning'),
                 ' ',
                 error.message
-            ].join(),
+            ].join(''),
             severity: error.severity
         };
     });
