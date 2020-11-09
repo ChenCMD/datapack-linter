@@ -4,11 +4,11 @@
             "owner": "datapack-linter",
             "pattern": [
                 {
-                    "regexp": "^::error::\\S+\\s\\((.+)\\)$",
+                    "regexp": "^\\S+\\s\\((.+)\\)$",
                     "file": 1
                 },
                 {
-                    "regexp": "^::(?:error|warning)::\\s+(\\d+):(\\d+)\\s+(Error|Warning)\\s+(.*)$",
+                    "regexp": "^\\s+(\\d+):(\\d+)\\s+(Error|Warning)\\s+(.*)$",
                     "line": 1,
                     "column": 2,
                     "severity": 3,
