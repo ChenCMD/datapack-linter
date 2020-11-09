@@ -85,5 +85,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
         )
     ));
     if (!result)
-        core.setFailed('check failed');
+        core.setFailed('Check failed');
+    else
+        core.info('Check successful');
 })();
