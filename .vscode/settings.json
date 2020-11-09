@@ -1,7 +1,7 @@
 {
     "datapack.env.cmdVersion": "1.16",
     "datapack.env.dataVersion": "1.16.2",
-    "datapack.env.language": "ja",
+    "datapack.env.language": "en",
     "datapack.env.defaultVisibility": "public",
     "datapack.env.dependsOnVanilla": true,
     "datapack.env.detectionDepth": 1,
