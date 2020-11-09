@@ -70,10 +70,12 @@ export const cacheFile: CacheFile = DefaultCacheFile;
             async (_, rel) => isRelIncluded(rel, config)
         )
     ));
-    if (!result)
-        core.setFailed('Check failed');
-    else
+    if (!result) {
+        core.info('Check failed');
+        process.exitCode = core.ExitCode.Failure;
+    } else {
         core.info('Check successful');
+    }
 })();
 
 function getErrorMessage(errors: ParsingError[], textDoc: TextDocument): Output[] {
