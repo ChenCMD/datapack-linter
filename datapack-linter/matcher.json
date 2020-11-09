@@ -5,8 +5,15 @@
             "pattern": [
                 {
                     "regexp": "^.*✗[^(]+\\((.+)\\)$",
-                    "file": 1,
-                    "message": 1
+                    "file": 1
+                },
+                {
+                    "regexp": "^\\s+(\\d+):(\\d+)\\s+(Error|Warning)\\s+(.*)$",
+                    "line": 1,
+                    "column": 2,
+                    "severity": 3,
+                    "message": 4,
+                    "loop": true
                 }
             ]
         }
