@@ -41,7 +41,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                     let isSuccess = true;
                     if (group) {
                         group = false;
-                        core.endGroup()
+                        core.endGroup();
                     }
                     parseData?.nodes.forEach((node: DocNode) => {
                         if (node.errors.length === 0) // Success
@@ -67,8 +67,8 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                                 })).character
                             };
                             core.error(
-                                (`   ${startPos.line}`).slice(-3)
-                                + '  '
+                                // eslint-disable-next-line prefer-template
+                                `${(`   ${startPos.line}`).slice(-3)}  `
                                 + locale('punc.quote',
                                     textDoc.getText({ start: textStart, end: startPos })
                                     + color.fore.light.red
@@ -76,8 +76,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                                     + color.fore.reset
                                     + (textEnd.character !== 0 ? textDoc.getText({ start: endPos, end: textEnd }) : '')
                                 )
-                            );
-                            core.error(`    ${parsingError.message}`);
+                                + `\n     ${parsingError.message}`);
                         }
                     });
                     if (isSuccess)
