@@ -82,8 +82,6 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                     });
                     if (isSuccess)
                         core.info(`${color.fore.normal.green}✓${color.fore.reset} ${id?.id}`);
-                    else
-                        core.endGroup();
                 }
             },
             // eslint-disable-next-line require-await
