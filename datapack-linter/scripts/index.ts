@@ -33,7 +33,7 @@ export const cacheFile: CacheFile = DefaultCacheFile;
     // Cache Generate Region
     await initCache();
     // Lint Region
-    let isSuccess = true;
+    const failedCount = { warning: 0, error: 0 };
     const results: LintingData = {};
     await Promise.all(roots.map(async root =>
         await walkFile(
@@ -75,17 +75,21 @@ export const cacheFile: CacheFile = DefaultCacheFile;
                 continue;
             }
             core.info(`\u001b[91m✗\u001b[39m  ${result.title}`);
-            isSuccess = false;
             for (const out of result.messages) {
-                if (out.severity === DiagnosticSeverity.Error)
+                if (out.severity === DiagnosticSeverity.Error) {
+                    failedCount.error++;
                     core.info(`  ${out.message}`);
-                else
+                } else {
+                    failedCount.warning++;
                     core.info(out.message);
+                }
             }
         }
     }
-    if (!isSuccess) {
-        core.info('Check failed');
+    if (failedCount.error + failedCount.warning !== 0) {
+        const errorMulti = failedCount.error > 1 ? 's' : '';
+        const warningMulti = failedCount.warning > 1 ? 's' : '';
+        core.info(`Check failed (${failedCount.error} error${errorMulti}, ${failedCount.warning} warning${warningMulti})`);
         process.exitCode = core.ExitCode.Failure;
     } else {
         core.info('Check successful');
