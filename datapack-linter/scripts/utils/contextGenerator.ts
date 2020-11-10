@@ -13,21 +13,17 @@ import { cacheFile, config, roots } from '..';
 
 export const globalStoragePath = path.join(__dirname, '_storage');
 
-let init = false;
 let vanillaData: VanillaData;
 let commandTree: CommandTree;
 export let jsonSchemas: SchemaRegistry;
 
-async function initData(): Promise<void> {
-    init = true;
+export async function initData(): Promise<void> {
     vanillaData = await getVanillaData(config.env.dataVersion, config.env.dataSource, await getLatestVersions(), globalStoragePath);
     jsonSchemas = await getJsonSchemas(config.env.jsonVersion, vanillaData.Registry);
     commandTree = await getCommandTree(config.env.cmdVersion);
 }
 
-export async function getParsingContext(uri: Uri, textDoc: TextDocument): Promise<ParsingContext> {
-    if (!init)
-        await initData();
+export function getParsingContext(uri: Uri, textDoc: TextDocument): ParsingContext {
     const idResult = IdentityNode.fromRel(uri.fsPath);
     return constructContext({
         blockDefinition: vanillaData?.BlockDefinition,

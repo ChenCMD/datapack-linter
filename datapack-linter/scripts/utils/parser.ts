@@ -26,7 +26,7 @@
 import { getJsonSchemaType, JsonSchemaType } from '@spgoding/datapack-language-server/lib/data/JsonSchema';
 import { JsonDocument as JsonDocumentB, JsonNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { getRel, getUri } from '@spgoding/datapack-language-server/lib/services/common';
-import { DatapackDocument, isRelIncluded, JsonDocument, McfunctionDocument, SyntaxComponent, Uri, ValidateResult } from '@spgoding/datapack-language-server/lib/types';
+import { DatapackDocument, isRelIncluded, SyntaxComponent, Uri, ValidateResult } from '@spgoding/datapack-language-server/lib/types';
 import { StringReader } from '@spgoding/datapack-language-server/lib/utils/StringReader';
 import { JsonSchemaHelper } from '@spgoding/datapack-language-server/lib/utils/JsonSchemaHelper';
 import { getLanguageService as getJsonLanguageService } from 'vscode-json-languageservice';
@@ -36,12 +36,12 @@ import { config, roots } from '..';
 import { getParsingContext, jsonSchemas } from './contextGenerator';
 import { generateSyntaxComponentParsers } from './pluginLoader';
 
-export async function parseDocument(textDoc: TextDocument): Promise<McfunctionDocument | JsonDocument | undefined> {
+export function parseDocument(textDoc: TextDocument): DatapackDocument | undefined {
     const uri = getUri(textDoc.uri);
-    return await rawParseDocument(textDoc, uri);
+    return rawParseDocument(textDoc, uri);
 }
 
-async function rawParseDocument(textDoc: TextDocument, uri: Uri): Promise<McfunctionDocument | JsonDocument | undefined> {
+function rawParseDocument(textDoc: TextDocument, uri: Uri): DatapackDocument | undefined {
     let ans: DatapackDocument | undefined;
     const rel = getRel(uri, roots);
     if (isRelIncluded(rel, config)) {
@@ -51,14 +51,14 @@ async function rawParseDocument(textDoc: TextDocument, uri: Uri): Promise<Mcfunc
                 if (schemaType) {
                     ans = {
                         type: 'json',
-                        nodes: [await parseJsonNode({ uri, textDoc, schemaType })]
+                        nodes: [parseJsonNode({ uri, textDoc, schemaType })]
                     };
                 }
             }
         } else if (textDoc.languageId === 'mcfunction') {
             ans = {
                 type: 'mcfunction',
-                nodes: await parse(uri, textDoc)
+                nodes: parse(uri, textDoc)
             };
         }
     }
@@ -67,23 +67,23 @@ async function rawParseDocument(textDoc: TextDocument, uri: Uri): Promise<Mcfunc
 
 const jsonService = getJsonLanguageService({ promiseConstructor: SynchronousPromise });
 
-export async function parseJsonNode({ textDoc, uri, schemaType }: { textDoc: TextDocument, uri: Uri, schemaType: JsonSchemaType }): Promise<JsonNode> {
+export function parseJsonNode({ textDoc, uri, schemaType }: { textDoc: TextDocument, uri: Uri, schemaType: JsonSchemaType }): JsonNode {
     const ans: JsonNode = {
         json: jsonService.parseJSONDocument(textDoc) as unknown as JsonDocumentB,
         schemaType,
         ...ValidateResult.create()
     };
-    const ctx = await getParsingContext(uri, textDoc);
+    const ctx = getParsingContext(uri, textDoc);
     JsonSchemaHelper.validate(ans, ans.json.root, jsonSchemas.get(schemaType), ctx);
     return ans;
 }
 
-async function parse(uri: Uri, textDoc: TextDocument, end = textDoc.getText().length): Promise<SyntaxComponent[]> {
+function parse(uri: Uri, textDoc: TextDocument, end = textDoc.getText().length): SyntaxComponent[] {
     const ans: SyntaxComponent[] = [];
     const string = textDoc.getText();
     const reader = new StringReader(string, 0, end);
-    const ctx = await getParsingContext(uri, textDoc);
-    const componentParsers = await generateSyntaxComponentParsers(textDoc.languageId);
+    const ctx = getParsingContext(uri, textDoc);
+    const componentParsers = generateSyntaxComponentParsers(textDoc.languageId);
     const currentLine = () => textDoc.positionAt(reader.cursor).line;
     const finalLine = textDoc.positionAt(end).line;
     let lastLine = -1;
