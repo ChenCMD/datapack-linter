@@ -26,7 +26,7 @@
 import { readFile } from '@spgoding/datapack-language-server';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { getRel, getTextDocument, getUri, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
-import { ClientCache, combineCache, DatapackDocument, FileType, isRelIncluded, removeCachePosition, setUpUnit, Uri } from '@spgoding/datapack-language-server/lib/types';
+import { CacheCategory, CacheType, ClientCache, combineCache, DatapackDocument, FileType, isRelIncluded, setUpUnit, trimCache, Uri } from '@spgoding/datapack-language-server/lib/types';
 import path from 'path';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { cacheFile, config, roots } from '..';
@@ -46,6 +46,12 @@ export async function initCache(): Promise<void> {
             async (_, rel) => isRelIncluded(rel, config)
         );
     }));
+    for (const type of Object.keys(cacheFile.cache)) {
+        const category = cacheFile.cache[type as CacheType] as CacheCategory;
+        for (const id of Object.keys(category))
+            delete category[id]?.ref;
+    }
+    trimCache(cacheFile.cache);
 }
 
 async function onAddedFile(uri: Uri): Promise<void> {
@@ -56,7 +62,6 @@ async function onAddedFile(uri: Uri): Promise<void> {
     const { category, id } = result;
     if (!isRelIncluded(rel, config))
         return;
-    removeCachePosition(cacheFile.cache, uri);
     await combineCacheOfNodes(uri, category, id);
 }
 
