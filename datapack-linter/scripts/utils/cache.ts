@@ -23,14 +23,14 @@
  * SOFTWARE.
  */
 
-import { readFile } from '@spgoding/datapack-language-server';
-import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
-import { getRel, getTextDocument, getUri, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import { CacheCategory, CacheType, ClientCache, combineCache, DatapackDocument, FileType, isRelIncluded, setUpUnit, trimCache, Uri } from '@spgoding/datapack-language-server/lib/types';
-import path from 'path';
+import { getRel, getTextDocument, getUri, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
+import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
+import { readFile } from '@spgoding/datapack-language-server';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import path from 'path';
+import { parseDocument } from './index';
 import { cacheFile, config, roots } from '..';
-import { parseDocument } from './parser';
 
 export async function initCache(): Promise<void> {
     await Promise.all(roots.map(root => {

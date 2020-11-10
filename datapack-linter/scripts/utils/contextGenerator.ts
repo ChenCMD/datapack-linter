@@ -1,14 +1,14 @@
-import { getCommandTree } from '@spgoding/datapack-language-server/lib/data/CommandTree';
-import { requestText } from '@spgoding/datapack-language-server';
-import { getVanillaData, VanillaData } from '@spgoding/datapack-language-server/lib/data/VanillaData';
 import { ParsingContext, constructContext, CommandTree, VersionInformation, Uri } from '@spgoding/datapack-language-server/lib/types';
-import { getJsonSchemas } from '@spgoding/datapack-language-server/lib/data/JsonSchema';
 import { SchemaRegistry } from '@spgoding/datapack-language-server/node_modules/@mcschema/core/lib/Registries';
+import { getVanillaData, VanillaData } from '@spgoding/datapack-language-server/lib/data/VanillaData';
 import { ParserCollection } from '@spgoding/datapack-language-server/lib/parsers/ParserCollection';
+import { getCommandTree } from '@spgoding/datapack-language-server/lib/data/CommandTree';
+import { getJsonSchemas } from '@spgoding/datapack-language-server/lib/data/JsonSchema';
+import { getRootIndex } from '@spgoding/datapack-language-server/lib/services/common';
+import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
+import { requestText } from '@spgoding/datapack-language-server';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import path from 'path';
-import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
-import { getRootIndex } from '@spgoding/datapack-language-server/lib/services/common';
 import { cacheFile, config, roots } from '..';
 
 export const globalStoragePath = path.join(__dirname, '_storage');

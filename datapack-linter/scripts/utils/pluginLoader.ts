@@ -23,10 +23,10 @@
  * SOFTWARE.
  */
 
-import { Plugin } from '@spgoding/datapack-language-server/lib/plugins';
 import { Contributions, LanguageConfig } from '@spgoding/datapack-language-server/lib/plugins/LanguageConfigImpl';
 import { PluginLoader } from '@spgoding/datapack-language-server/lib/plugins/PluginLoader';
 import { SyntaxComponentParser } from '@spgoding/datapack-language-server/lib/types';
+import { Plugin } from '@spgoding/datapack-language-server/lib/plugins';
 
 let plugins: Map<string, Plugin>;
 let contributions: Contributions;

@@ -23,9 +23,9 @@
  * SOFTWARE.
  */
 
-import { pathAccessible } from '@spgoding/datapack-language-server';
 import { getRootUri, walkRoot } from '@spgoding/datapack-language-server/lib/services/common';
 import { Config, Uri } from '@spgoding/datapack-language-server/lib/types';
+import { pathAccessible } from '@spgoding/datapack-language-server';
 import path from 'path';
 
 export async function findDatapackRoots(dir: Uri, config: Config): Promise<Uri[]> {

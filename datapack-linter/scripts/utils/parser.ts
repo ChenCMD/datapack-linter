@@ -23,18 +23,18 @@
  * SOFTWARE.
  */
 
+import { DatapackDocument, isRelIncluded, SyntaxComponent, Uri, ValidateResult } from '@spgoding/datapack-language-server/lib/types';
 import { getJsonSchemaType, JsonSchemaType } from '@spgoding/datapack-language-server/lib/data/JsonSchema';
 import { JsonDocument as JsonDocumentB, JsonNode } from '@spgoding/datapack-language-server/lib/nodes';
-import { getRel, getUri } from '@spgoding/datapack-language-server/lib/services/common';
-import { DatapackDocument, isRelIncluded, SyntaxComponent, Uri, ValidateResult } from '@spgoding/datapack-language-server/lib/types';
-import { StringReader } from '@spgoding/datapack-language-server/lib/utils/StringReader';
 import { JsonSchemaHelper } from '@spgoding/datapack-language-server/lib/utils/JsonSchemaHelper';
+import { StringReader } from '@spgoding/datapack-language-server/lib/utils/StringReader';
+import { getRel, getUri } from '@spgoding/datapack-language-server/lib/services/common';
 import { getLanguageService as getJsonLanguageService } from 'vscode-json-languageservice';
-import { SynchronousPromise } from 'synchronous-promise';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { config, roots } from '..';
+import { SynchronousPromise } from 'synchronous-promise';
 import { getParsingContext, jsonSchemas } from './contextGenerator';
 import { generateSyntaxComponentParsers } from './pluginLoader';
+import { config, roots } from '..';
 
 export function parseDocument(textDoc: TextDocument): DatapackDocument | undefined {
     const uri = getUri(textDoc.uri);
