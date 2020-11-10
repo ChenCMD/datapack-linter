@@ -4,17 +4,18 @@
   "description": "Processing to lint datapack with GitHub Action",
   "author": "ChenCMD",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ChenCMD/datapack-linter"
+  },
   "scripts": {
     "lint": "eslint --fix scripts/**/*.ts",
     "lint-dp": "ts-node scripts/index"
   },
   "dependencies": {
     "@actions/core": "^1.2.6",
-    "@actions/exec": "^1.0.4",
-    "@actions/glob": "^0.1.0",
     "@mcschema/core": "^0.11.0",
     "@spgoding/datapack-language-server": "3.0.7",
-    "minimatch": "^3.0.4",
     "synchronous-promise": "^2.0.15",
     "ts-node": "^9.0.0",
     "vscode-json-languageservice": "^3.10.0",
