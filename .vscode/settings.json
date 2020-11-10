@@ -1,7 +1,22 @@
 {
+    "datapack.features.colors": true,
+    "datapack.features.foldingRanges": true,
+    "datapack.features.hover": true,
+    "datapack.features.selectionRanges": true,
+    "datapack.features.semanticColoring": false,
+    "datapack.features.signatures": true,
+    "datapack.lint.blockStateSortKeys": null,
+    "datapack.lint.idOmitDefaultNamespace": null,
+    "datapack.lint.nbtCompoundKeyQuoteType": [
+        "warning",
+        "always double"
+    ],
+    "datapack.lint.nbtCompoundSortKeys": null,
+    "datapack.lint.strictScoreHolderCheck": null,
     "datapack.env.cmdVersion": "1.16",
     "datapack.env.dataVersion": "1.16.2",
     "datapack.env.language": "en",
+    "datapack.env.dataSource": "GitHub",
     "datapack.env.defaultVisibility": "public",
     "datapack.env.dependsOnVanilla": true,
     "datapack.env.detectionDepth": 1,
@@ -272,5 +287,6 @@
         "tellrawScore": "tellraw @a [{\"text\":\"score: \"},{\"score\":{\"objective\":\"${1:objective}\",\"name\":\"${2:name}\"}}]",
         "tellrawStorage": "tellraw @a [{\"text\":\"storage: \"},{\"storage\":\"${1:storage}\",\"nbt\":\"${2:nbt}\"}]",
         "tellrawNbt": "tellraw @a [{\"text\":\"nbt\"},{\"text\":\": \"},{\"entity\":\"${1:entity}\",\"nbt\":\"${2:nbt}\"}]"
-    }
+    },
+    "datapack.trace.server": "messages"
 }
