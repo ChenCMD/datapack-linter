@@ -9,14 +9,12 @@ import path from 'path';
 import { findDatapackRoots, getConfiguration, updateCacheFile, getMessageData, outputMessage } from './utils';
 import { getSafeMessageData, LintingData } from './types/Results';
 
-const dir = process.cwd();
-console.log('::add-matcher::./matcher.json');
+const dir = path.resolve(process.cwd(), '../');
 lint();
 
 async function lint() {
     // log group start
     core.startGroup('init log');
-    console.log(`dir: ${dir}`);
 
     // initialize DatapackLanguageService
     const capabilities = getClientCapabilities({ workspace: { configuration: true, didChangeConfiguration: { dynamicRegistration: true } } });
@@ -28,7 +26,8 @@ async function lint() {
     });
     service.init();
     const dirUri = Uri.file(dir);
-    service.roots.push(...await findDatapackRoots(dirUri, await service.getConfig(dirUri)));
+    const config = await service.getConfig(dirUri);
+    service.roots.push(...await findDatapackRoots(dirUri, config));
     await updateCacheFile(service);
 
     // Lint Region
@@ -36,10 +35,12 @@ async function lint() {
     await Promise.all(service.roots.map(async root =>
         await walkFile(
             root.fsPath,
-            root.fsPath,
+            path.join(root.fsPath, 'data'),
             async (file, rel) => {
                 // language check region
-                const langID = file.match(/(?<=\.).*$/)?.pop() ?? '';
+                const dotIndex = file.lastIndexOf('.');
+                const slashIndex = file.lastIndexOf('/');
+                const langID = dotIndex !== -1 && slashIndex < dotIndex ? file.substring(dotIndex + 1) : '';
                 if (!(langID === 'mcfunction' || langID === 'json'))
                     return;
 
@@ -58,7 +59,7 @@ async function lint() {
                 // pushing message
                 getSafeMessageData(results, category).push(getMessageData(parseData, id, textDoc, root, rel));
             },
-            async (_, rel) => isRelIncluded(rel, await service.getConfig(root))
+            async (_, rel) => isRelIncluded(rel, config)
         )
     ));
 

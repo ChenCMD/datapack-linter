@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Config, constructConfig } from '@spgoding/datapack-language-server/lib/types';
-import { readFile } from '@spgoding/datapack-language-server';
+import { pathAccessible, readFile } from '@spgoding/datapack-language-server';
 
 /**
  * Get config.
  * This function behaves similarly to the getConfiguration function of the VSCodeAPI.
  */
 export async function getConfiguration(configPath: string): Promise<Config> {
+    if (!await pathAccessible(configPath))
+        return constructConfig({});
     const json = await readFile(configPath);
     const result: {[key: string]: any} = {};
     const obj = JSON.parse(json);

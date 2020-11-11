@@ -6,8 +6,11 @@ runs:
   steps:
     - shell: bash
       run: |
+        git clone https://github.com/ChenCMD/datapack-linter.git
+        echo "::add-matcher::datapack-linter/matcher.json"
+        cd datapack-linter
         npm i
-        node run lint-dp
+        npm run lint-dp
 branding:
   icon: box
   color: green
