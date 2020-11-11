@@ -6,7 +6,7 @@
         "module": "commonjs",
         "target": "ESNext",
         "rootDir": "scripts",
-        "outDir": "out",
+        "outDir": "dist",
         "noFallthroughCasesInSwitch": true,
         "noImplicitAny": true,
         "noImplicitReturns": true,

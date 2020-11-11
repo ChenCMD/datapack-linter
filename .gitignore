@@ -1,3 +1,4 @@
 node_modules
 _storage
 .vscode/tasks.json
+dist
