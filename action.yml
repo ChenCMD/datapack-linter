@@ -2,8 +2,11 @@ name: datapack-linter
 author: chen
 description: Processing to lint datapack
 runs:
-  using: node12
-  main: dist/index.js
+  using: composite
+  steps:
+    - run: |
+      npm i
+      dist/index.js
 branding:
   icon: box
   color: green
