@@ -7,7 +7,7 @@ runs:
     - shell: bash
       run: |
         npm i
-        dist/index.js
+        node run lint-dp
 branding:
   icon: box
   color: green
