@@ -29,6 +29,9 @@ import { DatapackLanguageService, pathAccessible } from '@spgoding/datapack-lang
 import * as fsp from 'fs/promises';
 import path from 'path';
 
+/**
+ * This function is equivalent to the one implemented in datapack-language-server/server.ts, except for the last function service.onDeletedFile.
+ */
 export async function updateCacheFile(service: DatapackLanguageService): Promise<void> {
     try {
         // Check the files saved in the cache file.
@@ -53,6 +56,9 @@ export async function updateCacheFile(service: DatapackLanguageService): Promise
     }
 }
 
+/**
+ * This function is equivalent to the one implemented in datapack-language-server/server.ts.
+ */
 async function checkFilesInCache(cacheFile: CacheFile, roots: Uri[], service: DatapackLanguageService) {
     const uriStrings = Object.keys(cacheFile.files).values();
     return partitionedIteration(uriStrings, async uriString => {
@@ -77,6 +83,9 @@ async function checkFilesInCache(cacheFile: CacheFile, roots: Uri[], service: Da
     });
 }
 
+/**
+ * This function is equivalent to the one implemented in datapack-language-server/server.ts.
+ */
 async function addNewFilesToCache(cacheFile: CacheFile, roots: Uri[], service: DatapackLanguageService) {
     return Promise.all(roots.map(root => {
         const dataPath = path.join(root.fsPath, 'data');

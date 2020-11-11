@@ -5,6 +5,9 @@ import * as core from '@actions/core';
 import path from 'path';
 import { MessageData, Output, LintingData, FailCount } from '../types/Results';
 
+/**
+ * Create and return message data from DatapackDocument.
+ */
 export function getMessageData(parseData: DatapackDocument, id: IdentityNode, document: TextDocument, root: Uri, rel: string): MessageData {
     const title = `${id} (${path.parse(root.fsPath).name}/${rel.replace(/\\/g, '/')})`;
     const messages: Output[] = [];
@@ -31,6 +34,9 @@ export function getMessageData(parseData: DatapackDocument, id: IdentityNode, do
     return { title, messages };
 }
 
+/**
+ * Output message data.
+ */
 export function outputMessage(results: LintingData): FailCount {
     const failCount = { warning: 0, error: 0 };
     for (const type of Object.keys(results)) {

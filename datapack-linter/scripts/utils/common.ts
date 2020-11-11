@@ -28,6 +28,9 @@ import { Config, Uri } from '@spgoding/datapack-language-server/lib/types';
 import { pathAccessible } from '@spgoding/datapack-language-server';
 import path from 'path';
 
+/**
+ * This function is equivalent to the one implemented in datapack-language-server/server.ts.
+ */
 export async function findDatapackRoots(dir: Uri, config: Config): Promise<Uri[]> {
     const rootCandidatePaths = new Set<string>();
     const dirPath = dir.fsPath;
