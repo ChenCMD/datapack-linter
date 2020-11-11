@@ -4,9 +4,10 @@ description: Processing to lint datapack
 runs:
   using: composite
   steps:
-    - run: |
-      npm i
-      dist/index.js
+    - shell: bash
+      run: |
+        npm i
+        dist/index.js
 branding:
   icon: box
   color: green
