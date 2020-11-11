@@ -22,10 +22,5 @@ jobs:
             ${{ runner.os }}-node-
             ${{ runner.os }}-
 
-      - name: Install Dependencies
-        run: |
-          npm i
-
-      - name: lint
-        run: |
-          npm run lint-dp-node
+      - name: Test
+        uses: ChenCMD/datapack-linter@v1
