@@ -54,8 +54,9 @@ async function lint() {
     // Lint Region
     const results = {};
     await Promise.all(service.roots.map(async (root) => await common_1.walkFile(root.fsPath, root.fsPath, async (file, rel) => {
+        var _a, _b, _c;
         // language check region
-        const langID = file.match(/(?<=\.).*$/)?.pop() ?? '';
+        const langID = (_b = (_a = file.match(/(?<=\.).*$/)) === null || _a === void 0 ? void 0 : _a.pop()) !== null && _b !== void 0 ? _b : '';
         if (!(langID === 'mcfunction' || langID === 'json'))
             return;
         // parsing data
@@ -63,7 +64,7 @@ async function lint() {
         const textDoc = await common_1.getTextDocument({ uri: types_1.Uri.file(file), langID, version: null, getText: async () => text });
         const parseData = await service.parseDocument(textDoc);
         // get IdentityNode
-        const { id, category } = nodes_1.IdentityNode.fromRel(rel) ?? {};
+        const { id, category } = (_c = nodes_1.IdentityNode.fromRel(rel)) !== null && _c !== void 0 ? _c : {};
         // undefined check
         if (!parseData || !id || !category)
             return;

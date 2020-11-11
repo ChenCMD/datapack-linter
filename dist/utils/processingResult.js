@@ -30,9 +30,10 @@ const path_1 = __importDefault(require("path"));
  * Create and return message data from DatapackDocument.
  */
 function getMessageData(parseData, id, document, root, rel) {
+    var _a;
     const title = `${id} (${path_1.default.parse(root.fsPath).name}/${rel.replace(/\\/g, '/')})`;
     const messages = [];
-    for (const node of parseData?.nodes ?? []) {
+    for (const node of (_a = parseData === null || parseData === void 0 ? void 0 : parseData.nodes) !== null && _a !== void 0 ? _a : []) {
         if (node.errors.length === 0) // Success
             continue;
         // Failed
@@ -41,13 +42,14 @@ function getMessageData(parseData, id, document, root, rel) {
             .map(err => err.toDiagnostic(document))
             .sort((errA, errB) => errA.range.start.line - errB.range.start.line)
             .map(err => {
+            var _a;
             const pos = err.range.start;
             const paddingedLine = `   ${pos.line + 1}`.slice(-4);
             const paddingedChar = (`${pos.character + 1}     `).slice(0, 5);
             const humanReadbleSaverity = err.severity === vscode_json_languageservice_1.DiagnosticSeverity.Error ? 'Error  ' : 'Warning';
             return {
                 message: `${paddingedLine}:${paddingedChar} ${humanReadbleSaverity} ${err.message}`,
-                severity: err.severity ?? vscode_json_languageservice_1.DiagnosticSeverity.Warning
+                severity: (_a = err.severity) !== null && _a !== void 0 ? _a : vscode_json_languageservice_1.DiagnosticSeverity.Warning
             };
         });
         messages.push(...result);

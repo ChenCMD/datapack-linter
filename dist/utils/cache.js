@@ -82,7 +82,7 @@ async function checkFilesInCache(cacheFile, roots, service) {
     return common_1.partitionedIteration(uriStrings, async (uriString) => {
         const uri = service.parseUri(uriString);
         const result = common_1.getRelAndRootIndex(uri, roots);
-        if (!result?.rel || !types_1.isRelIncluded(result.rel, await service.getConfig(roots[result.index]))) {
+        if (!(result === null || result === void 0 ? void 0 : result.rel) || !types_1.isRelIncluded(result.rel, await service.getConfig(roots[result.index]))) {
             delete cacheFile.files[uriString];
         }
         else {

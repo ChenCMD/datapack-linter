@@ -4,7 +4,7 @@
         "esModuleInterop": true,
         "moduleResolution": "node",
         "module": "commonjs",
-        "target": "ESNext",
+        "target": "ES2019",
         "rootDir": "scripts",
         "outDir": "dist",
         "declarationDir": "decs",
@@ -17,7 +17,13 @@
         "strictNullChecks": true,
         "declaration": true,
         "newLine": "LF",
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "lib": [
+            "es2019",
+            "es2020.bigint",
+            "es2020.string",
+            "es2020.symbol.wellknown"
+        ]
     },
     "exclude": [
         "node_modules"
