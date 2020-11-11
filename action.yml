@@ -4,3 +4,5 @@ description: Processing to lint datapack
 runs:
   using: 'node12'
   main: 'dist/index.js'
+branding:
+  icon: box
