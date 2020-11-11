@@ -9,13 +9,14 @@
     "url": "https://github.com/ChenCMD/datapack-linter"
   },
   "scripts": {
+    "build": "tsc -p ./",
     "lint": "eslint --fix scripts/**/*.ts",
     "lint-dp": "ts-node scripts/index"
   },
   "dependencies": {
     "@actions/core": "^1.2.6",
     "@mcschema/core": "^0.11.0",
-    "@spgoding/datapack-language-server": "3.0.7",
+    "@spgoding/datapack-language-server": "^3.0.8",
     "synchronous-promise": "^2.0.15",
     "ts-node": "^9.0.0",
     "vscode-json-languageservice": "^3.10.0",

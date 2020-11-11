@@ -22,23 +22,5 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
-import { Contributions, LanguageConfig } from '@spgoding/datapack-language-server/lib/plugins/LanguageConfigImpl';
-import { PluginLoader } from '@spgoding/datapack-language-server/lib/plugins/PluginLoader';
-import { SyntaxComponentParser } from '@spgoding/datapack-language-server/lib/types';
-import { Plugin } from '@spgoding/datapack-language-server/lib/plugins';
-
-let plugins: Map<string, Plugin>;
-let contributions: Contributions;
-let languageConfigs: Map<string, LanguageConfig>;
-
-export async function initPlugin(): Promise<void> {
-    plugins = await PluginLoader.load();
-    contributions = await PluginLoader.getContributions(plugins);
-    languageConfigs = await PluginLoader.getLanguageConfigs(plugins, contributions);
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function generateSyntaxComponentParsers(language: string): SyntaxComponentParser<any>[] {
-    return languageConfigs?.get(language)?.syntaxComponentParsers ?? [];
-}
+import { Config, Uri } from '@spgoding/datapack-language-server/lib/types';
+export declare function findDatapackRoots(dir: Uri, config: Config): Promise<Uri[]>;

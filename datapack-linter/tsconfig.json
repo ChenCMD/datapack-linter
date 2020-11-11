@@ -1,20 +1,22 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
-        "target": "es6",
-        "outDir": "dist",
-        "lib": [
-            "es6"
-        ],
-        "sourceMap": true,
-        "rootDir": "scripts",
+        "allowSyntheticDefaultImports": true,
         "esModuleInterop": true,
-        "resolveJsonModule": true,
-        "strict": true /* enable all strict type-checking options */
-        /* Additional Checks */
-        // "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
-        // "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
-        // "noUnusedParameters": true,  /* Report errors on unused parameters. */
+        "moduleResolution": "node",
+        "module": "commonjs",
+        "target": "ESNext",
+        "rootDir": "scripts",
+        "outDir": "out",
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "pretty": true,
+        "alwaysStrict": true,
+        "strictNullChecks": true,
+        "declaration": true,
+        "newLine": "LF",
+        "resolveJsonModule": true
     },
     "exclude": [
         "node_modules"

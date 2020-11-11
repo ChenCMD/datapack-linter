@@ -106,7 +106,6 @@
             "never"
         ],
         "no-empty-function": "off",
-        "@typescript-eslint/no-empty-function": "off",
-        "require-await": "warn"
+        "@typescript-eslint/no-empty-function": "off"
     }
 }

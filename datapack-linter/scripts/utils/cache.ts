@@ -23,80 +23,71 @@
  * SOFTWARE.
  */
 
-import { CacheCategory, CacheType, ClientCache, combineCache, DatapackDocument, FileType, isRelIncluded, setUpUnit, trimCache, Uri } from '@spgoding/datapack-language-server/lib/types';
-import { getRel, getTextDocument, getUri, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
-import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
-import { readFile } from '@spgoding/datapack-language-server';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { getRelAndRootIndex, partitionedIteration, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
+import { CacheFile, isRelIncluded, trimCache, Uri } from '@spgoding/datapack-language-server/lib/types';
+import { DatapackLanguageService, pathAccessible } from '@spgoding/datapack-language-server';
+import * as fsp from 'fs/promises';
 import path from 'path';
-import { parseDocument } from './index';
-import { cacheFile, config, roots } from '..';
 
-export async function initCache(): Promise<void> {
-    await Promise.all(roots.map(root => {
+export async function updateCacheFile(service: DatapackLanguageService): Promise<void> {
+    try {
+        // Check the files saved in the cache file.
+        const time1 = new Date().getTime();
+        await checkFilesInCache(service.cacheFile, service.roots, service);
+        const time2 = new Date().getTime();
+        await addNewFilesToCache(service.cacheFile, service.roots, service);
+        trimCache(service.cacheFile.cache);
+        const time3 = new Date().getTime();
+        console.info(`[updateCacheFile] [1] ${time2 - time1} ms`);
+        console.info(`[updateCacheFile] [2] ${time3 - time2} ms`);
+        console.info(`[updateCacheFile] [T] ${time3 - time1} ms`);
+    } catch (e) {
+        console.error('[updateCacheFile] ', e);
+    }
+}
+
+async function checkFilesInCache(cacheFile: CacheFile, roots: Uri[], service: DatapackLanguageService) {
+    const uriStrings = Object.keys(cacheFile.files).values();
+    return partitionedIteration(uriStrings, async uriString => {
+        const uri = service.parseUri(uriString);
+        const result = getRelAndRootIndex(uri, roots);
+        if (!result?.rel || !isRelIncluded(result.rel, await service.getConfig(roots[result.index]))) {
+            delete cacheFile.files[uriString];
+        } else {
+            if (!(await pathAccessible(uri.fsPath))) {
+                service.onDeletedFile(uri);
+            } else {
+                const stat = await fsp.stat(uri.fsPath);
+                const lastModified = stat.mtimeMs;
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                const lastUpdated = cacheFile.files[uriString]!;
+                if (lastModified > lastUpdated) {
+                    cacheFile.files[uriString] = lastModified;
+                    await service.onModifiedFile(uri);
+                }
+            }
+        }
+    });
+}
+
+async function addNewFilesToCache(cacheFile: CacheFile, roots: Uri[], service: DatapackLanguageService) {
+    return Promise.all(roots.map(root => {
         const dataPath = path.join(root.fsPath, 'data');
         return walkFile(
             root.fsPath,
             dataPath,
-            async abs => {
-                const uri = getUri(Uri.file(abs).toString());
-                await onAddedFile(uri);
+            async (abs, _rel, stat) => {
+                const uri = service.parseUri(Uri.file(abs).toString());
+                const uriString = uri.toString();
+                if (cacheFile.files[uriString] === undefined) {
+                    await service.onAddedFile(uri);
+                    cacheFile.files[uriString] = stat.mtimeMs;
+                }
             },
-            // eslint-disable-next-line require-await
-            async (_, rel) => isRelIncluded(rel, config)
+            async (_abs, rel) => {
+                const config = await service.getConfig(root);
+                return isRelIncluded(rel, config);
+            }
         );
     }));
-    for (const type of Object.keys(cacheFile.cache)) {
-        const category = cacheFile.cache[type as CacheType] as CacheCategory;
-        for (const id of Object.keys(category))
-            delete category[id]?.ref;
-    }
-    trimCache(cacheFile.cache);
-}
-
-async function onAddedFile(uri: Uri): Promise<void> {
-    const rel = getRel(uri, roots);
-    const result = IdentityNode.fromRel(rel);
-    if (!result)
-        return;
-    const { category, id } = result;
-    if (!isRelIncluded(rel, config))
-        return;
-    await combineCacheOfNodes(uri, category, id);
-}
-
-async function combineCacheOfNodes(uri: Uri, type: FileType, id: IdentityNode) {
-    const { doc, textDoc } = await getDocuments(uri);
-    if (doc && textDoc) {
-        const cacheOfNodes: ClientCache = {};
-        for (const node of doc.nodes)
-            combineCache(cacheOfNodes, node.cache, { uri, getPosition: offset => textDoc.positionAt(offset) });
-        combineCache(cacheFile.cache, cacheOfNodes);
-    }
-    const unit = setUpUnit(cacheFile.cache, type, id);
-    if (!(unit.def = unit.def ?? []).find(p => p.uri === uri.toString()))
-        (unit.def = unit.def ?? []).push({ uri: uri.toString(), start: 0, end: 0, startLine: 0, startChar: 0, endLine: 0, endChar: 0 });
-
-}
-
-async function getDocuments(uri: Uri): Promise<{ doc: DatapackDocument | undefined, textDoc: TextDocument | undefined }> {
-    try {
-        const langID = getLangID(uri);
-        if (langID === 'nbt') return { doc: undefined, textDoc: undefined };
-        const getText = async () => await readFile(uri.fsPath);
-        const textDoc = await getTextDocument({ uri, langID, version: null, getText });
-        return { doc: await parseDocument(textDoc), textDoc };
-    } catch (e) {
-        console.error(`[getDocuments] for ${uri} `, e);
-    }
-    return { doc: undefined, textDoc: undefined };
-}
-
-function getLangID(uri: Uri): 'json' | 'mcfunction' | 'nbt' {
-    if (uri.fsPath.endsWith('.json') || uri.fsPath.endsWith('.mcmeta'))
-        return 'json';
-    else if (uri.fsPath.endsWith('.nbt'))
-        return 'nbt';
-    else
-        return 'mcfunction';
 }
