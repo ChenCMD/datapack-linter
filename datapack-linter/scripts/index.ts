@@ -30,7 +30,6 @@ async function lint() {
     const dirUri = Uri.file(dir);
     service.roots.push(...await findDatapackRoots(dirUri, await service.getConfig(dirUri)));
     await updateCacheFile(service);
-    service.onDeletedFile(Uri.file(path.join(dir, 'The_file_does_not_exist_here', 'This_function_is_executed_to_illegally_remove_service.caches')));
 
     // Lint Region
     const results: LintingData = {};

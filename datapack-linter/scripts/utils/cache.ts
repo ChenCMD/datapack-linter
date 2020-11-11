@@ -41,6 +41,13 @@ export async function updateCacheFile(service: DatapackLanguageService): Promise
         console.info(`[updateCacheFile] [1] ${time2 - time1} ms`);
         console.info(`[updateCacheFile] [2] ${time3 - time2} ms`);
         console.info(`[updateCacheFile] [T] ${time3 - time1} ms`);
+        service.onDeletedFile(Uri.file(path.join(
+            'What_is_this',
+            'It_is_taking_a_non-existent_path_to_Uri_and_passing_it_to_a_function.',
+            'Why_I_do_not_know_what_that_means.',
+            'This_way_I_can_illegally_clear_service.caches.',
+            'If_you_do_not_do_this_it_will_cause_an_error.'
+        )));
     } catch (e) {
         console.error('[updateCacheFile] ', e);
     }
