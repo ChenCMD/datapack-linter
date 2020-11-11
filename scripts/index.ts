@@ -9,8 +9,8 @@ import path from 'path';
 import { findDatapackRoots, getConfiguration, updateCacheFile, getMessageData, outputMessage } from './utils';
 import { getSafeMessageData, LintingData } from './types/Results';
 
-const dir = path.resolve(__dirname, '../../');
-
+const dir = process.cwd();
+console.log('::add-matcher::./matcher.json');
 lint();
 
 async function lint() {
