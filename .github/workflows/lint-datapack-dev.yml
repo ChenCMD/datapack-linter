@@ -16,4 +16,5 @@ jobs:
           git clone -b test-datapack https://github.com/ChenCMD/datapack-linter.git datapack
 
       - name: test
+        working-directory: test
         uses: ChenCMD/datapack-linter@dev
