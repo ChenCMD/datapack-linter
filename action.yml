@@ -6,7 +6,7 @@ runs:
   steps:
     - shell: bash
       run: |
-        git clone https://github.com/ChenCMD/datapack-linter.git
+        git clone https://github.com/ChenCMD/datapack-linter.git -b v1.0.1 --depth 1
         echo "::add-matcher::datapack-linter/matcher.json"
         cd datapack-linter
         npm i
