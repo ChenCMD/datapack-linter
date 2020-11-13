@@ -11,23 +11,9 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-
-      - name: Cache Node Modules
-        uses: actions/cache@v1
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-            ${{ runner.os }}-
+      - name: clone test datapack
+        run: |
+          git clone -b test-datapack https://github.com/ChenCMD/datapack-linter.git datapack
 
       - name: test
-        run: |
-          git clone -b test-datapack https://github.com/ChenCMD/datapack-linter.git
-          echo "::add-matcher::matcher.json"
-          npm i
-          npm run lint-dp
+        uses: ChenCMD/datapack-linter@dev
