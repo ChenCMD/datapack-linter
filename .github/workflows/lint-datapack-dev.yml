@@ -1,10 +1,10 @@
 name: lint-datapack
 on:
   push:
-    branches: 
+    branches:
       - dev
   pull_request:
-    branches: 
+    branches:
       - dev
 jobs:
   lint:
@@ -24,7 +24,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
             ${{ runner.os }}-
-            
+
       - name: test
         run: |
           git clone -b test-datapack https://github.com/ChenCMD/datapack-linter.git
