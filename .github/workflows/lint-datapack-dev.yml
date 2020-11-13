@@ -25,9 +25,9 @@ jobs:
             ${{ runner.os }}-node-
             ${{ runner.os }}-
             
-      - name: Clone datapack
+      - name: test
         run: |
           git clone -b test-datapack https://github.com/ChenCMD/datapack-linter.git
-
-      - name: Test
-        uses: ChenCMD/datapack-linter@dev
+          echo "::add-matcher::datapack-linter/matcher.json"
+          npm i
+          npm run lint-dp
