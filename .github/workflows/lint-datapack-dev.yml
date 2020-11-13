@@ -14,8 +14,7 @@ jobs:
     steps:
       - name: clone test datapack
         run: |
-          git clone -b test-datapack https://github.com/ChenCMD/datapack-linter.git datapack
+          git clone -b test-datapack https://github.com/ChenCMD/datapack-linter.git ./
 
       - name: test
-        working-directory: test
         uses: ChenCMD/datapack-linter@dev
