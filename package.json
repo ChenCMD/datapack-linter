@@ -1,6 +1,6 @@
 {
   "name": "datapack-linter",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Processing to lint datapack with GitHub Action",
   "author": "ChenCMD",
   "license": "MIT",
