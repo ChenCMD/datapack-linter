@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Config, constructConfig } from '@spgoding/datapack-language-server/lib/types';
 import { pathAccessible, readFile } from '@spgoding/datapack-language-server';
+import stripJsonComments from 'strip-json-comments';
 
 /**
  * Get config.
@@ -10,10 +11,10 @@ export async function getConfiguration(configPath: string): Promise<Config> {
     if (!await pathAccessible(configPath))
         return constructConfig({});
     const json = await readFile(configPath);
-    const result: {[key: string]: any} = {};
-    const obj = JSON.parse(json);
+    const result: { [key: string]: any } = {};
+    const obj = JSON.parse(stripJsonComments(json));
     Object.entries(obj).forEach(([path, value]) => {
-        const walk = (key: {[key: string]: any}, [head, ...tail]: string[]): void => {
+        const walk = (key: { [key: string]: any }, [head, ...tail]: string[]): void => {
             if (key[head] === undefined)
                 key[head] = {};
 
