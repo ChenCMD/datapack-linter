@@ -15,6 +15,8 @@ lint();
 async function lint() {
     // log group start
     core.startGroup('init log');
+    // Env Log
+    console.log(`dir: ${dir}`);
 
     // initialize DatapackLanguageService
     const capabilities = getClientCapabilities({ workspace: { configuration: true, didChangeConfiguration: { dynamicRegistration: true } } });
@@ -28,6 +30,9 @@ async function lint() {
     const dirUri = Uri.file(dir);
     const config = await service.getConfig(dirUri);
     service.roots.push(...await findDatapackRoots(dirUri, config));
+    // Env Log
+    console.log('datapack roots:');
+    service.roots.forEach(v => console.log(v));
     await updateCacheFile(service);
 
     // Lint Region
