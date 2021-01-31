@@ -15,11 +15,13 @@
         "alwaysStrict": true,
         "strictNullChecks": true,
         "newLine": "LF",
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "lib": [
+            "ES2017"
+        ]
     },
     "exclude": [
-        "out",
-        "dist"
+        "node_modules"
     ],
     "include": [
         "scripts/**/*.json",
