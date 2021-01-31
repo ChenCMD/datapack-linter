@@ -6,7 +6,7 @@ const path = require('path');
 module.exports = {
     target: 'node12',
     entry: {
-        main: './scripts/index.ts',
+        index: './scripts/index.ts',
         server: './node_modules/@spgoding/datapack-language-server/lib/server.js'
     },
     output: {
