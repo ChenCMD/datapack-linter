@@ -32,7 +32,7 @@ async function lint() {
     service.roots.push(...await findDatapackRoots(dirUri, config));
     // Env Log
     console.log('datapack roots:');
-    service.roots.forEach(v => console.log(v));
+    service.roots.forEach(v => console.log(v.path));
     await updateCacheFile(service);
 
     // Lint Region
