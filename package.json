@@ -9,7 +9,7 @@
     "url": "https://github.com/ChenCMD/datapack-linter"
   },
   "scripts": {
-    "build": "webpack --mode production"
+    "build": "webpack --mode development"
   },
   "dependencies": {
     "@actions/core": "^1.2.6",
