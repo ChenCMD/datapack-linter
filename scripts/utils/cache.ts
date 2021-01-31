@@ -26,7 +26,7 @@
 import { getRelAndRootIndex, partitionedIteration, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import { CacheFile, isRelIncluded, trimCache, Uri } from '@spgoding/datapack-language-server/lib/types';
 import { DatapackLanguageService, pathAccessible } from '@spgoding/datapack-language-server';
-import * as fsp from 'fs/promises';
+import { promises as fsp } from 'fs';
 import path from 'path';
 
 /**
