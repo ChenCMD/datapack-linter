@@ -2,15 +2,8 @@ name: datapack-linter
 author: chen
 description: Processing to lint datapack
 runs:
-  using: composite
-  steps:
-    - shell: bash
-      run: |
-        git clone https://github.com/ChenCMD/datapack-linter.git -b v1.0.1 --depth 1
-        echo "::add-matcher::datapack-linter/matcher.json"
-        cd datapack-linter
-        npm i
-        npm run lint-dp
+  using: node12
+  main: 'dist/index.js'
 branding:
   icon: box
   color: green
