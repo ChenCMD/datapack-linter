@@ -2,7 +2,7 @@ name: datapack-linter
 author: chen
 description: Processing to lint datapack
 runs:
-  using: node15
+  using: node14
   main: 'dist/index.js'
 branding:
   icon: box
