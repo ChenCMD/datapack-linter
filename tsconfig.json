@@ -4,7 +4,7 @@
         "esModuleInterop": true,
         "moduleResolution": "node",
         "module": "commonjs",
-        "target": "ESNext",
+        "target": "es2019",
         "rootDir": "scripts",
         "outDir": "dist",
         "noFallthroughCasesInSwitch": true,
@@ -17,7 +17,7 @@
         "newLine": "LF",
         "resolveJsonModule": true,
         "lib": [
-            "ES2017"
+            "es2020"
         ]
     },
     "exclude": [
