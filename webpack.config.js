@@ -4,18 +4,16 @@
 const path = require('path');
 
 module.exports = {
-    target: 'node12',
+    target: 'node',
     entry: {
         index: './scripts/index.ts',
         server: './node_modules/@spgoding/datapack-language-server/lib/server.js'
     },
     output: {
         path: path.resolve(__dirname, 'dist'),
-        filename: '[name].js',
-        libraryTarget: 'commonjs2',
-        devtoolModuleFilenameTemplate: '../[resource-path]'
+        filename: '[name].js'
     },
-    devtool: 'source-map',
+    // devtool: 'source-map',
     resolve: {
         extensions: ['.ts', '.js', '.json']
     },
