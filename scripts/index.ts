@@ -9,7 +9,7 @@ import path from 'path';
 import { findDatapackRoots, getConfiguration, updateCacheFile, getMessageData, outputMessage } from './utils';
 import { getSafeMessageData, LintingData } from './types/Results';
 
-const dir = path.resolve(process.cwd(), '../');
+const dir = process.cwd();
 lint();
 
 async function lint() {
