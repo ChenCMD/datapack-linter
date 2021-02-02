@@ -81,7 +81,10 @@ async function lint() {
         const errorMul = failCount.error > 1 ? 's' : '';
         const warningMul = failCount.warning > 1 ? 's' : '';
         core.info(`Check failed (${failCount.error} error${errorMul}, ${failCount.warning} warning${warningMul})`);
-        process.exitCode = core.ExitCode.Failure;
+        if (!core.isDebug())
+            process.exitCode = core.ExitCode.Failure;
+        else
+            core.info('Test forced pass. Because debug mode');
     }
 }
 
