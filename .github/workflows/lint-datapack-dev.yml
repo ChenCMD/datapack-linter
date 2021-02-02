@@ -17,6 +17,6 @@ jobs:
           git clone -b test-datapack https://github.com/ChenCMD/datapack-linter.git ./
 
       - name: test
-        env:
-          RUNNER_DEBUG: '1'
         uses: ChenCMD/datapack-linter@dev
+        with:
+          DEBUG: 'true'
