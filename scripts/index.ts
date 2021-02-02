@@ -8,11 +8,14 @@ import * as core from '@actions/core';
 import path from 'path';
 import { findDatapackRoots, getConfiguration, updateCacheFile, outputErrorMessage, getError, getDefine, outputDefineMessage } from './utils';
 import { DefineData, ErrorData, getSafeMessageData, LintingData } from './types/Results';
+import { promises as fsp} from 'fs';
+import mather from './matcher.json';
 
 const dir = process.cwd();
 lint();
 
 async function lint() {
+    await fsp.writeFile(path.join(dir, 'matcher.json'), JSON.stringify(mather));
     // add Problem Matcher
     core.info('::add-matcher::matcher.json');
     // log group start
