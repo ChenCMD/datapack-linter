@@ -13,6 +13,8 @@ const dir = process.cwd();
 lint();
 
 async function lint() {
+    // add Problem Matcher
+    core.info('::add-matcher::matcher.json');
     // log group start
     core.startGroup('init log');
     // Env Log
