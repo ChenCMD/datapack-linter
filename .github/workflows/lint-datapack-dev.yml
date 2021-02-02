@@ -20,4 +20,4 @@ jobs:
         uses: ChenCMD/datapack-linter@dev
         with:
           DEBUG: 'true'
-          outputDeclare: 'public'
+          outputDefine: 'public'

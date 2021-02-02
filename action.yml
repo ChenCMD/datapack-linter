@@ -11,6 +11,6 @@ inputs:
   DEBUG:
     description: 'Setting this argument to "true" will force the test to pass.'
     required: false
-  outputDeclare:
-    description: 'Shows the declaration that the resource path passed in the argument can be referenced. Also, if "public" is specified as an argument, the declaration that can be referenced from the whole is displayed. This argument can describe multiple resource paths by using line breaks.'
+  outputDefine:
+    description: 'Shows the definition that the resource path passed in the argument can be referenced. Also, if "public" is specified as an argument, the declaration that can be referenced from the whole is displayed. This argument can describe multiple resource paths by using line breaks.'
     required: false

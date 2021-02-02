@@ -15,7 +15,7 @@ export interface ErrorData {
     message: string
 }
 
-export interface DeclareData {
+export interface DefineData {
     category: CacheCategory
     name: string
 }

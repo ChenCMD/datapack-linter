@@ -6,8 +6,8 @@ import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { loadLocale } from '@spgoding/datapack-language-server/lib/locales';
 import * as core from '@actions/core';
 import path from 'path';
-import { findDatapackRoots, getConfiguration, updateCacheFile, outputErrorMessage, getError, getDeclare, outputDeclareMessage } from './utils';
-import { DeclareData, ErrorData, getSafeMessageData, LintingData } from './types/Results';
+import { findDatapackRoots, getConfiguration, updateCacheFile, outputErrorMessage, getError, getDefine, outputDefineMessage } from './utils';
+import { DefineData, ErrorData, getSafeMessageData, LintingData } from './types/Results';
 
 const dir = process.cwd();
 lint();
@@ -42,9 +42,9 @@ async function lint() {
 
     // Lint Region
     const errorResults: LintingData<ErrorData> = {};
-    const declareResults: LintingData<DeclareData> = {};
+    const defineResults: LintingData<DefineData> = {};
     // expect '' | 'public' | resourcePath
-    const testPath = core.getInput('outputDeclare');
+    const testPath = core.getInput('outputDefine');
 
     await Promise.all(service.roots.map(async root =>
         await walkFile(
@@ -73,7 +73,7 @@ async function lint() {
                 // pushing message
                 getSafeMessageData(errorResults, category).push(getError(parseData, id, textDoc, root, rel));
                 if (testPath !== '')
-                    getSafeMessageData(declareResults, category).push(getDeclare(parseData, id, root, rel, testPath.split(/\n/)));
+                    getSafeMessageData(defineResults, category).push(getDefine(parseData, id, root, rel, testPath.split(/\n/)));
             },
             async (_, rel) => isRelIncluded(rel, config)
         )
@@ -82,9 +82,9 @@ async function lint() {
     // log group end
     core.endGroup();
 
-    // declare message output
-    core.startGroup('declares');
-    outputDeclareMessage(declareResults);
+    // define message output
+    core.startGroup('defines');
+    outputDefineMessage(defineResults);
     core.endGroup();
 
     // message output

@@ -3,7 +3,7 @@ import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { TextDocument, DiagnosticSeverity } from 'vscode-json-languageservice';
 import * as core from '@actions/core';
 import path from 'path';
-import { DeclareData, ErrorData, LintingData, FailCount, Output } from '../types/Results';
+import { DefineData, ErrorData, LintingData, FailCount, Output } from '../types/Results';
 
 /**
  * Create and return message data from DatapackDocument.
@@ -34,7 +34,7 @@ export function getError(parsedData: DatapackDocument, id: IdentityNode, doc: Te
     return res;
 }
 
-export function getDeclare(parsedData: DatapackDocument, id: IdentityNode, root: Uri, rel: string, testPath: string[]): Output<DeclareData> {
+export function getDefine(parsedData: DatapackDocument, id: IdentityNode, root: Uri, rel: string, testPath: string[]): Output<DefineData> {
     const test = (visibility: CacheVisibility) => {
         const regex = new RegExp(`^${visibility.pattern
             .replace(/\?/g, '[^:/]')
@@ -44,7 +44,7 @@ export function getDeclare(parsedData: DatapackDocument, id: IdentityNode, root:
         return testPath.some(v => regex.test(v) || regex.test(v.match(/^[^:]+$/) ? `minecraft:${v}` : v));
     };
     const title = `${id} (${path.parse(root.fsPath).name}/${rel.replace(/\\/g, '/')})`;
-    const res: Output<DeclareData> = { title, messages: [] };
+    const res: Output<DefineData> = { title, messages: [] };
     for (const node of parsedData?.nodes ?? []) {
         for (const type of Object.keys(node.cache)) {
             const category = node.cache[type as CacheType] as CacheCategory;
@@ -86,7 +86,7 @@ export function outputErrorMessage(results: LintingData<ErrorData>): FailCount {
 /**
  * Output message data.
  */
-export function outputDeclareMessage(results: LintingData<DeclareData>): void {
+export function outputDefineMessage(results: LintingData<DefineData>): void {
     for (const type of Object.keys(results)) {
         results[type as FileType]
             ?.filter(result => result.messages.length)
