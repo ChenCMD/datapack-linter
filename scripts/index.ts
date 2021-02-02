@@ -36,6 +36,9 @@ async function lint() {
     console.log('datapack roots:');
     service.roots.forEach(v => console.log(v.path));
     await updateCacheFile(service);
+    // Cache Log
+    console.log('cache:');
+    console.log(JSON.stringify(service.cacheFile.cache));
 
     // Lint Region
     const errorResults: LintingData<ErrorData> = {};
