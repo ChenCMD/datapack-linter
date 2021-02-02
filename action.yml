@@ -7,3 +7,7 @@ runs:
 branding:
   icon: box
   color: green
+inputs:
+  DEBUG:
+    description: 'Setting this argument to \'true\' will force the test to pass.'
+    required: false
