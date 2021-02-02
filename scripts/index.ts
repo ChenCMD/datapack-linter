@@ -8,7 +8,7 @@ import * as core from '@actions/core';
 import path from 'path';
 import { findDatapackRoots, getConfiguration, updateCacheFile, outputErrorMessage, getError, getDefine, outputDefineMessage } from './utils';
 import { DefineData, ErrorData, getSafeMessageData, LintingData } from './types/Results';
-import { promises as fsp} from 'fs';
+import { promises as fsp } from 'fs';
 import mather from './matcher.json';
 
 const dir = process.cwd();
@@ -86,9 +86,11 @@ async function lint() {
     core.endGroup();
 
     // define message output
-    core.startGroup('defines');
-    outputDefineMessage(defineResults);
-    core.endGroup();
+    if (testPath !== '') {
+        core.startGroup('defines');
+        outputDefineMessage(defineResults);
+        core.endGroup();
+    }
 
     // message output
     const failCount = outputErrorMessage(errorResults);

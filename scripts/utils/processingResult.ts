@@ -70,11 +70,12 @@ export function getDefine(parsedData: DatapackDocument, id: IdentityNode, root: 
     const title = `${id} (${path.parse(root.fsPath).name}/${rel.replace(/\\/g, '/')})`;
     const res: Output<DefineData> = { title, messages: [] };
     for (const node of parsedData?.nodes ?? []) {
-        for (const type of Object.keys(node.cache)) {
-            const category = node.cache[type as CacheType] as CacheCategory;
+        for (const type of Object.keys(node.cache) as CacheType[]) {
+            const category = node.cache[type] as CacheCategory;
             for (const name of Object.keys(category)) {
-                if (category[name]!.dcl?.some(v => test(v.visibility)))
-                    res.messages.push({ category, name });
+                if (category[name]!.dcl?.some(v => test(v.visibility))
+                    || category[name]!.def?.filter(v => v.end !== 0).some(v => test(v.visibility)))
+                    res.messages.push({ type, name });
             }
         }
     }
@@ -117,7 +118,7 @@ export function outputDefineMessage(results: LintingData<DefineData>): void {
             .sort((a, b) => a.title > b.title ? 1 : -1)
             .forEach(result => {
                 core.info(`${result.title}`);
-                result.messages.forEach(out => core.info(`${out.category} ${out.name}`));
+                result.messages.forEach(out => core.info(`    ${out.type} ${out.name}`));
             });
     }
     return;

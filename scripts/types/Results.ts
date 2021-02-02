@@ -1,4 +1,4 @@
-import { CacheCategory, FileType } from '@spgoding/datapack-language-server/lib/types';
+import { CacheType, FileType } from '@spgoding/datapack-language-server/lib/types';
 import { DiagnosticSeverity } from 'vscode-json-languageservice';
 
 export type LintingData<T> = {
@@ -16,7 +16,7 @@ export interface ErrorData {
 }
 
 export interface DefineData {
-    category: CacheCategory
+    type: CacheType
     name: string
 }
 
