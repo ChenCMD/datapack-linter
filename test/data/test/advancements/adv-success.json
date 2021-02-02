@@ -1,0 +1,18 @@
+{
+    "display": {
+        "icon": {
+            "item": "minecraft:stone"
+        },
+        "title": "success",
+        "description": "test"
+    },
+    "criteria": {
+        "success": {
+            "trigger": "impossible"
+        }
+    },
+    "rewards": {
+        "function": "test:mcf-success",
+        "experience": 5
+    }
+}
