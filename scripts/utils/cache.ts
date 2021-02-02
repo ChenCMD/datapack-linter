@@ -72,7 +72,6 @@ async function checkFilesInCache(cacheFile: CacheFile, roots: Uri[], service: Da
             } else {
                 const stat = await fsp.stat(uri.fsPath);
                 const lastModified = stat.mtimeMs;
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 const lastUpdated = cacheFile.files[uriString]!;
                 if (lastModified > lastUpdated) {
                     cacheFile.files[uriString] = lastModified;

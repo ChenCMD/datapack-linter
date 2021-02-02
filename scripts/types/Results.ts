@@ -1,18 +1,23 @@
-import { FileType } from '@spgoding/datapack-language-server/lib/types';
+import { CacheCategory, FileType } from '@spgoding/datapack-language-server/lib/types';
 import { DiagnosticSeverity } from 'vscode-json-languageservice';
 
-export type LintingData = {
-    [type in FileType]?: MessageData[]
+export type LintingData<T> = {
+    [type in FileType]?: Output<T>[]
 };
 
-export interface MessageData {
+export interface Output<T> {
     title: string
-    messages: Output[]
+    messages: T[]
 }
 
-export interface Output {
+export interface ErrorData {
     severity: DiagnosticSeverity
     message: string
+}
+
+export interface DeclareData {
+    category: CacheCategory
+    name: string
 }
 
 export interface FailCount {
@@ -20,6 +25,6 @@ export interface FailCount {
     error: number
 }
 
-export function getSafeMessageData(data: LintingData, type: FileType): MessageData[] {
+export function getSafeMessageData<T>(data: LintingData<T>, type: FileType): Output<T>[] {
     return data[type] ?? (data[type] = []);
 }

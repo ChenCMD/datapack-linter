@@ -6,8 +6,8 @@ import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { loadLocale } from '@spgoding/datapack-language-server/lib/locales';
 import * as core from '@actions/core';
 import path from 'path';
-import { findDatapackRoots, getConfiguration, updateCacheFile, getMessageData, outputMessage } from './utils';
-import { getSafeMessageData, LintingData } from './types/Results';
+import { findDatapackRoots, getConfiguration, updateCacheFile, outputErrorMessage, getError, getDeclare, outputDeclareMessage } from './utils';
+import { DeclareData, ErrorData, getSafeMessageData, LintingData } from './types/Results';
 
 const dir = process.cwd();
 lint();
@@ -36,7 +36,11 @@ async function lint() {
     await updateCacheFile(service);
 
     // Lint Region
-    const results: LintingData = {};
+    const errorResults: LintingData<ErrorData> = {};
+    const declareResults: LintingData<DeclareData> = {};
+    // expect '' | 'public' | resourcePath
+    const testPath = core.getInput('outputDeclare');
+
     await Promise.all(service.roots.map(async root =>
         await walkFile(
             root.fsPath,
@@ -62,7 +66,9 @@ async function lint() {
                     return;
 
                 // pushing message
-                getSafeMessageData(results, category).push(getMessageData(parseData, id, textDoc, root, rel));
+                getSafeMessageData(errorResults, category).push(getError(parseData, id, textDoc, root, rel));
+                if (testPath !== '')
+                    getSafeMessageData(declareResults, category).push(getDeclare(parseData, id, root, rel, testPath.split(/\n/)));
             },
             async (_, rel) => isRelIncluded(rel, config)
         )
@@ -71,10 +77,14 @@ async function lint() {
     // log group end
     core.endGroup();
 
-    // message output
-    const failCount = outputMessage(results);
+    // declare message output
+    core.startGroup('declares');
+    outputDeclareMessage(declareResults);
+    core.endGroup();
 
-    core.info(core.getInput('DEBUG'));
+    // message output
+    const failCount = outputErrorMessage(errorResults);
+
     // last message output
     if (failCount.error + failCount.warning === 0) {
         core.info('Check successful');

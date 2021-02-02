@@ -1,23 +1,23 @@
-import { DatapackDocument, Uri, FileType } from '@spgoding/datapack-language-server/lib/types';
+import { DatapackDocument, Uri, FileType, CacheType, CacheCategory, CacheVisibility } from '@spgoding/datapack-language-server/lib/types';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { TextDocument, DiagnosticSeverity } from 'vscode-json-languageservice';
 import * as core from '@actions/core';
 import path from 'path';
-import { MessageData, Output, LintingData, FailCount } from '../types/Results';
+import { DeclareData, ErrorData, LintingData, FailCount, Output } from '../types/Results';
 
 /**
  * Create and return message data from DatapackDocument.
  */
-export function getMessageData(parseData: DatapackDocument, id: IdentityNode, document: TextDocument, root: Uri, rel: string): MessageData {
+export function getError(parsedData: DatapackDocument, id: IdentityNode, doc: TextDocument, root: Uri, rel: string): Output<ErrorData> {
     const title = `${id} (${path.parse(root.fsPath).name}/${rel.replace(/\\/g, '/')})`;
-    const messages: Output[] = [];
-    for (const node of parseData?.nodes ?? []) {
+    const res: Output<ErrorData> = { title, messages: [] };
+    for (const node of parsedData?.nodes ?? []) {
         if (node.errors.length === 0) // Success
             continue;
         // Failed
         const result = node.errors
             .filter(err => err.severity < 3)
-            .map(err => err.toDiagnostic(document))
+            .map(err => err.toDiagnostic(doc))
             .sort((errA, errB) => errA.range.start.line - errB.range.start.line)
             .map(err => {
                 const pos = err.range.start;
@@ -29,18 +29,40 @@ export function getMessageData(parseData: DatapackDocument, id: IdentityNode, do
                     severity: err.severity ?? DiagnosticSeverity.Warning
                 };
             });
-        messages.push(...result);
+        res.messages.push(...result);
     }
-    return { title, messages };
+    return res;
+}
+
+export function getDeclare(parsedData: DatapackDocument, id: IdentityNode, root: Uri, rel: string, testPath: string[]): Output<DeclareData> {
+    const test = (visibility: CacheVisibility) => {
+        const regex = new RegExp(`^${visibility.pattern
+            .replace(/\?/g, '[^:/]')
+            .replace(/\*\*\//g, '.*')
+            .replace(/\*\*/g, '.*')
+            .replace(/\*/g, '[^:/]*')}$`);
+        return testPath.some(v => regex.test(v) || regex.test(v.match(/^[^:]+$/) ? `minecraft:${v}` : v));
+    };
+    const title = `${id} (${path.parse(root.fsPath).name}/${rel.replace(/\\/g, '/')})`;
+    const res: Output<DeclareData> = { title, messages: [] };
+    for (const node of parsedData?.nodes ?? []) {
+        for (const type of Object.keys(node.cache)) {
+            const category = node.cache[type as CacheType] as CacheCategory;
+            for (const name of Object.keys(category)) {
+                if (category[name]!.dcl?.some(v => v.visibility?.some(test)))
+                    res.messages.push({ category, name });
+            }
+        }
+    }
+    return res;
 }
 
 /**
  * Output message data.
  */
-export function outputMessage(results: LintingData): FailCount {
+export function outputErrorMessage(results: LintingData<ErrorData>): FailCount {
     const failCount = { warning: 0, error: 0 };
     for (const type of Object.keys(results)) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         for (const result of results[type as FileType]!.sort((a, b) => a.title > b.title ? 1 : -1)) {
             if (result.messages.length === 0) {
                 core.info(`\u001b[92m✓\u001b[39m  ${result.title}`);
@@ -59,4 +81,20 @@ export function outputMessage(results: LintingData): FailCount {
         }
     }
     return failCount;
+}
+
+/**
+ * Output message data.
+ */
+export function outputDeclareMessage(results: LintingData<DeclareData>): void {
+    for (const type of Object.keys(results)) {
+        results[type as FileType]
+            ?.filter(result => result.messages.length)
+            .sort((a, b) => a.title > b.title ? 1 : -1)
+            .forEach(result => {
+                core.info(`${result.title}`);
+                result.messages.forEach(out => core.info(`${out.category} ${out.name}`));
+            });
+    }
+    return;
 }
