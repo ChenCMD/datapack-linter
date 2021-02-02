@@ -74,7 +74,7 @@ async function lint() {
     // message output
     const failCount = outputMessage(results);
 
-    console.log(process.env['RUNNER_DEBUG']);
+    core.info(core.getInput('DEBUG'));
     // last message output
     if (failCount.error + failCount.warning === 0) {
         core.info('Check successful');
