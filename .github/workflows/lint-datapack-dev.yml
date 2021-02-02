@@ -17,8 +17,6 @@ jobs:
           git clone -b test-datapack https://github.com/ChenCMD/datapack-linter.git ./
 
       - name: test
+        env:
+          RUNNER_DEBUG: '1'
         uses: ChenCMD/datapack-linter@dev
-
-      - name: test
-        run: |
-          pwd;find . | sort | sed '1d;s/^\.//;s/\/\([^/]*\)$/|--\1/;s/\/[^/|]*/|  /g'
