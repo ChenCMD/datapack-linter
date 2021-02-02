@@ -1,4 +1,4 @@
-import { DatapackDocument, Uri, FileType, CacheType, CacheCategory, CacheVisibility } from '@spgoding/datapack-language-server/lib/types';
+import { DatapackDocument, Uri, FileType, CacheType, CacheCategory, CacheVisibility, Config } from '@spgoding/datapack-language-server/lib/types';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { TextDocument, DiagnosticSeverity } from 'vscode-json-languageservice';
 import * as core from '@actions/core';
@@ -34,8 +34,32 @@ export function getError(parsedData: DatapackDocument, id: IdentityNode, doc: Te
     return res;
 }
 
-export function getDefine(parsedData: DatapackDocument, id: IdentityNode, root: Uri, rel: string, testPath: string[]): Output<DefineData> {
-    const test = (visibility: CacheVisibility) => {
+export function getDefine(parsedData: DatapackDocument, id: IdentityNode, root: Uri, rel: string, testPath: string[], config: Config): Output<DefineData> {
+    const test = (visibility: CacheVisibility | CacheVisibility[] | undefined): boolean => {
+        if (!visibility) {
+            const defaultVisibility = config.env.defaultVisibility;
+            if (typeof defaultVisibility === 'string') {
+                if (defaultVisibility === 'private')
+                    return test({ type: '*', pattern: id.toString() });
+                if (defaultVisibility === 'internal') {
+                    const namespace = id.getNamespace();
+                    if (namespace === IdentityNode.DefaultNamespace)
+                        return test({ type: '*', pattern: namespace });
+                    else
+                        return test([{ type: '*', pattern: `${namespace}:**` }, { type: '*', pattern: `${IdentityNode.DefaultNamespace}:**` }]);
+                }
+                if (defaultVisibility === 'public')
+                    return true;
+            }
+            if (defaultVisibility instanceof Array && !defaultVisibility.length)
+                return true;
+            return test(defaultVisibility);
+        }
+        if (visibility instanceof Array) {
+            if (!visibility.length)
+                return test(undefined);
+            return visibility.some(v => test(v));
+        }
         const regex = new RegExp(`^${visibility.pattern
             .replace(/\?/g, '[^:/]')
             .replace(/\*\*\//g, '.*')
@@ -49,7 +73,7 @@ export function getDefine(parsedData: DatapackDocument, id: IdentityNode, root: 
         for (const type of Object.keys(node.cache)) {
             const category = node.cache[type as CacheType] as CacheCategory;
             for (const name of Object.keys(category)) {
-                if (category[name]!.dcl?.some(v => v.visibility?.some(test)))
+                if (category[name]!.dcl?.some(v => test(v.visibility)))
                     res.messages.push({ category, name });
             }
         }

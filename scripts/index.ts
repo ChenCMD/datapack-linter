@@ -73,7 +73,7 @@ async function lint() {
                 // pushing message
                 getSafeMessageData(errorResults, category).push(getError(parseData, id, textDoc, root, rel));
                 if (testPath !== '')
-                    getSafeMessageData(defineResults, category).push(getDefine(parseData, id, root, rel, testPath.split(/\n/)));
+                    getSafeMessageData(defineResults, category).push(getDefine(parseData, id, root, rel, testPath.split(/\n/), config));
             },
             async (_, rel) => isRelIncluded(rel, config)
         )
