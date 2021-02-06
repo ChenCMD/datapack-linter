@@ -70,7 +70,7 @@ async function lint() {
     // define message output
     if (result.isOutDefine) {
         core.startGroup('defines');
-        core.info(result.defineMessage);
+        result.defineMessage.forEach(core.info);
         core.endGroup();
     }
 
