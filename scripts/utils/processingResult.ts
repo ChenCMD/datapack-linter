@@ -14,7 +14,7 @@ export function printParseResult(parsedData: DatapackDocument, id: IdentityNode,
     let isErrorFound = false;
 
     for (const node of parsedData?.nodes ?? []) {
-        if (node.errors.length === 0) // Success
+        if (node.errors.filter(err => err.severity < 3).length === 0) // Success
             continue;
         // Failed
         if (!isErrorFound) {
