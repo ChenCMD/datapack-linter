@@ -58,8 +58,7 @@ async function lint() {
     // parse Region
 
     // expect '' | 'public' | resourcePath
-    // const testPath = core.getInput('outputDefine').split(/\r?\n/);
-    const testPath = ['public'];
+    const testPath = core.getInput('outputDefine').split(/\r?\n/);
 
     const result = new Result(!!testPath.length, testPath, config);
     for (const root of Object.keys(parsingFile).sort()) {
