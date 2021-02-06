@@ -29,8 +29,9 @@ export function printParseResult(parsedData: DatapackDocument, id: IdentityNode,
                 const pos = err.range.start;
                 const paddingedLine = `   ${pos.line + 1}`.slice(-4);
                 const paddingedChar = `${pos.character + 1}     `.slice(0, 5);
-                const humanReadbleSaverity = err.severity === DiagnosticSeverity.Error ? 'Error     ' : 'Warning ';
-                const message = `${paddingedLine}:${paddingedChar} ${humanReadbleSaverity} ${err.message}`;
+                const humanReadbleSaverity = err.severity === DiagnosticSeverity.Error ? 'Error  ' : 'Warning';
+                const indentAdjust = err.severity === DiagnosticSeverity.Error ? '   ' : ' ';
+                const message = `${indentAdjust}${paddingedLine}:${paddingedChar} ${humanReadbleSaverity} ${err.message}`;
 
                 core.info(message);
                 err.severity === DiagnosticSeverity.Error ? failCount.error++ : failCount.warning++;
