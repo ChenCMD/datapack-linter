@@ -47,10 +47,6 @@
                 "after": true
             }
         ],
-        "max-depth": [
-            "warn",
-            4
-        ],
         "no-nested-ternary": "warn",
         "no-unneeded-ternary": "warn",
         "quotes": [

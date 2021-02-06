@@ -6,10 +6,11 @@ import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { loadLocale } from '@spgoding/datapack-language-server/lib/locales';
 import * as core from '@actions/core';
 import path from 'path';
-import { findDatapackRoots, getConfiguration, updateCacheFile, outputErrorMessage, getError, getDefine, outputDefineMessage } from './utils';
-import { DefineData, ErrorData, getSafeMessageData, LintingData } from './types/Results';
+import { findDatapackRoots, getConfiguration, updateCacheFile, printParseResult } from './utils';
 import { promises as fsp } from 'fs';
 import mather from './matcher.json';
+import { Result } from './utils/Result';
+import { DocumentData, getSafeRecordValue } from './types/Results';
 
 const dir = process.cwd();
 lint();
@@ -36,75 +37,78 @@ async function lint() {
     const dirUri = Uri.file(dir);
     const config = await service.getConfig(dirUri);
     service.roots.push(...await findDatapackRoots(dirUri, config));
+    await updateCacheFile(service);
+
     // Env Log
     console.log('datapack roots:');
     service.roots.forEach(v => console.log(v.path));
-    await updateCacheFile(service);
 
-    // Lint Region
-    const errorResults: LintingData<ErrorData> = {};
-    const defineResults: LintingData<DefineData> = {};
-    // expect '' | 'public' | resourcePath
-    const testPath = core.getInput('outputDefine');
-
-    await Promise.all(service.roots.map(async root =>
-        await walkFile(
-            root.fsPath,
-            path.join(root.fsPath, 'data'),
-            async (file, rel) => {
-                // language check region
-                const dotIndex = file.lastIndexOf('.');
-                const slashIndex = file.lastIndexOf('/');
-                const langID = dotIndex !== -1 && slashIndex < dotIndex ? file.substring(dotIndex + 1) : '';
-                if (!(langID === 'mcfunction' || langID === 'json'))
-                    return;
-
-                // parsing data
-                const text = await readFile(file);
-                const textDoc = await getTextDocument({ uri: Uri.file(file), langID, version: null, getText: async () => text });
-                const parseData = await service.parseDocument(textDoc);
-
-                // get IdentityNode
-                const { id, category } = IdentityNode.fromRel(rel) ?? {};
-
-                // undefined check
-                if (!parseData || !id || !category)
-                    return;
-
-                // pushing message
-                getSafeMessageData(errorResults, category).push(getError(parseData, id, textDoc, root, rel));
-                if (testPath !== '')
-                    getSafeMessageData(defineResults, category).push(getDefine(parseData, id, root, rel, testPath.split(/\n/), config));
-            },
-            async (_, rel) => isRelIncluded(rel, config)
-        )
-    ));
+    // pre parse Region
+    const parsingFile: Record<string, DocumentData[]> = {};
+    await Promise.all(service.roots.map(async root => await walkFile(
+        root.fsPath,
+        path.join(root.fsPath, 'data'),
+        async (file, rel) => getSafeRecordValue(parsingFile, root.fsPath).push({ file, rel }),
+        async (_, rel) => isRelIncluded(rel, config)
+    )));
 
     // log group end
     core.endGroup();
 
+    // parse Region
+
+    // expect '' | 'public' | resourcePath
+    // const testPath = core.getInput('outputDefine').split(/\r?\n/);
+    const testPath = ['public'];
+
+    const result = new Result(!!testPath.length, testPath, config);
+    for (const root of Object.keys(parsingFile).sort()) {
+        for (const { file, rel } of parsingFile[root].sort())
+            await parseDoc(service, root, file, rel, result);
+    }
+
     // define message output
-    if (testPath !== '') {
+    if (result.isOutDefine) {
         core.startGroup('defines');
-        outputDefineMessage(defineResults);
+        core.info(result.defineMessage);
         core.endGroup();
     }
 
-    // message output
-    const failCount = outputErrorMessage(errorResults);
-
     // last message output
-    if (failCount.error + failCount.warning === 0) {
+    if (result.isHasFailCount()) {
         core.info('Check successful');
     } else {
-        const errorMul = failCount.error > 1 ? 's' : '';
-        const warningMul = failCount.warning > 1 ? 's' : '';
-        core.info(`Check failed (${failCount.error} error${errorMul}, ${failCount.warning} warning${warningMul})`);
+        core.info(`Check failed (${result.getFailCountMessage()})`);
         if (core.getInput('DEBUG') !== 'true')
             process.exitCode = core.ExitCode.Failure;
         else
             core.info('Test forced pass. Because debug mode');
     }
+}
+
+async function parseDoc(service: DatapackLanguageService, root: string, file: string, rel: string, result: Result): Promise<void> {
+    // language check region
+    const dotIndex = file.lastIndexOf('.');
+    const slashIndex = file.lastIndexOf('/');
+    const langID = dotIndex !== -1 && slashIndex < dotIndex ? file.substring(dotIndex + 1) : '';
+    if (!(langID === 'mcfunction' || langID === 'json'))
+        return;
+
+    // parsing data
+    const textDoc = await getTextDocument({ uri: Uri.file(file), langID, version: null, getText: async () => await readFile(file) });
+    const parseData = await service.parseDocument(textDoc);
+
+    // get IdentityNode
+    const { id } = IdentityNode.fromRel(rel) ?? {};
+
+    // undefined check
+    if (!parseData || !id)
+        return;
+
+    // append data to result
+    result.addFailCount(printParseResult(parseData, id, textDoc, root, rel));
+    if (result.isOutDefine)
+        result.appendDefineMessage(parseData, id, root, rel);
 }
 
 async function fetchConfig() {
