@@ -77,6 +77,10 @@ async function lint() {
         core.endGroup();
     }
 
+    // delete files.
+    await fsp.rm(globalStoragePath, { recursive: true, force: true });
+    await fsp.rm(matcherPath, { force: true });
+
     // last message output
     if (result.isHasFailCount()) {
         core.info('Check successful');
