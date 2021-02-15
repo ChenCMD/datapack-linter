@@ -78,7 +78,7 @@ export class Result {
                     const defines = [...category[name]!.dcl ?? [], ...category[name]!.def?.filter(v => v.end) ?? []];
                     if (defines.some(v => test(v.visibility))) {
                         if (!isDefineFind) {
-                            append(id + path.parse(root).name + '/' + rel.replace(/\\/g, '/'));
+                            append(`${path.parse(root).name}/${rel.replace(/\\/g, '/')}`);
                             isDefineFind = true;
                         }
                         append(type + ' ' + name, 4);
