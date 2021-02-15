@@ -16,8 +16,15 @@ const dir = process.cwd();
 lint();
 
 async function lint() {
-    await fsp.writeFile(path.join(dir, 'matcher.json'), JSON.stringify(mather));
+    // file path init
+    const globalStoragePath = path.join(dir, '_storage');
+    const matcherPath = path.join(dir, 'matcher.json');
+    // get inputs
+    const testPath = core.getInput('outputDefine').split(/\r?\n/);
+    const isDebug = core.getInput('DEBUG') === 'true';
+
     // add Problem Matcher
+    await fsp.writeFile(matcherPath, JSON.stringify(mather));
     core.info('::add-matcher::matcher.json');
     // log group start
     core.startGroup('init log');
@@ -29,7 +36,7 @@ async function lint() {
     const service = new DatapackLanguageService({
         capabilities,
         fetchConfig,
-        globalStoragePath: path.join(dir, '_storage'),
+        globalStoragePath,
         plugins: await PluginLoader.load(),
         versionInformation: await getLatestVersions()
     });
@@ -57,9 +64,6 @@ async function lint() {
 
     // parse Region
 
-    // expect '' | 'public' | resourcePath
-    const testPath = core.getInput('outputDefine').split(/\r?\n/);
-
     const result = new Result(!!testPath.length, testPath, config);
     for (const root of Object.keys(parsingFile).sort()) {
         for (const { file, rel } of parsingFile[root].sort())
@@ -78,7 +82,7 @@ async function lint() {
         core.info('Check successful');
     } else {
         core.info(`Check failed (${result.getFailCountMessage()})`);
-        if (core.getInput('DEBUG') !== 'true')
+        if (!isDebug)
             process.exitCode = core.ExitCode.Failure;
         else
             core.info('Test forced pass. Because debug mode');
