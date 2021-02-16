@@ -117,7 +117,7 @@ async function parseDoc(service: DatapackLanguageService, garbageCollector: DLSG
         return;
 
     garbageCollector.gc(parseData.nodes.length);
-    const used = process.memoryUsage(); console.log(new Date(), `heapUsed: ${Math.round(used.heapUsed / 1024 / 1024 * 100) / 100} MB`);
+    
     // append data to result
     result.addFailCount(printParseResult(parseData, id, textDoc, root, rel));
     if (result.isOutDefine)
