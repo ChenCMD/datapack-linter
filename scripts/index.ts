@@ -11,6 +11,7 @@ import { promises as fsp } from 'fs';
 import mather from './matcher.json';
 import { Result } from './utils/Result';
 import { DocumentData, getSafeRecordValue } from './types/Results';
+import { DLSGarbageCollector } from './utils/DLSGarbageCollector';
 
 const dir = process.cwd();
 lint();
@@ -44,7 +45,11 @@ async function lint() {
     const dirUri = Uri.file(dir);
     const config = await service.getConfig(dirUri);
     service.roots.push(...await findDatapackRoots(dirUri, config));
-    await updateCacheFile(service);
+
+    // create GarbageCollector
+    const garbageCollector = new DLSGarbageCollector(service, 500);
+
+    await updateCacheFile(service, garbageCollector);
 
     // Env Log
     console.log('datapack roots:');
@@ -63,11 +68,10 @@ async function lint() {
     core.endGroup();
 
     // parse Region
-
     const result = new Result(!!testPath.length, testPath, config);
     for (const root of Object.keys(parsingFile).sort()) {
         for (const { file, rel } of parsingFile[root].sort())
-            await parseDoc(service, root, file, rel, result);
+            await parseDoc(service, garbageCollector, root, file, rel, result);
     }
 
     // define message output
@@ -78,8 +82,8 @@ async function lint() {
     }
 
     // delete files.
-    await fsp.rm(globalStoragePath, { recursive: true, force: true });
-    await fsp.rm(matcherPath, { force: true });
+    // await fsp.rm(globalStoragePath, { recursive: true, force: true });
+    // await fsp.rm(matcherPath, { force: true });
 
     // last message output
     if (result.isHasFailCount()) {
@@ -93,7 +97,7 @@ async function lint() {
     }
 }
 
-async function parseDoc(service: DatapackLanguageService, root: string, file: string, rel: string, result: Result): Promise<void> {
+async function parseDoc(service: DatapackLanguageService, garbageCollector: DLSGarbageCollector, root: string, file: string, rel: string, result: Result): Promise<void> {
     // language check region
     const dotIndex = file.lastIndexOf('.');
     const slashIndex = file.lastIndexOf('/');
@@ -112,6 +116,8 @@ async function parseDoc(service: DatapackLanguageService, root: string, file: st
     if (!parseData || !id)
         return;
 
+    garbageCollector.gc(parseData.nodes.length);
+    const used = process.memoryUsage(); console.log(new Date(), `heapUsed: ${Math.round(used.heapUsed / 1024 / 1024 * 100) / 100} MB`);
     // append data to result
     result.addFailCount(printParseResult(parseData, id, textDoc, root, rel));
     if (result.isOutDefine)

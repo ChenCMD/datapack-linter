@@ -23,34 +23,28 @@
  * SOFTWARE.
  */
 
-import { getRelAndRootIndex, partitionedIteration, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
+import { walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import { CacheFile, isRelIncluded, trimCache, Uri } from '@spgoding/datapack-language-server/lib/types';
-import { DatapackLanguageService, pathAccessible } from '@spgoding/datapack-language-server';
-import { promises as fsp } from 'fs';
+import { DatapackLanguageService } from '@spgoding/datapack-language-server';
 import path from 'path';
+import { DLSGarbageCollector } from './DLSGarbageCollector';
 
 /**
  * This function is equivalent to the one implemented in datapack-language-server/server.ts, except for the last function service.onDeletedFile.
  */
-export async function updateCacheFile(service: DatapackLanguageService): Promise<void> {
+export async function updateCacheFile(service: DatapackLanguageService, garbageCollector: DLSGarbageCollector): Promise<void> {
     try {
         // Check the files saved in the cache file.
         const time1 = new Date().getTime();
-        await checkFilesInCache(service.cacheFile, service.roots, service);
+        // await checkFilesInCache(service.cacheFile, service.roots, service);
         const time2 = new Date().getTime();
-        await addNewFilesToCache(service.cacheFile, service.roots, service);
+        await addNewFilesToCache(service.cacheFile, service.roots, service, garbageCollector);
         trimCache(service.cacheFile.cache);
         const time3 = new Date().getTime();
         console.info(`[updateCacheFile] [1] ${time2 - time1} ms`);
         console.info(`[updateCacheFile] [2] ${time3 - time2} ms`);
         console.info(`[updateCacheFile] [T] ${time3 - time1} ms`);
-        service.onDeletedFile(Uri.file(path.join(
-            'What_is_this',
-            'It_is_taking_a_non-existent_path_to_Uri_and_passing_it_to_a_function.',
-            'Why_I_do_not_know_what_that_means.',
-            'This_way_I_can_illegally_clear_service.caches.',
-            'If_you_do_not_do_this_it_will_cause_an_error.'
-        )));
+        garbageCollector.gc(true);
     } catch (e) {
         console.error('[updateCacheFile] ', e);
     }
@@ -59,33 +53,7 @@ export async function updateCacheFile(service: DatapackLanguageService): Promise
 /**
  * This function is equivalent to the one implemented in datapack-language-server/server.ts.
  */
-async function checkFilesInCache(cacheFile: CacheFile, roots: Uri[], service: DatapackLanguageService) {
-    const uriStrings = Object.keys(cacheFile.files).values();
-    return partitionedIteration(uriStrings, async uriString => {
-        const uri = service.parseUri(uriString);
-        const result = getRelAndRootIndex(uri, roots);
-        if (!result?.rel || !isRelIncluded(result.rel, await service.getConfig(roots[result.index]))) {
-            delete cacheFile.files[uriString];
-        } else {
-            if (!(await pathAccessible(uri.fsPath))) {
-                service.onDeletedFile(uri);
-            } else {
-                const stat = await fsp.stat(uri.fsPath);
-                const lastModified = stat.mtimeMs;
-                const lastUpdated = cacheFile.files[uriString]!;
-                if (lastModified > lastUpdated) {
-                    cacheFile.files[uriString] = lastModified;
-                    await service.onModifiedFile(uri);
-                }
-            }
-        }
-    });
-}
-
-/**
- * This function is equivalent to the one implemented in datapack-language-server/server.ts.
- */
-async function addNewFilesToCache(cacheFile: CacheFile, roots: Uri[], service: DatapackLanguageService) {
+async function addNewFilesToCache(cacheFile: CacheFile, roots: Uri[], service: DatapackLanguageService, garbageCollector: DLSGarbageCollector) {
     return Promise.all(roots.map(root => {
         const dataPath = path.join(root.fsPath, 'data');
         return walkFile(
@@ -95,6 +63,7 @@ async function addNewFilesToCache(cacheFile: CacheFile, roots: Uri[], service: D
                 const uri = service.parseUri(Uri.file(abs).toString());
                 const uriString = uri.toString();
                 if (cacheFile.files[uriString] === undefined) {
+                    garbageCollector.gc(17);
                     await service.onAddedFile(uri);
                     cacheFile.files[uriString] = stat.mtimeMs;
                 }
