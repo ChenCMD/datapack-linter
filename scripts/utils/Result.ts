@@ -9,14 +9,14 @@ export class Result {
     private _warnCount = 0;
     private _defineMessage: string[] = [];
 
-    constructor(private _isOutDefine: boolean, private _testPath: string[], private _config: Config) { }
+    constructor(private readonly _rawTestPath: string, private readonly _config: Config) { }
 
     get defineMessage(): string[] {
         return this._defineMessage;
     }
 
     get isOutDefine(): boolean {
-        return this._isOutDefine;
+        return this._rawTestPath !== '';
     }
 
     addFailCount(failCount: FailCount): void {
@@ -45,7 +45,7 @@ export class Result {
                     .replace(/\*\*\//g, '.*')
                     .replace(/\*\*/g, '.*')
                     .replace(/\*/g, '[^:/]*')}$`);
-                return this._testPath.some(v => regex.test(v) || regex.test(v.match(/^[^:]+$/) ? `minecraft:${v}` : v));
+                return this._rawTestPath.split(/\r?\n/).some(v => regex.test(v) || regex.test(v.match(/^[^:]+$/) ? `minecraft:${v}` : v));
             }
 
             const defaultVisibility = this._config.env.defaultVisibility;

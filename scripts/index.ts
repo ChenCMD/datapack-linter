@@ -21,7 +21,7 @@ async function lint() {
     const globalStoragePath = path.join(dir, '_storage');
     const matcherPath = path.join(dir, 'matcher.json');
     // get inputs
-    const testPath = core.getInput('outputDefine').split(/\r?\n/);
+    const testPath = core.getInput('outputDefine');
     const isDebug = core.getInput('DEBUG') === 'true';
 
     // add Problem Matcher
@@ -68,7 +68,7 @@ async function lint() {
     core.endGroup();
 
     // parse Region
-    const result = new Result(!!testPath.length, testPath, config);
+    const result = new Result(testPath, config);
     for (const root of Object.keys(parsingFile).sort()) {
         for (const { file, rel } of parsingFile[root].sort())
             await parseDoc(service, garbageCollector, root, file, rel, result);
@@ -117,7 +117,7 @@ async function parseDoc(service: DatapackLanguageService, garbageCollector: DLSG
         return;
 
     garbageCollector.gc(parseData.nodes.length);
-    
+
     // append data to result
     result.addFailCount(printParseResult(parseData, id, textDoc, root, rel));
     if (result.isOutDefine)
