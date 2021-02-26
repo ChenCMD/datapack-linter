@@ -84,7 +84,7 @@ async function lint() {
     // await fsp.rm(matcherPath, { force: true });
 
     // last message output
-    if (result.isHasFailCount()) {
+    if (result.hasFailCount()) {
         core.info('Check successful');
     } else {
         core.info(`Check failed (${result.getFailCountMessage()})`);

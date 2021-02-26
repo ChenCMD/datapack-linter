@@ -24,7 +24,7 @@ export class Result {
         this._warnCount += failCount.warning;
     }
 
-    isHasFailCount(): boolean {
+    hasFailCount(): boolean {
         return this._errorCount + this._warnCount === 0;
     }
 
