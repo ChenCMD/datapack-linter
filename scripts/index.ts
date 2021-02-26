@@ -1,17 +1,15 @@
 import { getClientCapabilities, isRelIncluded, Uri, VersionInformation } from '@spgoding/datapack-language-server/lib/types';
+import { DatapackLanguageService, readFile, requestText } from '@spgoding/datapack-language-server';
 import { getTextDocument, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import { PluginLoader } from '@spgoding/datapack-language-server/lib/plugins/PluginLoader';
-import { DatapackLanguageService, readFile, requestText } from '@spgoding/datapack-language-server';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { loadLocale } from '@spgoding/datapack-language-server/lib/locales';
 import * as core from '@actions/core';
-import path from 'path';
-import { findDatapackRoots, getConfiguration, updateCacheFile, printParseResult } from './utils';
 import { promises as fsp } from 'fs';
-import mather from './matcher.json';
-import { Result } from './utils/Result';
+import path from 'path';
+import { findDatapackRoots, getConfiguration, updateCacheFile, printParseResult, Result, DLSGarbageCollector } from './utils';
 import { DocumentData, getSafeRecordValue } from './types/Results';
-import { DLSGarbageCollector } from './utils/DLSGarbageCollector';
+import mather from './matcher.json';
 
 const dir = process.cwd();
 lint();

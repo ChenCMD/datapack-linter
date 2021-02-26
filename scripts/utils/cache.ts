@@ -23,8 +23,8 @@
  * SOFTWARE.
  */
 
-import { walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import { CacheFile, isRelIncluded, trimCache, Uri } from '@spgoding/datapack-language-server/lib/types';
+import { walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import { DatapackLanguageService } from '@spgoding/datapack-language-server';
 import path from 'path';
 import { DLSGarbageCollector } from './DLSGarbageCollector';

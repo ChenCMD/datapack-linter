@@ -1,6 +1,6 @@
 /* eslint-disable prefer-template */
-import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { CacheCategory, CacheType, CacheVisibility, Config, DatapackDocument } from '@spgoding/datapack-language-server/lib/types';
+import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import path from 'path';
 import { FailCount } from '../types/Results';
 
