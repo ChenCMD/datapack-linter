@@ -1,4 +1,11 @@
+import { getRootUri, walkRoot } from '@spgoding/datapack-language-server/lib/services/common';
+import { Config, Uri } from '@spgoding/datapack-language-server/lib/types';
+import { pathAccessible } from '@spgoding/datapack-language-server';
+import path from 'path';
+
 /**
+ * This function is equivalent to the one implemented in datapack-language-server/server.ts.
+ *
  * @license
  * MIT License
  *
@@ -22,15 +29,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
-import { getRootUri, walkRoot } from '@spgoding/datapack-language-server/lib/services/common';
-import { Config, Uri } from '@spgoding/datapack-language-server/lib/types';
-import { pathAccessible } from '@spgoding/datapack-language-server';
-import path from 'path';
-
-/**
- * This function is equivalent to the one implemented in datapack-language-server/server.ts.
- */
 export async function findDatapackRoots(dir: Uri, config: Config): Promise<Uri[]> {
     const rootCandidatePaths = new Set<string>();
     const dirPath = dir.fsPath;
@@ -50,4 +48,8 @@ export async function findDatapackRoots(dir: Uri, config: Config): Promise<Uri[]
         }
     }
     return roots;
+}
+
+export function getSafeRecordValue<T extends string | number | symbol, U>(data: Record<T, U[]>, type: T): U[] {
+    return data[type] ?? (data[type] = []);
 }

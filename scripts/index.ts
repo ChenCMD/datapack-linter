@@ -7,8 +7,8 @@ import { loadLocale } from '@spgoding/datapack-language-server/lib/locales';
 import * as core from '@actions/core';
 import { promises as fsp } from 'fs';
 import path from 'path';
-import { findDatapackRoots, getConfiguration, updateCacheFile, printParseResult, Result, DLSGarbageCollector } from './utils';
-import { DocumentData, getSafeRecordValue } from './types/Results';
+import { findDatapackRoots, getConfiguration, updateCacheFile, printParseResult, Result, DLSGarbageCollector, getSafeRecordValue } from './utils';
+import { DocumentData } from './types/Results';
 import mather from './matcher.json';
 
 const dir = process.cwd();
@@ -17,13 +17,12 @@ lint();
 async function lint() {
     // file path init
     const globalStoragePath = path.join(dir, '_storage');
-    const matcherPath = path.join(dir, 'matcher.json');
     // get inputs
     const testPath = core.getInput('outputDefine');
     const isDebug = core.getInput('DEBUG') === 'true';
 
     // add Problem Matcher
-    await fsp.writeFile(matcherPath, JSON.stringify(mather));
+    await fsp.writeFile(path.join(dir, 'matcher.json'), JSON.stringify(mather));
     core.info('::add-matcher::matcher.json');
     // log group start
     core.startGroup('init log');
