@@ -86,5 +86,5 @@ async function lint() {
             core.info('Test forced pass. Because debug mode');
     }
 
-    saveCache();
+    await saveCache();
 }
