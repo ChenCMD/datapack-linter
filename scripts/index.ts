@@ -6,9 +6,9 @@ import path from 'path';
 import { Result, getSafeRecordValue, printParseResult } from './utils';
 import { DocumentData } from './types/Results';
 import mather from './matcher.json';
-import { isCommitMessageIncluded, saveCache, tryGetCache } from './wrapper/ActionsCacheIO';
+import { isCommitMessageIncluded, saveCache, tryGetCache } from './wrapper/actions';
 import { EasyDatapackLanguageService } from './wrapper/DatapackLanguageService';
-import { getCompareFiles, isDiffInculuded } from './types/ProcessedCompare';
+import { getDiffFiles, isDiffInculuded } from './types/ProcessedDiff';
 
 const dir = process.cwd();
 lint();
@@ -34,7 +34,7 @@ async function lint() {
     // try restore cache and get compare files
     const isCacheRegeneration = isCommitMessageIncluded('[regenerate cache]');
     const cacheFile = isCacheRegeneration ? await tryGetCache(globalStoragePath) : undefined;
-    const compareFiles = isCacheRegeneration ? await getCompareFiles() : undefined;
+    const compareFiles = isCacheRegeneration ? await getDiffFiles() : undefined;
 
     // create EasyDLS
     const easyDLS = await EasyDatapackLanguageService.createInstance(dir, globalStoragePath, cacheFile, 500);

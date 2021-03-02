@@ -2,14 +2,14 @@ import { context } from '@actions/github/lib/utils';
 import { getOctokit } from '@actions/github';
 import core from '@actions/core';
 
-export type CompareStatus = 'added' | 'modified' | 'removed' | 'renamed';
+export type DiffStatus = 'added' | 'modified' | 'removed' | 'renamed';
 
-export interface ProcessedCompare {
+export interface ProcessedDiff {
     filename: string
-    status: CompareStatus
+    status: DiffStatus
 }
 
-export async function getCompareFiles(): Promise<ProcessedCompare[] | undefined> {
+export async function getDiffFiles(): Promise<ProcessedDiff[] | undefined> {
     const _getCompareFiles = async (base: string, head: string) => {
         const client = getOctokit(core.getInput('token', { required: true }));
         const differences = await client.repos.compareCommits({
@@ -18,7 +18,7 @@ export async function getCompareFiles(): Promise<ProcessedCompare[] | undefined>
             base,
             head
         });
-        const result: ProcessedCompare[] = [];
+        const result: ProcessedDiff[] = [];
         for (const { filename, status } of differences.data.files) {
             if (status === 'added' || status === 'modified' || status === 'removed' || status === 'renamed')
                 result.push({ filename, status });
@@ -39,6 +39,6 @@ export async function getCompareFiles(): Promise<ProcessedCompare[] | undefined>
     }
 }
 
-export function isDiffInculuded(rel: string, compare: ProcessedCompare[] | undefined, type: CompareStatus[]): boolean {
+export function isDiffInculuded(rel: string, compare: ProcessedDiff[] | undefined, type: DiffStatus[]): boolean {
     return !compare || compare.filter(v => type.some(v2 => v.status === v2)).some(v => rel === v.filename);
 }

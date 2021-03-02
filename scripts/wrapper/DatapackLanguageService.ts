@@ -8,7 +8,7 @@ import { Plugin } from '@spgoding/datapack-language-server/lib/plugins';
 import { TextDocument } from 'vscode-json-languageservice';
 import path from 'path';
 import { findDatapackRoots, getConfiguration } from '../utils';
-import { isDiffInculuded, ProcessedCompare } from '../types/ProcessedCompare';
+import { isDiffInculuded, ProcessedDiff } from '../types/ProcessedDiff';
 
 export class EasyDatapackLanguageService {
     private readonly _service: DatapackLanguageService;
@@ -70,7 +70,7 @@ export class EasyDatapackLanguageService {
         return this._config;
     }
 
-    async updateCacheFile(compareFiles: ProcessedCompare[] | undefined): Promise<void> {
+    async updateCacheFile(compareFiles: ProcessedDiff[] | undefined): Promise<void> {
         try {
             // Check the files saved in the cache file.
             const time1 = new Date().getTime();
@@ -88,7 +88,7 @@ export class EasyDatapackLanguageService {
         }
     }
 
-    private async checkFilesInCache(compareFiles: ProcessedCompare[]) {
+    private async checkFilesInCache(compareFiles: ProcessedDiff[]) {
         const uriStrings = Object.keys(this.cacheFile.files).values();
         return partitionedIteration(uriStrings, async uriString => {
             const uri = this._service.parseUri(uriString);
@@ -104,7 +104,7 @@ export class EasyDatapackLanguageService {
         });
     }
 
-    private async addNewFilesToCache(compareFiles: ProcessedCompare[] | undefined) {
+    private async addNewFilesToCache(compareFiles: ProcessedDiff[] | undefined) {
         return Promise.all(this.roots.map(root => {
             const dataPath = path.join(root.fsPath, 'data');
             return walkFile(
