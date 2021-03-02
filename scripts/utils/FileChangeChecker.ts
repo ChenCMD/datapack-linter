@@ -19,9 +19,8 @@ export class FileChangeChecker {
     }
 
     isFileNotEqualChecksum(file: string, newChecksum: string, allowChecksumUndefined = true): boolean {
-        const res = (allowChecksumUndefined || !this.isFileNewly(file))
-            && this._checksums?.[file] !== newChecksum;
-        core.debug(`[Checksum] ${file} | allowChecksumUndefined: ${allowChecksumUndefined} | isFileNewly: ${!this.isFileNewly(file)} | checksum: ${this._checksums?.[file]} | checksumEqual: ${this._checksums?.[file] !== newChecksum} | result: ${res}`);
+        const res = (allowChecksumUndefined || !this.isFileNewly(file)) && this._checksums?.[file] !== newChecksum;
+        core.debug(`[Checksum] ${file} | allowChecksumUndefined: ${allowChecksumUndefined} | isFileNewly: ${!this.isFileNewly(file)} | checksum: ${this._checksums?.[file]} | checksumNotEqual: ${this._checksums?.[file] !== newChecksum} | result: ${res}`);
         return res;
     }
 

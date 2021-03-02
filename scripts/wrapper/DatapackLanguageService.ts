@@ -218,6 +218,7 @@ function getFetchConfig(dir: string): () => Promise<Config> {
         return config;
     };
 }
+
 async function getLatestVersions() {
     let ans: VersionInformation | undefined;
     try {
