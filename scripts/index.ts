@@ -55,8 +55,15 @@ async function lint() {
         root.fsPath,
         path.join(root.fsPath, 'data'),
         async (file, rel) => getSafeRecordValue(parsingFile, root.fsPath).push({ file, rel }),
-        async (file, rel, stat) => isRelIncluded(rel, easyDLS.config) && (stat.isDirectory() || !fileChangeChecker.isFileNotEqualChecksum(file, await generateChecksum(file)))
+        async (file, rel, stat) => {
+            const A = isRelIncluded(rel, easyDLS.config);
+            const B = stat.isDirectory() || !fileChangeChecker.isFileNotEqualChecksum(file, await generateChecksum(file));
+            core.debug(`[walkFile] ${file} | isRelIncluded: ${A} | isDir: ${stat.isDirectory()} | +checksum: ${B} | result: ${A && B}`);
+            return A && B;
+        }
     )));
+
+    if (core.isDebug()) core.debug(JSON.stringify(parsingFile, undefined, '    '));
 
     // log group end
     core.endGroup();
