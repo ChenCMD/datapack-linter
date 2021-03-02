@@ -1,1 +1,1 @@
-function test:mcf-success
+function test:mcf-fail
