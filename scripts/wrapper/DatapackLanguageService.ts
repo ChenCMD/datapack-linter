@@ -17,7 +17,6 @@ export class EasyDatapackLanguageService {
 
 
     private constructor(
-        private readonly _dir: string,
         globalStoragePath: string,
         private _config: Config,
         cacheFile: CacheFile | undefined,
@@ -46,7 +45,6 @@ export class EasyDatapackLanguageService {
     ): Promise<EasyDatapackLanguageService> {
         const fetchConfig = getFetchConfig(dir);
         const easyDLS = new EasyDatapackLanguageService(
-            dir,
             globalStoragePath,
             await fetchConfig(),
             cacheFile,
