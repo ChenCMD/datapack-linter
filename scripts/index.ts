@@ -18,7 +18,6 @@ lint();
 async function lint() {
     // get inputs
     const testPath = core.getInput('outputDefine');
-    const isDebug = core.getInput('DEBUG') === 'true';
 
     // add Problem Matcher
     await fsp.writeFile(path.join(dir, 'matcher.json'), JSON.stringify(mather));
@@ -42,10 +41,11 @@ async function lint() {
     const fileChangeChecker = new FileChangeChecker(checksumFile);
 
     // Env Log
-    if (isDebug) {
-        console.log(JSON.stringify(checksumFile, undefined, '    '));
-        console.log(JSON.stringify(cacheFile, undefined, '    '));
+    if (core.isDebug()) {
+        core.debug(JSON.stringify(checksumFile, undefined, '    '));
+        core.debug(JSON.stringify(cacheFile, undefined, '    '));
     }
+
     // create EasyDLS
     const easyDLS = await EasyDatapackLanguageService.createInstance(dir, globalStoragePath, cacheFile, fileChangeChecker, 500);
 
@@ -84,7 +84,7 @@ async function lint() {
         core.info('Check successful');
     } else {
         core.info(`Check failed (${result.getFailCountMessage()})`);
-        if (!isDebug)
+        if (!core.isDebug())
             process.exitCode = core.ExitCode.Failure;
         else
             core.info('Test forced pass. Because debug mode');
