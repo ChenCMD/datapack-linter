@@ -1,6 +1,8 @@
 import { getRootUri, walkRoot } from '@spgoding/datapack-language-server/lib/services/common';
 import { Config, Uri } from '@spgoding/datapack-language-server/lib/types';
 import { pathAccessible } from '@spgoding/datapack-language-server';
+import crypto from 'crypto';
+import fs from 'fs';
 import path from 'path';
 
 /**
@@ -29,12 +31,12 @@ import path from 'path';
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-export async function findDatapackRoots(dir: Uri, config: Config): Promise<Uri[]> {
+export async function findDatapackRoots(dir: string, config: Config): Promise<Uri[]> {
     const rootCandidatePaths = new Set<string>();
-    const dirPath = dir.fsPath;
+    const dirPath = dir;
     rootCandidatePaths.add(dirPath);
     await walkRoot(
-        dir, dirPath,
+        Uri.file(dir), dirPath,
         abs => rootCandidatePaths.add(abs),
         config.env.detectionDepth
     );
@@ -48,6 +50,16 @@ export async function findDatapackRoots(dir: Uri, config: Config): Promise<Uri[]
         }
     }
     return roots;
+}
+
+export async function generateChecksum(file: string): Promise<string> {
+    return await new Promise((resolve, reject) => {
+        const hash = crypto.createHash('sha1');
+        fs.createReadStream(file, { encoding: 'utf-8', highWaterMark: 128 * 1024 })
+        .on('data', chunk => hash.update(chunk))
+        .on('end', () => resolve(hash.digest('hex').toLowerCase()))
+        .on('error', reject);
+    });
 }
 
 export function getSafeRecordValue<T extends string | number | symbol, U>(data: Record<T, U[]>, type: T): U[] {

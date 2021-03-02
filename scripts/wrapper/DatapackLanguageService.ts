@@ -1,4 +1,4 @@
-import { CacheFile, Config, DatapackDocument, getClientCapabilities, isRelIncluded, trimCache, Uri, VersionInformation } from '@spgoding/datapack-language-server/lib/types';
+import { CacheFile, Config, DatapackDocument, FetchConfigFunction, getClientCapabilities, isRelIncluded, trimCache, Uri, VersionInformation } from '@spgoding/datapack-language-server/lib/types';
 import { getRelAndRootIndex, getTextDocument, partitionedIteration, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import { DatapackLanguageService, pathAccessible, readFile, requestText } from '@spgoding/datapack-language-server';
 import { PluginLoader } from '@spgoding/datapack-language-server/lib/plugins/PluginLoader';
@@ -7,27 +7,30 @@ import { loadLocale } from '@spgoding/datapack-language-server/lib/locales';
 import { Plugin } from '@spgoding/datapack-language-server/lib/plugins';
 import { TextDocument } from 'vscode-json-languageservice';
 import path from 'path';
-import { findDatapackRoots, getConfiguration } from '../utils';
-import { isDiffInculuded, ProcessedDiff } from '../types/ProcessedDiff';
+import { promises as fsp } from 'fs';
+import { findDatapackRoots, generateChecksum, getConfiguration } from '../utils';
+import { FileChangeChecker } from '../utils/FileChangeChecker';
 
 export class EasyDatapackLanguageService {
     private readonly _service: DatapackLanguageService;
-    private _config: Config;
     private _analyzedObjectCount = 0;
-    private _gcThreshold: number;
+
 
     private constructor(
-        private readonly dir: string,
+        private readonly _dir: string,
         globalStoragePath: string,
+        private _config: Config,
         cacheFile: CacheFile | undefined,
+        fetchConfig: FetchConfigFunction,
         plugins: Map<string, Plugin>,
-        versionInformation: VersionInformation | undefined
+        versionInformation: VersionInformation | undefined,
+        private _gcThreshold: number
     ) {
         const capabilities = getClientCapabilities({ workspace: { configuration: true, didChangeConfiguration: { dynamicRegistration: true } } });
         this._service = new DatapackLanguageService({
             cacheFile,
             capabilities,
-            fetchConfig: this.getFetchConfig(),
+            fetchConfig,
             globalStoragePath,
             plugins,
             versionInformation
@@ -38,22 +41,30 @@ export class EasyDatapackLanguageService {
         dir: string,
         globalStoragePath: string,
         cacheFile: CacheFile | undefined,
+        fileChangeChecker: FileChangeChecker,
         gcThreshold: number
     ): Promise<EasyDatapackLanguageService> {
+        const fetchConfig = getFetchConfig(dir);
         const easyDLS = new EasyDatapackLanguageService(
             dir,
             globalStoragePath,
+            await fetchConfig(),
             cacheFile,
+            fetchConfig,
             await PluginLoader.load(),
-            await getLatestVersions()
+            await getLatestVersions(),
+            gcThreshold
         );
-        easyDLS._service.init();
-        const dirUri = Uri.file(dir);
 
-        easyDLS._gcThreshold = gcThreshold;
-        easyDLS._config = await easyDLS._service.getConfig(dirUri);
+        await easyDLS._service.init();
 
-        easyDLS._service.roots.push(...await findDatapackRoots(dirUri, easyDLS._config));
+        // update root
+        easyDLS._service.roots.push(...await findDatapackRoots(dir, easyDLS.config));
+        console.log('datapack roots:');
+        easyDLS.roots.forEach(v => console.log(v.path));
+
+        // update cache
+        await easyDLS._updateCacheFile(fileChangeChecker);
 
         return easyDLS;
     }
@@ -70,59 +81,9 @@ export class EasyDatapackLanguageService {
         return this._config;
     }
 
-    async updateCacheFile(compareFiles: ProcessedDiff[] | undefined): Promise<void> {
-        try {
-            // Check the files saved in the cache file.
-            const time1 = new Date().getTime();
-            if (compareFiles) await this.checkFilesInCache(compareFiles);
-            const time2 = new Date().getTime();
-            await this.addNewFilesToCache(compareFiles);
-            trimCache(this.cacheFile.cache);
-            const time3 = new Date().getTime();
-            console.info(`[updateCacheFile] [1] ${time2 - time1} ms`);
-            console.info(`[updateCacheFile] [2] ${time3 - time2} ms`);
-            console.info(`[updateCacheFile] [T] ${time3 - time1} ms`);
-            this.gc(true);
-        } catch (e) {
-            console.error('[updateCacheFile] ', e);
-        }
-    }
 
-    private async checkFilesInCache(compareFiles: ProcessedDiff[]) {
-        const uriStrings = Object.keys(this.cacheFile.files).values();
-        return partitionedIteration(uriStrings, async uriString => {
-            const uri = this._service.parseUri(uriString);
-            const { rel } = getRelAndRootIndex(uri, this.roots) ?? {};
-            if (!rel || !isRelIncluded(rel, this.config)) {
-                delete this.cacheFile.files[uriString];
-            } else {
-                if (!(await pathAccessible(uri.fsPath))) // removed/renamed is also processed here
-                    this._service.onDeletedFile(uri);
-                else if (isDiffInculuded(rel, compareFiles, ['modified']))
-                    await this._service.onModifiedFile(uri);
-            }
-        });
-    }
-
-    private async addNewFilesToCache(compareFiles: ProcessedDiff[] | undefined) {
-        return Promise.all(this.roots.map(root => {
-            const dataPath = path.join(root.fsPath, 'data');
-            return walkFile(
-                root.fsPath,
-                dataPath,
-                async (abs, _rel, stat) => {
-                    const uri = this._service.parseUri(Uri.file(abs).toString());
-                    const uriString = uri.toString();
-                    if (this.cacheFile.files[uriString] === undefined) {
-                        this.gc();
-                        await this._service.onAddedFile(uri);
-                        this.cacheFile.files[uriString] = stat.mtimeMs;
-                    }
-                },
-                async (_, rel) => isRelIncluded(rel, this.config)
-                    && isDiffInculuded(rel, compareFiles, ['added', 'renamed'])
-            );
-        }));
+    async writeCacheFile(cachePath: string): Promise<void> {
+        return await fsp.writeFile(cachePath, JSON.stringify(this.cacheFile), { encoding: 'utf8' });
     }
 
     async parseDoc(file: string, rel: string): Promise<{
@@ -164,13 +125,66 @@ export class EasyDatapackLanguageService {
         }
     }
 
-    private getFetchConfig() {
-        return async () => {
-            const configUri = Uri.file(path.resolve(this.dir, './.vscode/settings.json'));
-            const config = await getConfiguration(configUri.fsPath);
-            await loadLocale(config.env.language, 'en');
-            return config;
-        };
+
+    private async _updateCacheFile(fileChangeChecker: FileChangeChecker): Promise<void> {
+        try {
+            // Check the files saved in the cache file.
+            const time1 = new Date().getTime();
+            if (fileChangeChecker.isChecksumsExists()) await this._checkFilesInCache(fileChangeChecker);
+            const time2 = new Date().getTime();
+            await this._addNewFilesToCache(fileChangeChecker);
+            trimCache(this.cacheFile.cache);
+            const time3 = new Date().getTime();
+            console.info(`[updateCacheFile] [1] ${time2 - time1} ms`);
+            console.info(`[updateCacheFile] [2] ${time3 - time2} ms`);
+            console.info(`[updateCacheFile] [T] ${time3 - time1} ms`);
+            this.gc(true);
+        } catch (e) {
+            console.error('[updateCacheFile] ', e);
+        }
+    }
+
+    private async _checkFilesInCache(fileChangeChecker: FileChangeChecker) {
+        const uriStrings = Object.keys(this.cacheFile.files).values();
+        return partitionedIteration(uriStrings, async uriString => {
+            const uri = this._service.parseUri(uriString);
+            const { rel } = getRelAndRootIndex(uri, this.roots) ?? {};
+            if (!rel || !isRelIncluded(rel, this.config)) {
+                delete this.cacheFile.files[uriString];
+            } else {
+                if (!(await pathAccessible(uri.fsPath))) {// removed/renamed is also processed here
+                    fileChangeChecker.appendNextChecksum('deleted', uri.fsPath);
+                    this._service.onDeletedFile(uri);
+                } else {
+                    const checkSum = await generateChecksum(uri.fsPath);
+                    if (fileChangeChecker.isFileNotEqualChecksum(uriString, checkSum, false)) {
+                        fileChangeChecker.appendNextChecksum('updated', uri.fsPath, checkSum);
+                        await this._service.onModifiedFile(uri);
+                    }
+                }
+            }
+        });
+    }
+
+    private async _addNewFilesToCache(fileChangeChecker: FileChangeChecker) {
+        return Promise.all(this.roots.map(root => {
+            const dataPath = path.join(root.fsPath, 'data');
+            return walkFile(
+                root.fsPath,
+                dataPath,
+                async abs => {
+                    const uri = this._service.parseUri(Uri.file(abs).toString());
+                    const uriString = uri.toString();
+                    if (this.cacheFile.files[uriString] === undefined) {
+                        fileChangeChecker.appendNextChecksum('updated', abs, await generateChecksum(abs));
+                        this.gc();
+                        await this._service.onAddedFile(uri);
+                    }
+                },
+                async (abs, rel) => isRelIncluded(rel, this.config)
+                    && fileChangeChecker.isFileNewly(abs)
+            );
+        }));
     }
 }
 
@@ -198,6 +212,15 @@ export class EasyDatapackLanguageService {
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
+function getFetchConfig(dir: string): () => Promise<Config> {
+    return async () => {
+        const configUri = Uri.file(path.resolve(dir, './.vscode/settings.json'));
+        const config = await getConfiguration(configUri.fsPath);
+        await loadLocale(config.env.language, 'en');
+        return config;
+    };
+}
 async function getLatestVersions() {
     let ans: VersionInformation | undefined;
     try {

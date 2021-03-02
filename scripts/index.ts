@@ -1,22 +1,20 @@
-import { isRelIncluded } from '@spgoding/datapack-language-server/lib/types';
+import { CacheFile, CacheVersion, isRelIncluded } from '@spgoding/datapack-language-server/lib/types';
 import { walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import * as core from '@actions/core';
 import { promises as fsp } from 'fs';
 import path from 'path';
-import { Result, getSafeRecordValue, printParseResult } from './utils';
+import { Result, getSafeRecordValue, printParseResult, generateChecksum } from './utils';
 import { DocumentData } from './types/Results';
 import mather from './matcher.json';
 import { isCommitMessageIncluded, saveCache, tryGetCache } from './wrapper/actions';
 import { EasyDatapackLanguageService } from './wrapper/DatapackLanguageService';
-import { getDiffFiles, isDiffInculuded } from './types/ProcessedDiff';
+import { FileChangeChecker } from './utils/FileChangeChecker';
+import { readFile } from '@spgoding/datapack-language-server';
 
 const dir = process.cwd();
 lint();
 
 async function lint() {
-    // cache path
-    const globalStoragePath = path.join(dir, '.cache');
-
     // get inputs
     const testPath = core.getInput('outputDefine');
     const isDebug = core.getInput('DEBUG') === 'true';
@@ -31,19 +29,18 @@ async function lint() {
     // Env Log
     console.log(`dir: ${dir}`);
 
-    // try restore cache and get compare files
-    const isCacheRegeneration = isCommitMessageIncluded('[regenerate cache]');
-    const cacheFile = isCacheRegeneration ? await tryGetCache(globalStoragePath) : undefined;
-    const compareFiles = isCacheRegeneration ? await getDiffFiles() : undefined;
+    // cache path
+    const globalStoragePath = path.join(dir, '.cache');
+    const cachePath = path.join(globalStoragePath, './cache.json');
+    const checksumPath = path.join(globalStoragePath, './checksum.json');
+
+    // try restore cache and get cache files
+    const isCacheRestoreSuccess = !isCommitMessageIncluded('[regenerate cache]') && await tryGetCache(CacheVersion);
+    const cacheFile = isCacheRestoreSuccess ? JSON.parse(await readFile(cachePath)) as CacheFile : undefined;
+    const fileChangeChecker = new FileChangeChecker(isCacheRestoreSuccess ? JSON.parse(await readFile(checksumPath)) : undefined);
 
     // create EasyDLS
-    const easyDLS = await EasyDatapackLanguageService.createInstance(dir, globalStoragePath, cacheFile, 500);
-
-    await easyDLS.updateCacheFile(cacheFile ? compareFiles : undefined);
-
-    // Env Log
-    console.log('datapack roots:');
-    easyDLS.roots.forEach(v => console.log(v.path));
+    const easyDLS = await EasyDatapackLanguageService.createInstance(dir, globalStoragePath, cacheFile, fileChangeChecker, 500);
 
     // pre parse Region
     const parsingFile: Record<string, DocumentData[]> = {};
@@ -51,7 +48,7 @@ async function lint() {
         root.fsPath,
         path.join(root.fsPath, 'data'),
         async (file, rel) => getSafeRecordValue(parsingFile, root.fsPath).push({ file, rel }),
-        async (_, rel) => isRelIncluded(rel, easyDLS.config) && isDiffInculuded(rel, compareFiles, ['added', 'modified', 'renamed'])
+        async (file, rel, stat) => isRelIncluded(rel, easyDLS.config) && (stat.isDirectory() || fileChangeChecker.isFileNotEqualChecksum(file, await generateChecksum(file)))
     )));
 
     // log group end
@@ -86,5 +83,7 @@ async function lint() {
             core.info('Test forced pass. Because debug mode');
     }
 
-    await saveCache();
+    await easyDLS.writeCacheFile(cachePath);
+    await fileChangeChecker.writeChecksumFile(checksumPath);
+    await saveCache(CacheVersion);
 }

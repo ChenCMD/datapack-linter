@@ -1,34 +1,33 @@
-import { CacheFile, CacheVersion } from '@spgoding/datapack-language-server/lib/types';
-import { readFile } from '@spgoding/datapack-language-server';
 import { context } from '@actions/github';
 import * as cache from '@actions/cache';
 import * as core from '@actions/core';
-import path from 'path';
 
 const cachedfiles = ['.cache'];
-const key = `datapack-linter-${CacheVersion}-${context.payload.ref}-`;
 
-export async function tryGetCache(globalStoragePath: string): Promise<CacheFile | undefined> {
-    if (!context.payload.commits) return undefined;
+export function isCommitMessageIncluded(str: string): boolean {
+    return !!context.payload.commits?.some((v: { message: string }) => v.message.toLowerCase().includes(str.toLowerCase()));
+}
+
+export async function tryGetCache(cacheVersion: number): Promise<boolean> {
+    if (!context.payload.commits) return false;
     try {
-        const isSuccessRestore = await cache.restoreCache(cachedfiles, '', [key]);
-        return isSuccessRestore ? JSON.parse(await readFile(path.join(globalStoragePath, './cache.json'))) : undefined;
+        return !!await cache.restoreCache(cachedfiles, '', [getCacheKeyPrefix(cacheVersion)]);
     } catch (e) {
         core.warning('Failed to load the cache. The following errors may be resolved by reporting them in the datapack-linter repository.');
         core.warning(e);
-        return undefined;
+        return false;
     }
 }
 
-export async function saveCache(): Promise<void> {
+export async function saveCache(cacheVersion: number): Promise<void> {
     try {
-        return void await cache.saveCache(cachedfiles, key + context.sha);
+        return void await cache.saveCache(cachedfiles, getCacheKeyPrefix(cacheVersion) + context.runId);
     } catch (e) {
         core.warning('Failed to save the cache. The following errors may be resolved by reporting them in the datapack-linter repository.');
         core.warning(e);
     }
 }
 
-export function isCommitMessageIncluded(str: string): boolean {
-    return !!context.payload.commits?.some((v: { message: string }) => v.message.toLowerCase().includes(str.toLowerCase()));
+function getCacheKeyPrefix(version: number): string {
+    return `datapack-linter-${context.payload.ref}-${version}-`;
 }
