@@ -1,7 +1,7 @@
 import { CacheFile, CacheVersion } from '@spgoding/datapack-language-server/lib/types';
 import { readFile } from '@spgoding/datapack-language-server';
 import { context } from '@actions/github';
-import cache from '@actions/cache';
+import * as cache from '@actions/cache';
 import * as core from '@actions/core';
 import path from 'path';
 
