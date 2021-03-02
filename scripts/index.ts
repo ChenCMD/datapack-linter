@@ -48,7 +48,7 @@ async function lint() {
         root.fsPath,
         path.join(root.fsPath, 'data'),
         async (file, rel) => getSafeRecordValue(parsingFile, root.fsPath).push({ file, rel }),
-        async (file, rel, stat) => isRelIncluded(rel, easyDLS.config) && (stat.isDirectory() || fileChangeChecker.isFileNotEqualChecksum(file, await generateChecksum(file)))
+        async (file, rel, stat) => isRelIncluded(rel, easyDLS.config) && (stat.isDirectory() || !fileChangeChecker.isFileNotEqualChecksum(file, await generateChecksum(file)))
     )));
 
     // log group end
