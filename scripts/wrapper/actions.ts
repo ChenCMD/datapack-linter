@@ -6,12 +6,12 @@ import * as core from '@actions/core';
 import path from 'path';
 
 const cachedfiles = ['.cache'];
-const key = `datapack-linter-${CacheVersion}-${context.payload.ref}`;
+const key = `datapack-linter-${CacheVersion}-${context.payload.ref}-`;
 
 export async function tryGetCache(globalStoragePath: string): Promise<CacheFile | undefined> {
     if (!context.payload.commits) return undefined;
     try {
-        const isSuccessRestore = await cache.restoreCache(cachedfiles, key);
+        const isSuccessRestore = await cache.restoreCache(cachedfiles, '', [key]);
         return isSuccessRestore ? JSON.parse(await readFile(path.join(globalStoragePath, './cache.json'))) : undefined;
     } catch (e) {
         core.warning('Failed to load the cache. The following errors may be resolved by reporting them in the datapack-linter repository.');
@@ -22,7 +22,7 @@ export async function tryGetCache(globalStoragePath: string): Promise<CacheFile 
 
 export async function saveCache(): Promise<void> {
     try {
-        return void await cache.saveCache(cachedfiles, key);
+        return void await cache.saveCache(cachedfiles, key + context.sha);
     } catch (e) {
         core.warning('Failed to save the cache. The following errors may be resolved by reporting them in the datapack-linter repository.');
         core.warning(e);
