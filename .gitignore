@@ -1,5 +1,5 @@
 node_modules
-_storage
+.cache
 .vscode/tasks.json
 decs
 *.js.map
