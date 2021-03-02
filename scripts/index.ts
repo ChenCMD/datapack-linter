@@ -10,6 +10,7 @@ import { isCommitMessageIncluded, saveCache, tryGetCache } from './wrapper/actio
 import { EasyDatapackLanguageService } from './wrapper/DatapackLanguageService';
 import { FileChangeChecker } from './utils/FileChangeChecker';
 import { readFile } from '@spgoding/datapack-language-server';
+import { Checksum } from './types/Checksum';
 
 const dir = process.cwd();
 lint();
@@ -37,11 +38,14 @@ async function lint() {
     // try restore cache and get cache files
     const isCacheRestoreSuccess = !isCommitMessageIncluded('[regenerate cache]') && await tryGetCache(CacheVersion);
     const cacheFile = isCacheRestoreSuccess ? JSON.parse(await readFile(cachePath)) as CacheFile : undefined;
-    const fileChangeChecker = new FileChangeChecker(isCacheRestoreSuccess ? JSON.parse(await readFile(checksumPath)) : undefined);
+    const checksumFile = isCacheRestoreSuccess ? JSON.parse(await readFile(checksumPath)) as Checksum : undefined;
+    const fileChangeChecker = new FileChangeChecker(checksumFile);
 
     // Env Log
-    if (isDebug) console.log(cacheFile);
-
+    if (isDebug) {
+        console.log(JSON.stringify(checksumFile, undefined, '    '));
+        console.log(JSON.stringify(cacheFile, undefined, '    '));
+    }
     // create EasyDLS
     const easyDLS = await EasyDatapackLanguageService.createInstance(dir, globalStoragePath, cacheFile, fileChangeChecker, 500);
 
