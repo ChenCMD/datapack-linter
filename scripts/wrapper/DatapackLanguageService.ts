@@ -173,14 +173,13 @@ export class EasyDatapackLanguageService {
                 async abs => {
                     const uri = this._service.parseUri(Uri.file(abs).toString());
                     const uriString = uri.toString();
-                    if (this.cacheFile.files[uriString] === undefined) {
+                    if (this.cacheFile.files[uriString] === undefined && fileChangeChecker.isFileNewly(abs)) {
                         fileChangeChecker.appendNextChecksum('updated', abs, await generateChecksum(abs));
                         this.gc();
                         await this._service.onAddedFile(uri);
                     }
                 },
-                async (abs, rel) => isRelIncluded(rel, this.config)
-                    && fileChangeChecker.isFileNewly(abs)
+                async (_, rel) => isRelIncluded(rel, this.config)
             );
         }));
     }

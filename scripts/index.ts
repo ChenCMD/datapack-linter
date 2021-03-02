@@ -54,16 +54,12 @@ async function lint() {
     await Promise.all(easyDLS.roots.map(async root => await walkFile(
         root.fsPath,
         path.join(root.fsPath, 'data'),
-        async (file, rel) => getSafeRecordValue(parsingFile, root.fsPath).push({ file, rel }),
-        async (file, rel, stat) => {
-            const A = isRelIncluded(rel, easyDLS.config);
-            const B = stat.isDirectory() || !fileChangeChecker.isFileNotEqualChecksum(file, await generateChecksum(file));
-            core.debug(`[walkFile] ${file} | isRelIncluded: ${A} | isDir: ${stat.isDirectory()} | +checksum: ${B} | result: ${A && B}`);
-            return A && B;
-        }
+        async (file, rel) => {
+            if (!fileChangeChecker.isFileNotEqualChecksum(file, await generateChecksum(file)))
+                getSafeRecordValue(parsingFile, root.fsPath).push({ file, rel });
+        },
+        async (_, rel) => isRelIncluded(rel, easyDLS.config)
     )));
-
-    if (core.isDebug()) core.debug(JSON.stringify(parsingFile, undefined, '    '));
 
     // log group end
     core.endGroup();
