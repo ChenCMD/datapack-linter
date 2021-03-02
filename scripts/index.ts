@@ -39,6 +39,9 @@ async function lint() {
     const cacheFile = isCacheRestoreSuccess ? JSON.parse(await readFile(cachePath)) as CacheFile : undefined;
     const fileChangeChecker = new FileChangeChecker(isCacheRestoreSuccess ? JSON.parse(await readFile(checksumPath)) : undefined);
 
+    // Env Log
+    if (isDebug) console.log(cacheFile);
+
     // create EasyDLS
     const easyDLS = await EasyDatapackLanguageService.createInstance(dir, globalStoragePath, cacheFile, fileChangeChecker, 500);
 
