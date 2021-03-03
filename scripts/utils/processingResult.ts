@@ -31,9 +31,8 @@ export function printParseResult(parsedData: DatapackDocument, id: IdentityNode,
                 const paddingedChar = `${pos.character + 1}     `.slice(0, 5);
                 const humanReadbleSaverity = err.severity === DiagnosticSeverity.Error ? 'Error  ' : 'Warning';
                 const indentAdjust = err.severity === DiagnosticSeverity.Error ? '   ' : ' ';
-                const message = `${indentAdjust}${paddingedLine}:${paddingedChar} ${humanReadbleSaverity} ${err.message}`;
 
-                core.info(message);
+                core.info(`${indentAdjust}${paddingedLine}:${paddingedChar} ${humanReadbleSaverity} ${err.message}`);
                 err.severity === DiagnosticSeverity.Error ? failCount.error++ : failCount.warning++;
             });
     }
