@@ -25,7 +25,7 @@ export class Result {
     }
 
     hasFailCount(): boolean {
-        return this._errorCount + this._warnCount === 0;
+        return this._errorCount + this._warnCount !== 0;
     }
 
     getFailCountMessage(): string {

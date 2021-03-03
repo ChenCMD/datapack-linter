@@ -89,7 +89,7 @@ async function lint() {
     }
 
     // last message output
-    if (result.hasFailCount()) {
+    if (!result.hasFailCount()) {
         core.info('Check successful');
     } else {
         core.info(`Check failed (${result.getFailCountMessage()})`);
