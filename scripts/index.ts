@@ -40,6 +40,12 @@ async function lint() {
     const checksumFile = isCacheRestoreSuccess ? JSON.parse(await readFile(checksumPath)) as Checksum : undefined;
     const fileChangeChecker = new FileChangeChecker(checksumFile);
 
+    // Check config update
+    const configFilePath = path.resolve(dir, './.vscode/settings.json');
+    const configFileChecksum = await generateChecksum(configFilePath);
+    if (fileChangeChecker.isFileNotEqualChecksum(configFilePath, configFileChecksum))
+        fileChangeChecker.clearChecksum();
+
     // Env Log
     if (core.isDebug()) {
         core.debug(JSON.stringify(checksumFile, undefined, '    '));

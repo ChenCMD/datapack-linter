@@ -8,7 +8,7 @@ export class FileChangeChecker {
         updated: Checksum
     } = { deleted: [], updated: {} };
 
-    constructor(private readonly _checksums: Checksum | undefined) { }
+    constructor(private _checksums: Checksum | undefined) { }
 
     isChecksumsExists(): boolean {
         return !!this._checksums;
@@ -22,6 +22,10 @@ export class FileChangeChecker {
         const res = (allowChecksumUndefined || !this.isFileNewly(file)) && this._checksums?.[file] !== newChecksum;
         core.debug(`[Checksum] ${file} | allowChecksumUndefined: ${allowChecksumUndefined} | isFileNewly: ${!this.isFileNewly(file)} | checksum: ${this._checksums?.[file]} | checksumNotEqual: ${this._checksums?.[file] !== newChecksum} | result: ${res}`);
         return res;
+    }
+
+    clearChecksum(): void {
+        this._checksums = {};
     }
 
     appendNextChecksum(type: 'deleted', file: string): void;
