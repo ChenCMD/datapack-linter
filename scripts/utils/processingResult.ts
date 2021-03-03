@@ -1,6 +1,6 @@
 import { DatapackDocument } from '@spgoding/datapack-language-server/lib/types';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
-import { TextDocument, DiagnosticSeverity } from 'vscode-json-languageservice';
+import { TextDocument, DiagnosticSeverity, Diagnostic } from 'vscode-json-languageservice';
 import * as core from '@actions/core';
 import path from 'path';
 import { FailCount } from '../types/Results';
@@ -25,18 +25,20 @@ export function printParseResult(parsedData: DatapackDocument, id: IdentityNode,
             .filter(err => err.severity < 3)
             .map(err => err.toDiagnostic(doc))
             .sort((errA, errB) => errA.range.start.line - errB.range.start.line)
-            .forEach(err => {
-                const pos = err.range.start;
-                const paddingedLine = `   ${pos.line + 1}`.slice(-4);
-                const paddingedChar = `${pos.character + 1}     `.slice(0, 5);
-                const humanReadbleSaverity = err.severity === DiagnosticSeverity.Error ? 'Error  ' : 'Warning';
-                const indentAdjust = err.severity === DiagnosticSeverity.Error ? '   ' : ' ';
-
-                core.info(`${indentAdjust}${paddingedLine}:${paddingedChar} ${humanReadbleSaverity} ${err.message}`);
-                err.severity === DiagnosticSeverity.Error ? failCount.error++ : failCount.warning++;
-            });
+            .forEach(err => printErrorSingle(failCount, err));
     }
     if (!isErrorFound)
         core.info(`\u001b[92m✓\u001b[39m  ${id} (${path.parse(root).name}/${rel.replace(/\\/g, '/')})`);
     return failCount;
+}
+
+export function printErrorSingle(failCount: FailCount, error: Diagnostic): void {
+    const pos = error.range.start;
+    const paddingedLine = `   ${pos.line + 1}`.slice(-4);
+    const paddingedChar = `${pos.character + 1}     `.slice(0, 5);
+    const humanReadbleSaverity = error.severity === DiagnosticSeverity.Error ? 'Error  ' : 'Warning';
+    const indentAdjust = error.severity === DiagnosticSeverity.Error ? '   ' : ' ';
+
+    core.info(`${indentAdjust}${paddingedLine}:${paddingedChar} ${humanReadbleSaverity} ${error.message}`);
+    error.severity === DiagnosticSeverity.Error ? failCount.error++ : failCount.warning++;
 }
