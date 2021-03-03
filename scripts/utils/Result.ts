@@ -35,38 +35,6 @@ export class Result {
     }
 
     appendDefineMessage(parsedData: DatapackDocument, id: IdentityNode, root: string, rel: string): void {
-        const test = (visibility: CacheVisibility | CacheVisibility[] | undefined): boolean => {
-            if (visibility) {
-                if (visibility instanceof Array)
-                    return visibility.length ? visibility.some(v => test(v)) : test(undefined);
-
-                const regex = new RegExp(`^${visibility.pattern
-                    .replace(/\?/g, '[^:/]')
-                    .replace(/\*\*\//g, '.*')
-                    .replace(/\*\*/g, '.*')
-                    .replace(/\*/g, '[^:/]*')}$`);
-                return this._rawTestPath.split(/\r?\n/).some(v => regex.test(v) || regex.test(v.match(/^[^:]+$/) ? `minecraft:${v}` : v));
-            }
-
-            const defaultVisibility = this._config.env.defaultVisibility;
-            if (typeof defaultVisibility === 'string') {
-                if (defaultVisibility === 'private')
-                    return test({ type: '*', pattern: id.toString() });
-
-                if (defaultVisibility === 'internal') {
-                    const namespace = id.getNamespace();
-                    const genVisivility = (pattern: string): CacheVisibility => ({ type: '*', pattern });
-                    if (namespace === IdentityNode.DefaultNamespace)
-                        return test(genVisivility(namespace));
-                    else
-                        return test([genVisivility(namespace + ':**'), genVisivility(IdentityNode.DefaultNamespace + ':**')]);
-                }
-                if (defaultVisibility === 'public')
-                    return true;
-            }
-            return (defaultVisibility instanceof Array && !defaultVisibility.length) ? true : test(defaultVisibility);
-        };
-
         // parse and append region
         let isDefineFind = false;
         const append = (str: string, indent = 0) => this._defineMessage.push(' '.repeat(indent) + str);
@@ -76,7 +44,7 @@ export class Result {
                 const category = node.cache[type] as CacheCategory;
                 for (const name of Object.keys(category)) {
                     const defines = [...category[name]!.dcl ?? [], ...category[name]!.def?.filter(v => v.end) ?? []];
-                    if (defines.some(v => test(v.visibility))) {
+                    if (defines.some(v => this._pathTest(v.visibility, id))) {
                         if (!isDefineFind) {
                             append(`${path.parse(root).name}/${rel.replace(/\\/g, '/')}`);
                             isDefineFind = true;
@@ -86,5 +54,41 @@ export class Result {
                 }
             }
         }
+    }
+
+    private _pathTest(visibility: CacheVisibility | CacheVisibility[] | undefined, id: IdentityNode): boolean {
+        const pathTest = (visibility2: CacheVisibility | CacheVisibility[] | undefined) => this._pathTest(visibility2, id);
+
+        if (visibility) {
+            if (visibility instanceof Array)
+                return visibility.length ? visibility.some(v => pathTest(v)) : pathTest(undefined);
+
+            const regex = new RegExp(`^${visibility.pattern
+                .replace(/\?/g, '[^:/]')
+                .replace(/\*\*\//g, '.*')
+                .replace(/\*\*/g, '.*')
+                .replace(/\*/g, '[^:/]*')}$`);
+            return this._rawTestPath.split(/\r?\n/).some(
+                v => regex.test(v) || regex.test(v.match(/^[^:]+$/) ? `minecraft:${v}` : v)
+            );
+        }
+
+        const defaultVisibility = this._config.env.defaultVisibility;
+        if (typeof defaultVisibility === 'string') {
+            if (defaultVisibility === 'private')
+                return pathTest({ type: '*', pattern: id.toString() });
+
+            if (defaultVisibility === 'internal') {
+                const namespace = id.getNamespace();
+                const genVisivility = (pattern: string): CacheVisibility => ({ type: '*', pattern });
+                if (namespace === IdentityNode.DefaultNamespace)
+                    return pathTest(genVisivility(namespace));
+                else
+                    return pathTest([genVisivility(namespace + ':**'), genVisivility(IdentityNode.DefaultNamespace + ':**')]);
+            }
+            if (defaultVisibility === 'public')
+                return true;
+        }
+        return (defaultVisibility instanceof Array && !defaultVisibility.length) ? true : pathTest(defaultVisibility);
     }
 }
