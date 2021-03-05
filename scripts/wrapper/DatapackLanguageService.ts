@@ -5,11 +5,11 @@ import { PluginLoader } from '@spgoding/datapack-language-server/lib/plugins/Plu
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { loadLocale } from '@spgoding/datapack-language-server/lib/locales';
 import { Plugin } from '@spgoding/datapack-language-server/lib/plugins';
-import { TextDocument } from 'vscode-json-languageservice';
 import path from 'path';
 import { promises as fsp } from 'fs';
 import { findDatapackRoots, generateChecksum, getConfiguration } from '../utils';
 import { FileChangeChecker } from '../utils/FileChangeChecker';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export class EasyDatapackLanguageService {
     private readonly _service: DatapackLanguageService;

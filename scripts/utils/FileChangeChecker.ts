@@ -1,4 +1,4 @@
-import { Checksum } from '../types/Checksum';
+import { Checksum } from '../types';
 import { promises as fsp } from 'fs';
 import * as core from '@actions/core';
 

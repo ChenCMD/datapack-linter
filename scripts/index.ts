@@ -3,19 +3,18 @@ import { walkFile } from '@spgoding/datapack-language-server/lib/services/common
 import * as core from '@actions/core';
 import { promises as fsp } from 'fs';
 import path from 'path';
-import { Result, getSafeRecordValue, printParseResult, generateChecksum } from './utils';
-import { DocumentData } from './types/Results';
+import { combineIndesSignatureForEach, FileChangeChecker, generateChecksum } from './utils';
 import mather from './matcher.json';
 import { isCommitMessageIncluded, saveCache, tryGetCache } from './wrapper/actions';
 import { EasyDatapackLanguageService } from './wrapper/DatapackLanguageService';
-import { FileChangeChecker } from './utils/FileChangeChecker';
 import { pathAccessible, readFile } from '@spgoding/datapack-language-server';
-import { Checksum } from './types/Checksum';
+import { makeDefineData, makeLintData } from './parseResultProcessor';
+import { Checksum, DocumentData, FailCount, IndexSignature, ParsedData } from './types';
 
-const dir = process.cwd();
-lint();
+async function run(dir: string) {
+    // log group start
+    core.startGroup('init log');
 
-async function lint() {
     // get inputs
     const testPath = core.getInput('outputDefine');
 
@@ -23,83 +22,110 @@ async function lint() {
     await fsp.writeFile(path.join(dir, 'matcher.json'), JSON.stringify(mather));
     core.info('::add-matcher::matcher.json');
 
-    // log group start
-    core.startGroup('init log');
-
     // Env Log
     console.log(`dir: ${dir}`);
 
-    // cache path
+    // #region define cache paths
     const globalStoragePath = path.join(dir, '.cache');
     const cachePath = path.join(globalStoragePath, './cache.json');
     const checksumPath = path.join(globalStoragePath, './checksum.json');
+    const lintCachePath = path.join(globalStoragePath, './lint.json');
+    // #endregion
 
-    // try restore cache and get cache files
-    const isCacheRestoreSuccess = !isCommitMessageIncluded('[regenerate cache]') && await tryGetCache(CacheVersion);
-    const cacheFile = isCacheRestoreSuccess ? JSON.parse(await readFile(cachePath)) as CacheFile : undefined;
-    const checksumFile = isCacheRestoreSuccess ? JSON.parse(await readFile(checksumPath)) as Checksum : undefined;
+    // #region try restore cache and get cache files
+    let checksumFile: Checksum | undefined = undefined;
+    let cacheFile: CacheFile | undefined = undefined;
+    let lintCache: IndexSignature<ParsedData> = {};
+    if (!isCommitMessageIncluded('[regenerate cache]') && await tryGetCache(CacheVersion)) {
+        checksumFile = JSON.parse(await readFile(checksumPath));
+        cacheFile = JSON.parse(await readFile(cachePath));
+        lintCache = JSON.parse(await readFile(lintCachePath));
+    }
     const fileChangeChecker = new FileChangeChecker(checksumFile);
+    // #endregion
 
-    // Check config update
+    // #region Check config update
     const configFilePath = path.resolve(dir, './.vscode/settings.json');
     const configFileChecksum = await pathAccessible(configFilePath) ? await generateChecksum(configFilePath) : undefined;
     if (fileChangeChecker.isFileNotEqualChecksum(configFilePath, configFileChecksum))
         fileChangeChecker.clearChecksum();
+    // #endregion
 
-    // Env Log
+    // #region output debuglog
     if (core.isDebug()) {
         core.debug(JSON.stringify(checksumFile, undefined, '    '));
         core.debug(JSON.stringify(cacheFile, undefined, '    '));
     }
+    // #endregion
 
-    // create EasyDLS
+    // #region pre parse
     const easyDLS = await EasyDatapackLanguageService.createInstance(dir, globalStoragePath, cacheFile, fileChangeChecker, 500);
-
-    // pre parse Region
-    const parsingFile: Record<string, DocumentData[]> = {};
+    const parseFiles: IndexSignature<DocumentData> = {};
     await Promise.all(easyDLS.roots.map(async root => await walkFile(
         root.fsPath,
         path.join(root.fsPath, 'data'),
         async (file, rel) => {
             if (fileChangeChecker.isFileNotEqualChecksum(file, await generateChecksum(file)))
-                getSafeRecordValue(parsingFile, root.fsPath).push({ file, rel });
+                parseFiles[file] = { root: root.fsPath, rel };
         },
         async (_, rel) => isRelIncluded(rel, easyDLS.config)
     )));
+    // #endregion
 
     // log group end
     core.endGroup();
 
-    // parse Region
-    const result = new Result(testPath, easyDLS.config);
-    for (const root of Object.keys(parsingFile).sort()) {
-        for (const { file, rel } of parsingFile[root].sort()) {
-            const parseRes = await easyDLS.parseDoc(file, rel);
-            if (!parseRes) continue;
-            result.addFailCount(printParseResult(parseRes.parseResult, parseRes.identityNode, parseRes.textDocument, root, rel));
-            if (result.isOutDefine) result.appendDefineMessage(parseRes.parseResult, parseRes.identityNode, root, rel);
-        }
-    }
+    // #region parse and output lint results
+    const failCount: FailCount = { warning: 0, error: 0 };
+    combineIndesSignatureForEach(
+        lintCache,
+        parseFiles,
+        async ({ root, rel }, key) => {
+            const { parseResult, identityNode, textDocument } = await easyDLS.parseDoc(key, rel) ?? {};
+            if (!parseResult || !identityNode || !textDocument) return {};
 
-    // define message output
-    if (result.isOutDefine) {
+            const lint = makeLintData(parseResult, identityNode, textDocument, root, rel);
+            const define = makeDefineData(parseResult, identityNode, root, rel, testPath?.split(/\n/), easyDLS.config);
+
+            return { lint, define };
+        },
+        async ({ lint }, key, list) => {
+            lint?.messages.forEach(core.info);
+
+            const { warning, error } = lint?.failCount ?? { warning: 0, error: 0 };
+            if (warning + error === 0) delete list[key].lint;
+
+            failCount.warning + warning;
+            failCount.error + error;
+        }
+    );
+
+
+    const lintCacheKeys = Object.keys(lintCache);
+    if (lintCacheKeys.some(v => lintCache[v].define)) {
         core.startGroup('defines');
-        result.defineMessage.forEach(core.info);
+        lintCacheKeys.forEach(v => lintCache[v].define?.forEach(core.info));
         core.endGroup();
     }
+    // #endregion
 
-    // last message output
-    if (!result.hasFailCount()) {
+    // #region end message output
+    const { warning, error } = failCount;
+    if (warning + error === 0) {
         core.info('Check successful');
     } else {
-        core.info(`Check failed (${result.getFailCountMessage()})`);
+        core.info(`Check failed (${error} error${error > 1 ? 's' : ''}, ${warning} warning${warning > 1 ? 's' : ''})`);
         if (!core.isDebug())
             process.exitCode = core.ExitCode.Failure;
         else
             core.info('Test forced pass. Because debug mode');
     }
+    // #endregion
 
+    // save caches
     await easyDLS.writeCacheFile(cachePath);
     await fileChangeChecker.writeChecksumFile(checksumPath);
     await saveCache(CacheVersion);
 }
+
+run(process.cwd());
