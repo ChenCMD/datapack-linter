@@ -18,14 +18,14 @@ export class FileChangeChecker {
         return !this._checksums?.[file];
     }
 
-    isFileNotEqualChecksum(file: string, newChecksum: string, allowChecksumUndefined = true): boolean {
+    isFileNotEqualChecksum(file: string, newChecksum: string | undefined, allowChecksumUndefined = true): boolean {
         const res = (allowChecksumUndefined || !this.isFileNewly(file)) && this._checksums?.[file] !== newChecksum;
         core.debug(`[Checksum] ${file} | allowChecksumUndefined: ${allowChecksumUndefined} | isFileNewly: ${!this.isFileNewly(file)} | checksum: ${this._checksums?.[file]} | checksumNotEqual: ${this._checksums?.[file] !== newChecksum} | result: ${res}`);
         return res;
     }
 
     clearChecksum(): void {
-        this._checksums = {};
+        this._checksums = undefined;
     }
 
     appendNextChecksum(type: 'deleted', file: string): void;

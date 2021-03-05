@@ -4,7 +4,7 @@ import { pathAccessible } from '@spgoding/datapack-language-server';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-
+import { IndexSignature } from '../types/common';
 /**
  * This function is equivalent to the one implemented in datapack-language-server/server.ts.
  *
@@ -56,10 +56,23 @@ export async function generateChecksum(file: string): Promise<string> {
     return await new Promise((resolve, reject) => {
         const hash = crypto.createHash('sha1');
         fs.createReadStream(file, { encoding: 'utf-8', highWaterMark: 128 * 1024 })
-        .on('data', chunk => hash.update(chunk))
-        .on('end', () => resolve(hash.digest('hex').toLowerCase()))
-        .on('error', reject);
+            .on('data', chunk => hash.update(chunk))
+            .on('end', () => resolve(hash.digest('hex').toLowerCase()))
+            .on('error', reject);
     });
+}
+
+export async function combineIndesSignatureForEach<T, U>(
+    baseList: IndexSignature<T>,
+    overrideList: IndexSignature<U>,
+    convertFn: (element: U, key: string, list: IndexSignature<U>) => T | Promise<T>,
+    callbackFn: (element: T, key: string, list: IndexSignature<T>) => void | Promise<void>,
+    sortFn?: (a: string, b: string) => number
+): Promise<void> {
+    for (const key of new Set<string>([...Object.keys(baseList), ...Object.keys(overrideList)].sort(sortFn))) {
+        if (overrideList[key]) baseList[key] = await convertFn(overrideList[key], key, overrideList);
+        await callbackFn(baseList[key], key, baseList);
+    }
 }
 
 export function getSafeRecordValue<T extends string | number | symbol, U>(data: Record<T, U[]>, type: T): U[] {

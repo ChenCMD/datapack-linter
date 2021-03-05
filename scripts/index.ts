@@ -9,7 +9,7 @@ import mather from './matcher.json';
 import { isCommitMessageIncluded, saveCache, tryGetCache } from './wrapper/actions';
 import { EasyDatapackLanguageService } from './wrapper/DatapackLanguageService';
 import { FileChangeChecker } from './utils/FileChangeChecker';
-import { readFile } from '@spgoding/datapack-language-server';
+import { pathAccessible, readFile } from '@spgoding/datapack-language-server';
 import { Checksum } from './types/Checksum';
 
 const dir = process.cwd();
@@ -42,7 +42,7 @@ async function lint() {
 
     // Check config update
     const configFilePath = path.resolve(dir, './.vscode/settings.json');
-    const configFileChecksum = await generateChecksum(configFilePath);
+    const configFileChecksum = await pathAccessible(configFilePath) ? await generateChecksum(configFilePath) : undefined;
     if (fileChangeChecker.isFileNotEqualChecksum(configFilePath, configFileChecksum))
         fileChangeChecker.clearChecksum();
 
