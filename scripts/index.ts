@@ -136,6 +136,7 @@ async function run(dir: string) {
     // save caches
     await easyDLS.writeCacheFile(cachePath);
     await fileChangeChecker.writeChecksumFile(checksumPath);
+    await fsp.writeFile(lintCachePath, JSON.stringify(lintCache));
     await saveCache(CacheVersion);
 }
 
