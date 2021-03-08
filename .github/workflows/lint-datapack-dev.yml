@@ -20,5 +20,4 @@ jobs:
       - name: test
         uses: ChenCMD/datapack-linter@dev
         with:
-          DEBUG: 'true'
           outputDefine: 'public'
