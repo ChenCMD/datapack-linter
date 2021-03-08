@@ -5,7 +5,7 @@ import { promises as fsp } from 'fs';
 import path from 'path';
 import { combineIndesSignatureForEach, FileChangeChecker, generateChecksum } from './utils';
 import mather from './matcher.json';
-import { isCommitMessageIncluded, saveCache, tryGetCache } from './wrapper/actions';
+import { getActionEventName, isCommitMessageIncluded, saveCache, tryGetCache } from './wrapper/actions';
 import { EasyDatapackLanguageService } from './wrapper/DatapackLanguageService';
 import { pathAccessible, readFile } from '@spgoding/datapack-language-server';
 import { makeDefineData, makeLintData } from './parseResultProcessor';
@@ -32,11 +32,23 @@ async function run(dir: string) {
     const lintCachePath = path.join(globalStoragePath, './lint.json');
     // #endregion
 
+    // #region check restore
+    let isRestoreCache = true;
+    if (isCommitMessageIncluded('[regenerate cache]')) {
+        core.info('The cache is not used because the commit message contains \'[regenerate cache]\'.');
+        isRestoreCache = false;
+    }
+    if (getActionEventName() === 'workflow_dispatch') {
+        core.info('The cache is not used because it is executed from the workflow_dispatch event.');
+        isRestoreCache = false;
+    }
+    // #endregion
+
     // #region try restore cache and get cache files
     let checksumFile: Checksum | undefined = undefined;
     let cacheFile: CacheFile | undefined = undefined;
     let lintCache: IndexSignature<ParsedData> = {};
-    if (!isCommitMessageIncluded('[regenerate cache]') && await tryGetCache(CacheVersion)) {
+    if (isRestoreCache && await tryGetCache(CacheVersion)) {
         checksumFile = JSON.parse(await readFile(checksumPath));
         cacheFile = JSON.parse(await readFile(cachePath));
         lintCache = JSON.parse(await readFile(lintCachePath));
@@ -99,7 +111,6 @@ async function run(dir: string) {
             failCount.error + error;
         }
     );
-
 
     const lintCacheKeys = Object.keys(lintCache);
     if (lintCacheKeys.some(v => lintCache[v].define)) {

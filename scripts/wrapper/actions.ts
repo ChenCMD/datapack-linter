@@ -8,6 +8,10 @@ export function isCommitMessageIncluded(str: string): boolean {
     return !!context.payload.commits?.some((v: { message: string }) => v.message.toLowerCase().includes(str.toLowerCase()));
 }
 
+export function getActionEventName(): string {
+    return context.eventName;
+}
+
 export async function tryGetCache(cacheVersion: number): Promise<boolean> {
     if (!context.payload.commits) return false;
     try {
