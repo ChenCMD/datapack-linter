@@ -12,25 +12,12 @@ import { makeDefineData, makeLintData } from './parseResultProcessor';
 import { Checksum, DocumentData, FailCount, IndexSignature, ParsedData } from './types';
 
 async function run(dir: string) {
-    // log group start
-    core.startGroup('init log');
-
     // get inputs
     const testPath = core.getInput('outputDefine');
 
     // add Problem Matcher
     await fsp.writeFile(path.join(dir, 'matcher.json'), JSON.stringify(mather));
     core.info('::add-matcher::matcher.json');
-
-    // Env Log
-    console.log(`dir: ${dir}`);
-
-    // #region define cache paths
-    const globalStoragePath = path.join(dir, '.cache');
-    const cachePath = path.join(globalStoragePath, './cache.json');
-    const checksumPath = path.join(globalStoragePath, './checksum.json');
-    const lintCachePath = path.join(globalStoragePath, './lint.json');
-    // #endregion
 
     // #region check restore
     let isRestoreCache = true;
@@ -42,6 +29,19 @@ async function run(dir: string) {
         core.info('The cache is not used because it is executed from the workflow_dispatch event.');
         isRestoreCache = false;
     }
+    // #endregion
+
+    // log group start
+    core.startGroup('init log');
+
+    // Env Log
+    console.log(`dir: ${dir}`);
+
+    // #region define cache paths
+    const globalStoragePath = path.join(dir, '.cache');
+    const cachePath = path.join(globalStoragePath, './cache.json');
+    const checksumPath = path.join(globalStoragePath, './checksum.json');
+    const lintCachePath = path.join(globalStoragePath, './lint.json');
     // #endregion
 
     // #region try restore cache and get cache files
@@ -89,7 +89,7 @@ async function run(dir: string) {
 
     // #region parse and output lint results
     const failCount: FailCount = { warning: 0, error: 0 };
-    combineIndesSignatureForEach(
+    await combineIndesSignatureForEach(
         lintCache,
         parseFiles,
         async ({ root, rel }, key) => {
