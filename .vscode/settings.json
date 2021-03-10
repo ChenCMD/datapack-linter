@@ -1,0 +1,66 @@
+{
+    "datapack.lint.strictBossbarCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictScoreHolderCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictStorageCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictObjectiveCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictTagCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictTeamCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictAdvancementCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictFunctionCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictLootTableCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictPredicateCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictRecipeCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictBlockTagCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictEntityTypeTagCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictFluidTagCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictFunctionTagCheck": [
+        "error",
+        true
+    ],
+    "datapack.lint.strictItemTagCheck": [
+        "error",
+        true
+    ]
+}
