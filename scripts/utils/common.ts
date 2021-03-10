@@ -62,7 +62,7 @@ export async function generateChecksum(file: string): Promise<string> {
     });
 }
 
-export async function combineIndesSignatureForEach<T, U>(
+export async function combineIndexSignatureForEach<T, U>(
     baseList: IndexSignature<T>,
     overrideList: IndexSignature<U>,
     convertFn: (element: U, key: string, list: IndexSignature<U>) => T | Promise<T>,

@@ -1,12 +1,13 @@
 import { Checksum } from '../types';
 import { promises as fsp } from 'fs';
-import * as core from '@actions/core';
 
 export class FileChangeChecker {
     private readonly _nextChecksum: {
         deleted: string[],
         updated: Checksum
     } = { deleted: [], updated: {} };
+
+    private readonly _forceTrueChecksums: string[] = [];
 
     constructor(private _checksums: Checksum | undefined) { }
 
@@ -19,13 +20,16 @@ export class FileChangeChecker {
     }
 
     isFileNotEqualChecksum(file: string, newChecksum: string | undefined, allowChecksumUndefined = true): boolean {
-        const res = (allowChecksumUndefined || !this.isFileNewly(file)) && this._checksums?.[file] !== newChecksum;
-        core.debug(`[Checksum] ${file} | allowChecksumUndefined: ${allowChecksumUndefined} | isFileNewly: ${!this.isFileNewly(file)} | checksum: ${this._checksums?.[file]} | checksumNotEqual: ${this._checksums?.[file] !== newChecksum} | result: ${res}`);
-        return res;
+        return this._forceTrueChecksums.some(v => v === file)
+            || ((allowChecksumUndefined || !this.isFileNewly(file)) && this._checksums?.[file] !== newChecksum);
     }
 
     clearChecksum(): void {
         this._checksums = undefined;
+    }
+
+    appendForceTrueChecksums(...files: string[]): void {
+        this._forceTrueChecksums.push(...files);
     }
 
     appendNextChecksum(type: 'deleted', file: string): void;
@@ -35,8 +39,9 @@ export class FileChangeChecker {
         if (type === 'deleted') this._nextChecksum[type].push(file);
     }
 
-    async writeChecksumFile(path: string): Promise<void> {
+    async writeChecksumFile(path: string): Promise<string> {
         this._nextChecksum.deleted.forEach(v => delete this._checksums?.[v]);
-        return await fsp.writeFile(path, JSON.stringify({ ...this._checksums, ...this._nextChecksum.updated }), { encoding: 'utf8' });
+        await fsp.writeFile(path, JSON.stringify({ ...this._checksums, ...this._nextChecksum.updated }), { encoding: 'utf8' });
+        return JSON.stringify({ ...this._checksums, ...this._nextChecksum.updated }, undefined, '    ');
     }
 }

@@ -8,8 +8,10 @@ import stripJsonComments from 'strip-json-comments';
  * This function behaves similarly to the getConfiguration function of the VSCodeAPI.
  */
 export async function getConfiguration(configPath: string): Promise<Config> {
-    if (!await pathAccessible(configPath))
+    if (!await pathAccessible(configPath)) {
+        console.log('Could not access the config file. Use the default config file.');
         return constructConfig({});
+    }
     const json = await readFile(configPath);
     const result: { [key: string]: any } = {};
     const obj = JSON.parse(stripJsonComments(json));

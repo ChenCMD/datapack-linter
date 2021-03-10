@@ -1,4 +1,4 @@
-import { CacheFile, Config, DatapackDocument, FetchConfigFunction, getClientCapabilities, isRelIncluded, trimCache, Uri, VersionInformation } from '@spgoding/datapack-language-server/lib/types';
+import { CacheCategory, CacheFile, CacheType, CacheUnit, Config, DatapackDocument, FetchConfigFunction, getClientCapabilities, isRelIncluded, trimCache, Uri, VersionInformation } from '@spgoding/datapack-language-server/lib/types';
 import { getRelAndRootIndex, getTextDocument, partitionedIteration, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import { DatapackLanguageService, pathAccessible, readFile, requestText } from '@spgoding/datapack-language-server';
 import { PluginLoader } from '@spgoding/datapack-language-server/lib/plugins/PluginLoader';
@@ -25,6 +25,7 @@ export class EasyDatapackLanguageService {
         versionInformation: VersionInformation | undefined,
         private _gcThreshold: number
     ) {
+        console.log(JSON.stringify(_config));
         const capabilities = getClientCapabilities({ workspace: { configuration: true, didChangeConfiguration: { dynamicRegistration: true } } });
         this._service = new DatapackLanguageService({
             cacheFile,
@@ -43,18 +44,20 @@ export class EasyDatapackLanguageService {
         fileChangeChecker: FileChangeChecker,
         gcThreshold: number
     ): Promise<EasyDatapackLanguageService> {
-        const fetchConfig = getFetchConfig(dir);
+        const config = await getConfig(dir);
         const easyDLS = new EasyDatapackLanguageService(
             globalStoragePath,
-            await fetchConfig(),
+            config,
             cacheFile,
-            fetchConfig,
+            () => Promise.resolve(config),
             await PluginLoader.load(),
             await getLatestVersions(),
             gcThreshold
         );
 
         await easyDLS._service.init();
+
+        await easyDLS._service.getVanillaData(easyDLS.config);
 
         // update root
         easyDLS._service.roots.push(...await findDatapackRoots(dir, easyDLS.config));
@@ -80,8 +83,9 @@ export class EasyDatapackLanguageService {
     }
 
 
-    async writeCacheFile(cachePath: string): Promise<void> {
-        return await fsp.writeFile(cachePath, JSON.stringify(this.cacheFile), { encoding: 'utf8' });
+    async writeCacheFile(cachePath: string): Promise<string> {
+        await fsp.writeFile(cachePath, JSON.stringify(this.cacheFile), { encoding: 'utf8' });
+        return JSON.stringify(this.cacheFile, undefined, '  ');
     }
 
     async parseDoc(file: string, rel: string): Promise<{
@@ -148,15 +152,19 @@ export class EasyDatapackLanguageService {
             const uri = this._service.parseUri(uriString);
             const { rel } = getRelAndRootIndex(uri, this.roots) ?? {};
             if (!rel || !isRelIncluded(rel, this.config)) {
+                fileChangeChecker.appendForceTrueChecksums(...this._getReferenceFromFile(uri.fsPath));
                 delete this.cacheFile.files[uriString];
             } else {
                 if (!(await pathAccessible(uri.fsPath))) {// removed/renamed is also processed here
+                    fileChangeChecker.appendForceTrueChecksums(...this._getReferenceFromFile(uri.fsPath));
                     fileChangeChecker.appendNextChecksum('deleted', uri.fsPath);
                     this._service.onDeletedFile(uri);
                 } else {
                     const checkSum = await generateChecksum(uri.fsPath);
                     if (fileChangeChecker.isFileNotEqualChecksum(uriString, checkSum, false)) {
+                        fileChangeChecker.appendForceTrueChecksums(...this._getReferenceFromFile(uri.fsPath));
                         fileChangeChecker.appendNextChecksum('updated', uri.fsPath, checkSum);
+                        this.cacheFile.files[uriString] = 0;
                         await this._service.onModifiedFile(uri);
                     }
                 }
@@ -174,15 +182,37 @@ export class EasyDatapackLanguageService {
                     const uri = this._service.parseUri(Uri.file(abs).toString());
                     const uriString = uri.toString();
                     if (this.cacheFile.files[uriString] === undefined && fileChangeChecker.isFileNewly(abs)) {
+                        fileChangeChecker.appendForceTrueChecksums(...this._getReferenceFromFile(abs));
                         fileChangeChecker.appendNextChecksum('updated', abs, await generateChecksum(abs));
                         this.gc();
                         await this._service.onAddedFile(uri);
+                        this.cacheFile.files[uriString] = 0;
                     }
                 },
                 async (_, rel) => isRelIncluded(rel, this.config)
             );
         }));
     }
+
+    private _getReferenceFromFile(file: string): string[] {
+        const res: string[] = [];
+        for (const type of Object.keys(this.cacheFile.cache)) {
+            const category = this.cacheFile.cache[type as CacheType] as CacheCategory;
+            for (const id of Object.keys(category)) {
+                const { dcl, def, ref } = category[id] as CacheUnit;
+                if ([...dcl ?? [], ...def ?? []].some(v => v.uri === `file://${file}`))
+                    res.push(...ref?.filter(v => v.uri !== undefined).map(v => v.uri!.slice('file://'.length)) ?? []);
+            }
+        }
+        return res;
+    }
+}
+
+async function getConfig(dir: string): Promise<Config> {
+    const configUri = Uri.file(path.resolve(dir, './.vscode/settings.json'));
+    const config = await getConfiguration(configUri.fsPath);
+    await loadLocale(config.env.language, 'en');
+    return config;
 }
 
 /**
@@ -209,16 +239,6 @@ export class EasyDatapackLanguageService {
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
-function getFetchConfig(dir: string): () => Promise<Config> {
-    return async () => {
-        const configUri = Uri.file(path.resolve(dir, './.vscode/settings.json'));
-        const config = await getConfiguration(configUri.fsPath);
-        await loadLocale(config.env.language, 'en');
-        return config;
-    };
-}
-
 async function getLatestVersions() {
     let ans: VersionInformation | undefined;
     try {

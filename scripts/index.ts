@@ -3,7 +3,7 @@ import { walkFile } from '@spgoding/datapack-language-server/lib/services/common
 import * as core from '@actions/core';
 import { promises as fsp } from 'fs';
 import path from 'path';
-import { combineIndesSignatureForEach, FileChangeChecker, generateChecksum } from './utils';
+import { combineIndexSignatureForEach, FileChangeChecker, generateChecksum } from './utils';
 import mather from './matcher.json';
 import { getActionEventName, isCommitMessageIncluded, saveCache, tryGetCache } from './wrapper/actions';
 import { EasyDatapackLanguageService } from './wrapper/DatapackLanguageService';
@@ -52,8 +52,16 @@ async function run(dir: string) {
         checksumFile = JSON.parse(await readFile(checksumPath));
         cacheFile = JSON.parse(await readFile(cachePath));
         lintCache = JSON.parse(await readFile(lintCachePath));
+    } else {
+        core.info('The cache is not used because it failed to restore the cache. If this happens continuously, reporting it in the datapack-linter repository may help.');
     }
     const fileChangeChecker = new FileChangeChecker(checksumFile);
+    // #endregion
+
+    // #region Cache Logs
+    core.debug(JSON.stringify(checksumFile, undefined, ' '.repeat(4)));
+    core.debug(JSON.stringify(cacheFile, undefined, ' '.repeat(4)));
+    core.debug(JSON.stringify(lintCache, undefined, ' '.repeat(4)));
     // #endregion
 
     // #region Check config update
@@ -61,13 +69,6 @@ async function run(dir: string) {
     const configFileChecksum = await pathAccessible(configFilePath) ? await generateChecksum(configFilePath) : undefined;
     if (fileChangeChecker.isFileNotEqualChecksum(configFilePath, configFileChecksum))
         fileChangeChecker.clearChecksum();
-    // #endregion
-
-    // #region output debuglog
-    if (core.isDebug()) {
-        core.debug(JSON.stringify(checksumFile, undefined, '    '));
-        core.debug(JSON.stringify(cacheFile, undefined, '    '));
-    }
     // #endregion
 
     // #region pre parse
@@ -89,7 +90,7 @@ async function run(dir: string) {
 
     // #region parse and output lint results
     const failCount: FailCount = { warning: 0, error: 0 };
-    await combineIndesSignatureForEach(
+    await combineIndexSignatureForEach(
         lintCache,
         parseFiles,
         async ({ root, rel }, key) => {
@@ -98,8 +99,10 @@ async function run(dir: string) {
 
             const lint = makeLintData(parseResult, identityNode, textDocument, root, rel);
             const define = makeDefineData(parseResult, identityNode, root, rel, testPath?.split(/\n/), easyDLS.config);
+            const res: ParsedData = { lint, define };
 
-            return { lint, define };
+            if (res.define?.length === 0) delete res.define;
+            return res;
         },
         async ({ lint }, key, list) => {
             lint?.messages.forEach(core.info);
@@ -107,8 +110,8 @@ async function run(dir: string) {
             const { warning, error } = lint?.failCount ?? { warning: 0, error: 0 };
             if (warning + error === 0) delete list[key].lint;
 
-            failCount.warning + warning;
-            failCount.error + error;
+            failCount.warning += warning;
+            failCount.error += error;
         }
     );
 
@@ -134,9 +137,10 @@ async function run(dir: string) {
     // #endregion
 
     // save caches
-    await easyDLS.writeCacheFile(cachePath);
-    await fileChangeChecker.writeChecksumFile(checksumPath);
-    await fsp.writeFile(lintCachePath, JSON.stringify(lintCache));
+    core.debug(await easyDLS.writeCacheFile(cachePath));
+    core.debug(await fileChangeChecker.writeChecksumFile(checksumPath));
+    core.debug(JSON.stringify(lintCache, undefined, ' '.repeat(4)));
+    await fsp.writeFile(lintCachePath, JSON.stringify(lintCache), { encoding: 'utf8' });
     await saveCache(CacheVersion);
 }
 

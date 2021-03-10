@@ -3,6 +3,7 @@ import * as cache from '@actions/cache';
 import * as core from '@actions/core';
 
 const cachedfiles = ['.cache'];
+const privateCacheVersion = 1;
 
 export function isCommitMessageIncluded(str: string): boolean {
     return !!context.payload.commits?.some((v: { message: string }) => v.message.toLowerCase().includes(str.toLowerCase()));
@@ -33,5 +34,5 @@ export async function saveCache(cacheVersion: number): Promise<void> {
 }
 
 function getCacheKeyPrefix(version: number): string {
-    return `datapack-linter-${context.payload.ref}-${version}-`;
+    return `datapack-linter-${context.payload.ref}-${version + privateCacheVersion}-`;
 }
