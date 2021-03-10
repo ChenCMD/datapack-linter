@@ -19,7 +19,7 @@ async function run(dir: string) {
     await fsp.writeFile(path.join(dir, 'matcher.json'), JSON.stringify(mather));
     core.info('::add-matcher::matcher.json');
 
-    // #region check restore
+    // #region pre cache restore: regenerate check
     let isRestoreCache = true;
     if (isCommitMessageIncluded('[regenerate cache]')) {
         core.info('The cache is not used because the commit message contains \'[regenerate cache]\'.');
@@ -48,12 +48,14 @@ async function run(dir: string) {
     let checksumFile: Checksum | undefined = undefined;
     let cacheFile: CacheFile | undefined = undefined;
     let lintCache: IndexSignature<ParsedData> = {};
-    if (isRestoreCache && await tryGetCache(CacheVersion)) {
-        checksumFile = JSON.parse(await readFile(checksumPath));
-        cacheFile = JSON.parse(await readFile(cachePath));
-        lintCache = JSON.parse(await readFile(lintCachePath));
-    } else {
-        core.info('The cache is not used because it failed to restore the cache. If this happens continuously, reporting it in the datapack-linter repository may help.');
+    if (isRestoreCache) {
+        if (await tryGetCache(CacheVersion)) {
+            checksumFile = JSON.parse(await readFile(checksumPath));
+            cacheFile = JSON.parse(await readFile(cachePath));
+            lintCache = JSON.parse(await readFile(lintCachePath));
+        } else {
+            core.info('The cache is not used because it failed to restore the cache. If this happens continuously, reporting it in the datapack-linter repository may help.');
+        }
     }
     const fileChangeChecker = new FileChangeChecker(checksumFile);
     // #endregion
@@ -64,11 +66,14 @@ async function run(dir: string) {
     core.debug(JSON.stringify(lintCache, undefined, ' '.repeat(4)));
     // #endregion
 
-    // #region Check config update
+    // #region post cache restore: Check config update
     const configFilePath = path.resolve(dir, './.vscode/settings.json');
     const configFileChecksum = await pathAccessible(configFilePath) ? await generateChecksum(configFilePath) : undefined;
-    if (fileChangeChecker.isFileNotEqualChecksum(configFilePath, configFileChecksum))
+    if (fileChangeChecker.isFileNotEqualChecksum(configFilePath, configFileChecksum)) {
         fileChangeChecker.clearChecksum();
+        cacheFile = undefined;
+        lintCache = {};
+    }
     // #endregion
 
     // #region pre parse
