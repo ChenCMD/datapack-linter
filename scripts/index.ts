@@ -76,6 +76,7 @@ async function run(dir: string) {
         cacheFile = undefined;
         lintCache = {};
         fileChangeChecker.updateNextChecksum(configFilePath, configFileChecksum);
+        core.info('The cache is not used because of a change in the config file.');
     }
     // #endregion
 
