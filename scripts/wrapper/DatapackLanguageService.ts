@@ -157,13 +157,13 @@ export class EasyDatapackLanguageService {
             } else {
                 if (!(await pathAccessible(uri.fsPath))) {// removed/renamed is also processed here
                     fileChangeChecker.appendForceTrueChecksums(...this._getReferenceFromFile(uri.fsPath));
-                    fileChangeChecker.appendNextChecksum('deleted', uri.fsPath);
+                    fileChangeChecker.updateNextChecksum(uri.fsPath);
                     this._service.onDeletedFile(uri);
                 } else {
                     const checkSum = await generateChecksum(uri.fsPath);
                     if (fileChangeChecker.isFileNotEqualChecksum(uriString, checkSum, false)) {
                         fileChangeChecker.appendForceTrueChecksums(...this._getReferenceFromFile(uri.fsPath));
-                        fileChangeChecker.appendNextChecksum('updated', uri.fsPath, checkSum);
+                        fileChangeChecker.updateNextChecksum(uri.fsPath, checkSum);
                         this.cacheFile.files[uriString] = 0;
                         await this._service.onModifiedFile(uri);
                     }
@@ -183,7 +183,7 @@ export class EasyDatapackLanguageService {
                     const uriString = uri.toString();
                     if (this.cacheFile.files[uriString] === undefined && fileChangeChecker.isFileNewly(abs)) {
                         fileChangeChecker.appendForceTrueChecksums(...this._getReferenceFromFile(abs));
-                        fileChangeChecker.appendNextChecksum('updated', abs, await generateChecksum(abs));
+                        fileChangeChecker.updateNextChecksum(abs, await generateChecksum(abs));
                         this.gc();
                         await this._service.onAddedFile(uri);
                         this.cacheFile.files[uriString] = 0;

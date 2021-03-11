@@ -32,11 +32,9 @@ export class FileChangeChecker {
         this._forceTrueChecksums.push(...files);
     }
 
-    appendNextChecksum(type: 'deleted', file: string): void;
-    appendNextChecksum(type: 'updated', file: string, newChecksum: string): void;
-    appendNextChecksum(type: 'deleted' | 'updated', file: string, newChecksum?: string): void {
-        if (type === 'updated') this._nextChecksum[type][file] = newChecksum!.toLowerCase();
-        if (type === 'deleted') this._nextChecksum[type].push(file);
+    updateNextChecksum(file: string, newChecksum?: string): void {
+        if (newChecksum) this._nextChecksum.updated[file] = newChecksum.toLowerCase();
+        else this._nextChecksum.deleted.push(file);
     }
 
     async writeChecksumFile(path: string): Promise<string> {

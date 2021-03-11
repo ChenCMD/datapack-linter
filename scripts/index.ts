@@ -73,6 +73,7 @@ async function run(dir: string) {
         fileChangeChecker.clearChecksum();
         cacheFile = undefined;
         lintCache = {};
+        fileChangeChecker.updateNextChecksum(configFilePath, configFileChecksum);
     }
     // #endregion
 
