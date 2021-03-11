@@ -13,7 +13,7 @@ export function getActionEventName(): string {
     return context.eventName;
 }
 
-export async function tryGetCache(cacheVersion: number): Promise<boolean> {
+export async function tryRestoreCache(cacheVersion: number): Promise<boolean> {
     if (!context.payload.commits) return false;
     try {
         return !!await cache.restoreCache(cachedfiles, '', [getCacheKeyPrefix(cacheVersion)]);

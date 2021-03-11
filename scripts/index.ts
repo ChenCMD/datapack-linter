@@ -3,9 +3,9 @@ import { walkFile } from '@spgoding/datapack-language-server/lib/services/common
 import * as core from '@actions/core';
 import { promises as fsp } from 'fs';
 import path from 'path';
-import { combineIndexSignatureForEach, FileChangeChecker, generateChecksum } from './utils';
+import { combineIndexSignatureForEach, FileChangeChecker, generateChecksum, pathAccessibles } from './utils';
 import mather from './matcher.json';
-import { getActionEventName, isCommitMessageIncluded, saveCache, tryGetCache } from './wrapper/actions';
+import { getActionEventName, isCommitMessageIncluded, saveCache, tryRestoreCache } from './wrapper/actions';
 import { EasyDatapackLanguageService } from './wrapper/DatapackLanguageService';
 import { pathAccessible, readFile } from '@spgoding/datapack-language-server';
 import { makeDefineData, makeLintData } from './parseResultProcessor';
@@ -49,7 +49,9 @@ async function run(dir: string) {
     let cacheFile: CacheFile | undefined = undefined;
     let lintCache: IndexSignature<ParsedData> = {};
     if (isRestoreCache) {
-        if (await tryGetCache(CacheVersion)) {
+        // local test or restore success
+        if ((!process.env['GITHUB_SHA'] || await tryRestoreCache(CacheVersion))
+            && await pathAccessibles(checksumPath, cachePath, lintCachePath)) {
             checksumFile = JSON.parse(await readFile(checksumPath));
             cacheFile = JSON.parse(await readFile(cachePath));
             lintCache = JSON.parse(await readFile(lintCachePath));
