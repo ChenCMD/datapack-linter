@@ -25,7 +25,6 @@ export class EasyDatapackLanguageService {
         versionInformation: VersionInformation | undefined,
         private _gcThreshold: number
     ) {
-        console.log(JSON.stringify(_config));
         const capabilities = getClientCapabilities({ workspace: { configuration: true, didChangeConfiguration: { dynamicRegistration: true } } });
         this._service = new DatapackLanguageService({
             cacheFile,
