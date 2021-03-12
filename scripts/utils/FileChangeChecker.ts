@@ -7,7 +7,7 @@ export class FileChangeChecker {
         updated: Checksum
     } = { deleted: [], updated: {} };
 
-    private readonly _forceTrueChecksums: string[] = [];
+    private readonly _bypassFiles: string[] = [];
 
     constructor(private _checksums: Checksum | undefined) { }
 
@@ -20,7 +20,7 @@ export class FileChangeChecker {
     }
 
     isFileNotEqualChecksum(file: string, newChecksum: string | undefined, allowChecksumUndefined = true): boolean {
-        return this._forceTrueChecksums.some(v => v === file)
+        return this._bypassFiles.some(v => v === file)
             || ((allowChecksumUndefined || !this.isFileNewly(file)) && this._checksums?.[file] !== newChecksum);
     }
 
@@ -28,8 +28,8 @@ export class FileChangeChecker {
         this._checksums = undefined;
     }
 
-    appendForceTrueChecksums(...files: string[]): void {
-        this._forceTrueChecksums.push(...files);
+    appendBypassFiles(...files: string[]): void {
+        this._bypassFiles.push(...files);
     }
 
     updateNextChecksum(file: string, newChecksum?: string): void {
