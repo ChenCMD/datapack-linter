@@ -48,6 +48,13 @@ and automatically reads `.vscode/setting.json` placed in the repository root and
 This file is generated when you change the workspace settings in VSCode.
 
 ## 入力 / Inputs
-| 名前 / Name  | 想定する値 / Expect value | 必須 / Require |                                                           概要 / About                                                           |
-| :----------: | :-----------------------: | :------------: | :------------------------------------------------------------------------------------------------------------------------------: |
-| outputDefine |       リソースパス</br>Resourcepath        |       x        | 入力されたリソースパスに一致するdefine/declareを表示します</br>Displays the define/declare that match the input resource path. |
+|  名前  Name  |   想定する値 / Expect value   | 必須 / Require |                                                          概要 / About                                                          |
+| :----------: | :---------------------------: | :------------: | :----------------------------------------------------------------------------------------------------------------------------: |
+| outputDefine | リソースパス</br>Resourcepath |       x        | 入力されたリソースパスに一致するdefine/declareを表示します</br>Displays the define/declare that match the input resource path. |
+
+## キャッシュについて / Cache
+datapack linterはキャッシュを利用して、動作速度を高速にしています。  
+しかし、さまざまな要因で稀にキャッシュが破損する可能性があります。その場合コミットメッセージに`[regenerate cache]`という文字列を含めることでキャッシュを再生成することが可能です。
+
+The datapack linter uses a cache to speed up its operation.  
+However, there is a rare possibility that the cache gets corrupted due to various reasons. In that case, you can regenerate the cache by including the string `[regenerate cache]` in the commit message.
