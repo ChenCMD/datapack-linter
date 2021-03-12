@@ -19,8 +19,8 @@ export class FileChangeChecker {
         return !this._checksums?.[file];
     }
 
-    isFileNotEqualChecksum(file: string, newChecksum: string | undefined, allowChecksumUndefined = true): boolean {
-        return this._bypassFiles.some(v => v === file)
+    isFileNotEqualChecksum(file: string, newChecksum: string | undefined, allowChecksumUndefined = true, allowBypassFiles = true): boolean {
+        return (allowBypassFiles && this._bypassFiles.some(v => v === file))
             || ((allowChecksumUndefined || !this.isFileNewly(file)) && this._checksums?.[file] !== newChecksum);
     }
 

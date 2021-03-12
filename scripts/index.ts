@@ -121,6 +121,8 @@ async function run(dir: string) {
 
             failCount.warning += warning;
             failCount.error += error;
+
+            if (!Object.keys(list[key]).length) delete list[key];
         }
     );
 

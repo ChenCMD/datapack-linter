@@ -1,5 +1,5 @@
 import { CacheCategory, CacheFile, CacheType, CacheUnit, Config, DatapackDocument, FetchConfigFunction, getClientCapabilities, isRelIncluded, trimCache, Uri, VersionInformation } from '@spgoding/datapack-language-server/lib/types';
-import { getRelAndRootIndex, getTextDocument, partitionedIteration, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
+import { getRel, getTextDocument, partitionedIteration, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import { DatapackLanguageService, pathAccessible, readFile, requestText } from '@spgoding/datapack-language-server';
 import { PluginLoader } from '@spgoding/datapack-language-server/lib/plugins/PluginLoader';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
@@ -10,6 +10,7 @@ import { promises as fsp } from 'fs';
 import { findDatapackRoots, generateChecksum, getConfiguration } from '../utils';
 import { FileChangeChecker } from '../utils/FileChangeChecker';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import * as core from '@actions/core';
 
 export class EasyDatapackLanguageService {
     private readonly _service: DatapackLanguageService;
@@ -60,8 +61,8 @@ export class EasyDatapackLanguageService {
 
         // update root
         easyDLS._service.roots.push(...await findDatapackRoots(dir, easyDLS.config));
-        console.log('datapack roots:');
-        easyDLS.roots.forEach(v => console.log(v.path));
+        core.info('datapack roots:');
+        easyDLS.roots.forEach(v => core.info(v.path));
 
         // update cache
         await easyDLS._updateCacheFile(fileChangeChecker);
@@ -147,24 +148,26 @@ export class EasyDatapackLanguageService {
 
     private async _checkFilesInCache(fileChangeChecker: FileChangeChecker) {
         const uriStrings = Object.keys(this.cacheFile.files).values();
-        return partitionedIteration(uriStrings, async uriString => {
+        return await partitionedIteration(uriStrings, async uriString => {
             const uri = this._service.parseUri(uriString);
-            const { rel } = getRelAndRootIndex(uri, this.roots) ?? {};
-            if (!rel || !isRelIncluded(rel, this.config)) {
-                fileChangeChecker.appendForceTrueChecksums(...this._getReferenceFromFile(uri.fsPath));
-                delete this.cacheFile.files[uriString];
-            } else {
+            const rel = getRel(uri, this.roots);
+            const manageChecksum = (checksum?: string) => {
+                fileChangeChecker.appendBypassFiles(...this._getReferenceFromFile(uri.fsPath));
+                fileChangeChecker.updateNextChecksum(uri.fsPath, checksum);
+            };
+            if (rel) {
                 if (!(await pathAccessible(uri.fsPath))) {// removed/renamed is also processed here
-                    fileChangeChecker.appendForceTrueChecksums(...this._getReferenceFromFile(uri.fsPath));
-                    fileChangeChecker.updateNextChecksum(uri.fsPath);
+                    core.debug(`file delete detected: ${uri.fsPath}`);
+                    manageChecksum();
                     this._service.onDeletedFile(uri);
                 } else {
                     const checkSum = await generateChecksum(uri.fsPath);
-                    if (fileChangeChecker.isFileNotEqualChecksum(uriString, checkSum, false)) {
-                        fileChangeChecker.appendForceTrueChecksums(...this._getReferenceFromFile(uri.fsPath));
-                        fileChangeChecker.updateNextChecksum(uri.fsPath, checkSum);
-                        this.cacheFile.files[uriString] = 0;
+                    if (fileChangeChecker.isFileNotEqualChecksum(uri.fsPath, checkSum, false, false)) {
+                        core.debug(`file change detected: ${uri.fsPath}`);
+                        fileChangeChecker.appendBypassFiles(...this._getReferenceFromFile(uri.fsPath));
                         await this._service.onModifiedFile(uri);
+                        manageChecksum(checkSum);
+                        this.cacheFile.files[uriString] = 0;
                     }
                 }
             }
@@ -181,10 +184,11 @@ export class EasyDatapackLanguageService {
                     const uri = this._service.parseUri(Uri.file(abs).toString());
                     const uriString = uri.toString();
                     if (this.cacheFile.files[uriString] === undefined && fileChangeChecker.isFileNewly(abs)) {
-                        fileChangeChecker.appendForceTrueChecksums(...this._getReferenceFromFile(abs));
-                        fileChangeChecker.updateNextChecksum(abs, await generateChecksum(abs));
-                        this.gc();
+                        core.debug(`file add detected: ${uri.fsPath}`);
                         await this._service.onAddedFile(uri);
+                        this.gc();
+                        fileChangeChecker.appendBypassFiles(...this._getReferenceFromFile(abs));
+                        fileChangeChecker.updateNextChecksum(abs, await generateChecksum(abs));
                         this.cacheFile.files[uriString] = 0;
                     }
                 },
@@ -199,8 +203,8 @@ export class EasyDatapackLanguageService {
             const category = this.cacheFile.cache[type as CacheType] as CacheCategory;
             for (const id of Object.keys(category)) {
                 const { dcl, def, ref } = category[id] as CacheUnit;
-                if ([...dcl ?? [], ...def ?? []].some(v => v.uri === `file://${file}`))
-                    res.push(...ref?.filter(v => v.uri !== undefined).map(v => v.uri!.slice('file://'.length)) ?? []);
+                if ([...dcl ?? [], ...def ?? []].some(v => v.uri === `${Uri.file(file).toString()}`))
+                    res.push(...ref?.filter(v => v.uri !== undefined).map(v => Uri.parse(v.uri!).fsPath) ?? []);
             }
         }
         return res;
