@@ -56,6 +56,19 @@ This file is generated when you change the workspace settings in VSCode.
 | ignoreLintPathPattern |          globPattern          |       x        | 入力されたglobPatternに一致したファイルをチェックしません。<br>Do not check for files that match the entered globPattern.                                           |
 |  checkAlwaysAllFile   |            `true`             |       x        | `true`に設定した場合、キャッシュを使用せず常にすべてのファイルをチェックします。<br>If set to `true`, it will always check all files without using the cache.       |
 
+注: outputDefine及びignoreLintPathPatternは複数の文字列を入れることが可能です。方法は下記のサンプルを参照してください。
+note: outputDefine and ignoreLintPathPattern can contain multiple character strings. Please refer to the sample below for the method.
+```yaml
+         - name: lint
+           uses: ChenCMD/datapack-linter@v1
+           with:
+             ignoreLintPathPattern: |
+               ignore:**
+               example:ignore/**
+               example:data/ignore/**
+```
+
+
 ## キャッシュについて / Cache
 datapack linterはキャッシュを利用して、動作速度を高速にしています。  
 しかし、さまざまな要因で稀にキャッシュが破損する可能性があります。その場合コミットメッセージに`[regenerate cache]`という文字列を含めることでキャッシュを再生成することが可能です。
