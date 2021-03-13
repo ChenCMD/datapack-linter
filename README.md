@@ -48,9 +48,13 @@ and automatically reads `.vscode/setting.json` placed in the repository root and
 This file is generated when you change the workspace settings in VSCode.
 
 ## 入力 / Inputs
-|  名前  Name  |   想定する値 / Expect value   | 必須 / Require |                                                          概要 / About                                                          |
-| :----------: | :---------------------------: | :------------: | :----------------------------------------------------------------------------------------------------------------------------: |
-| outputDefine | リソースパス</br>Resourcepath |       x        | 入力されたリソースパスに一致するdefine/declareを表示します</br>Displays the define/declare that match the input resource path. |
+|      名前  Name       |   想定する値 / Expect value   | 必須 / Require | 概要 / About                                                                                                                                                        |
+| :-------------------: | :---------------------------: | :------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|     outputDefine      | リソースパス</br>Resourcepath |       x        | 入力されたリソースパスに一致するdefine/declareを表示します<br>Displays the define/declare that match the input resource path.                                       |
+|       forcePass       |            `true`             |       x        | `true`に設定した場合、チェックに失敗したファイルが存在してもfailしません。<br>If set to `true`, it will not fail even if there are files that failed to be checked. |
+|   notOutputSuccess    |            `true`             |       x        | `true`に設定した場合、チェックに成功したファイルのログを出力しません。<br>If set to `true`, do not output the log of files that have been successfully checked.     |
+| ignoreLintPathPattern |          globPattern          |       x        | 入力されたglobPatternに一致したファイルをチェックしません。<br>Do not check for files that match the entered globPattern.                                           |
+|  checkAlwaysAllFile   |            `true`             |       x        | `true`に設定した場合、キャッシュを使用せず常にすべてのファイルをチェックします。<br>If set to `true`, it will always check all files without using the cache.       |
 
 ## キャッシュについて / Cache
 datapack linterはキャッシュを利用して、動作速度を高速にしています。  

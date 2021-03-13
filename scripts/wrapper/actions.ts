@@ -13,6 +13,21 @@ export function getActionEventName(): string {
     return context.eventName;
 }
 
+export function getActionInput(type: 'string', key: string, defaultVal: string, required?: boolean): string;
+export function getActionInput(type: 'string[]', key: string, defaultVal: string[], required?: boolean): string[];
+export function getActionInput(type: 'number', key: string, defaultVal: number, required?: boolean): number | undefined;
+export function getActionInput(type: 'boolean', key: string, defaultVal: boolean, required?: boolean): boolean | undefined;
+export function getActionInput(type: 'string' | 'string[]' | 'number' | 'boolean', key: string, defaultVal: string | string[] | number | boolean, required = false): string | string[] | number | boolean | undefined {
+    const resStr = core.getInput(key, { required });
+    if (resStr === '') return defaultVal;
+    if (type === 'string') return resStr;
+    if (type === 'string[]') return resStr.split('\n');
+    if (type === 'number' && resStr.match(/^(?:\+|-)?\d+(\.\d+)?$/)) return parseFloat(resStr);
+    if (type === 'boolean' && resStr.match(/^(?:true|false)$/)) return resStr.toLowerCase() === 'true';
+    core.error(`A string like "${type}" was requested, but ${resStr} was entered`);
+    return defaultVal;
+}
+
 export async function tryRestoreCache(cacheVersion: number): Promise<boolean> {
     if (!context.payload.commits) return false;
     try {

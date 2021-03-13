@@ -5,15 +5,21 @@ import { promises as fsp } from 'fs';
 import path from 'path';
 import { combineIndexSignatureForEach, FileChangeChecker, generateChecksum, pathAccessibles } from './utils';
 import mather from './matcher.json';
-import { getActionEventName, isCommitMessageIncluded, saveCache, tryRestoreCache } from './wrapper/actions';
+import { getActionEventName, getActionInput, isCommitMessageIncluded, saveCache, tryRestoreCache } from './wrapper/actions';
 import { EasyDatapackLanguageService } from './wrapper/DatapackLanguageService';
 import { pathAccessible, readFile } from '@spgoding/datapack-language-server';
 import { makeDefineData, makeLintData } from './parseResultProcessor';
 import { Checksum, DocumentData, FailCount, IndexSignature, ParsedData } from './types';
+import minimatch from 'minimatch';
+import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 
 async function run(dir: string) {
     // get inputs
-    const testPath = core.getInput('outputDefine');
+    const testPaths = getActionInput('string[]', 'outputDefine', []);
+    const ignoreLintPathPatterns = getActionInput('string[]', 'ignoreLintPathPattern', []);
+    const forcePass = getActionInput('boolean', 'forcePass', false);
+    const notOutputSuccess = getActionInput('boolean', 'notOutputSuccess', false);
+    const checkAlwaysAllFile = getActionInput('boolean', 'checkAlwaysAllFile', false);
 
     // add Problem Matcher
     await fsp.writeFile(path.join(dir, 'matcher.json'), JSON.stringify(mather));
@@ -21,6 +27,10 @@ async function run(dir: string) {
 
     // #region pre cache restore: regenerate check
     let isRestoreCache = true;
+    if (checkAlwaysAllFile) {
+        core.info('The cache is not used because checkAlwaysAllFile is true.');
+        isRestoreCache = false;
+    }
     if (isCommitMessageIncluded('[regenerate cache]')) {
         core.info('The cache is not used because the commit message contains \'[regenerate cache]\'.');
         isRestoreCache = false;
@@ -87,8 +97,11 @@ async function run(dir: string) {
         root.fsPath,
         path.join(root.fsPath, 'data'),
         async (file, rel) => {
-            if (fileChangeChecker.isFileNotEqualChecksum(file, await generateChecksum(file)))
-                parseFiles[file] = { root: root.fsPath, rel };
+            if (fileChangeChecker.isFileNotEqualChecksum(file, await generateChecksum(file))) {
+                const id = IdentityNode.fromRel(rel)?.id.toString();
+                if (!id || !ignoreLintPathPatterns.some(v => minimatch(id, v, { dot: true })))
+                    parseFiles[file] = { root: root.fsPath, rel };
+            }
         },
         async (_, rel) => isRelIncluded(rel, easyDLS.config)
     )));
@@ -107,16 +120,16 @@ async function run(dir: string) {
             if (!parseResult || !identityNode || !textDocument) return {};
 
             const lint = makeLintData(parseResult, identityNode, textDocument, root, rel);
-            const define = makeDefineData(parseResult, identityNode, root, rel, testPath?.split(/\n/), easyDLS.config);
+            const define = makeDefineData(parseResult, identityNode, root, rel, testPaths, easyDLS.config);
             const res: ParsedData = { lint, define };
 
             if (res.define?.length === 0) delete res.define;
             return res;
         },
         async ({ lint }, key, list) => {
-            lint?.messages.forEach(core.info);
-
             const { warning, error } = lint?.failCount ?? { warning: 0, error: 0 };
+
+            if (!(warning + error === 0 && notOutputSuccess)) lint?.messages.forEach(core.info);
             if (warning + error === 0) delete list[key].lint;
 
             failCount.warning += warning;
@@ -140,10 +153,10 @@ async function run(dir: string) {
         core.info('Check successful');
     } else {
         core.info(`Check failed (${error} error${error > 1 ? 's' : ''}, ${warning} warning${warning > 1 ? 's' : ''})`);
-        if (!core.isDebug())
+        if (!forcePass)
             process.exitCode = core.ExitCode.Failure;
         else
-            core.info('Test forced pass. Because debug mode');
+            core.info('The test has been forced to pass because forcePass is true');
     }
     // #endregion
 
