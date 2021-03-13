@@ -22,3 +22,4 @@ jobs:
         uses: ChenCMD/datapack-linter@dev
         with:
           outputDefine: 'public'
+          forcePass: true
