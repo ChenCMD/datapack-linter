@@ -62,5 +62,6 @@
     "datapack.lint.strictItemTagCheck": [
         "error",
         true
-    ]
+    ],
+    "typescript.tsdk": "node_modules\\typescript\\lib"
 }
