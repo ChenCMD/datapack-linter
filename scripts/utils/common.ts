@@ -1,6 +1,6 @@
+import { pathAccessible } from '@spgoding/datapack-language-server';
 import { getRootUri, walkRoot } from '@spgoding/datapack-language-server/lib/services/common';
 import { Config, Uri } from '@spgoding/datapack-language-server/lib/types';
-import { pathAccessible } from '@spgoding/datapack-language-server';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';

@@ -1,16 +1,16 @@
-import { CacheCategory, CacheFile, CacheType, CacheUnit, Config, DatapackDocument, FetchConfigFunction, getClientCapabilities, isRelIncluded, trimCache, Uri, VersionInformation } from '@spgoding/datapack-language-server/lib/types';
-import { getRel, getTextDocument, partitionedIteration, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
+import * as core from '@actions/core';
 import { DatapackLanguageService, pathAccessible, readFile, requestText } from '@spgoding/datapack-language-server';
-import { PluginLoader } from '@spgoding/datapack-language-server/lib/plugins/PluginLoader';
-import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { loadLocale } from '@spgoding/datapack-language-server/lib/locales';
+import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { Plugin } from '@spgoding/datapack-language-server/lib/plugins';
-import path from 'path';
+import { PluginLoader } from '@spgoding/datapack-language-server/lib/plugins/PluginLoader';
+import { getRel, getTextDocument, partitionedIteration, walkFile } from '@spgoding/datapack-language-server/lib/services/common';
+import { CacheCategory, CacheFile, CacheType, CacheUnit, Config, DatapackDocument, FetchConfigFunction, getClientCapabilities, isRelIncluded, trimCache, Uri, VersionInformation } from '@spgoding/datapack-language-server/lib/types';
 import { promises as fsp } from 'fs';
+import path from 'path';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { findDatapackRoots, generateChecksum, getConfiguration, setTimeOut } from '../utils';
 import { FileChangeChecker } from '../utils/FileChangeChecker';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import * as core from '@actions/core';
 
 export class EasyDatapackLanguageService {
     private readonly _service: DatapackLanguageService;

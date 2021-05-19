@@ -1,17 +1,17 @@
-import { CacheFile, CacheVersion, isRelIncluded } from '@spgoding/datapack-language-server/lib/types';
-import { walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import * as core from '@actions/core';
-import { promises as fsp } from 'fs';
-import path from 'path';
-import { combineIndexSignatureForEach, FileChangeChecker, generateChecksum, pathAccessibles } from './utils';
-import mather from './matcher.json';
-import { getActionEventName, getActionInput, isCommitMessageIncluded, saveCache, tryRestoreCache } from './wrapper/actions';
-import { EasyDatapackLanguageService } from './wrapper/DatapackLanguageService';
 import { pathAccessible, readFile } from '@spgoding/datapack-language-server';
+import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
+import { walkFile } from '@spgoding/datapack-language-server/lib/services/common';
+import { CacheFile, CacheVersion, isRelIncluded } from '@spgoding/datapack-language-server/lib/types';
+import { promises as fsp } from 'fs';
+import minimatch from 'minimatch';
+import path from 'path';
+import mather from './matcher.json';
 import { makeDefineData, makeLintData } from './parseResultProcessor';
 import { Checksum, DocumentData, FailCount, IndexSignature, ParsedData } from './types';
-import minimatch from 'minimatch';
-import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
+import { combineIndexSignatureForEach, FileChangeChecker, generateChecksum, pathAccessibles } from './utils';
+import { getActionEventName, getActionInput, isCommitMessageIncluded, saveCache, tryRestoreCache } from './wrapper/actions';
+import { EasyDatapackLanguageService } from './wrapper/DatapackLanguageService';
 
 async function run(dir: string) {
     // get inputs

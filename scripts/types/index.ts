@@ -1,3 +1,3 @@
 export * from './Checksum';
-export * from './ParseDatas';
+export * from './ParseData';
 export * from './common';

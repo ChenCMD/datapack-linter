@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Config, constructConfig } from '@spgoding/datapack-language-server/lib/types';
 import { pathAccessible, readFile } from '@spgoding/datapack-language-server';
+import { Config, constructConfig } from '@spgoding/datapack-language-server/lib/types';
 import stripJsonComments from 'strip-json-comments';
 
 /**

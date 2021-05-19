@@ -1,8 +1,8 @@
-import { CacheCategory, CacheType, CacheVisibility, Config, DatapackDocument } from '@spgoding/datapack-language-server/lib/types';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
-import { TextDocument, DiagnosticSeverity } from 'vscode-json-languageservice';
+import { CacheCategory, CacheType, CacheVisibility, Config, DatapackDocument } from '@spgoding/datapack-language-server/lib/types';
 import path from 'path';
-import { LintData } from './types/ParseDatas';
+import { DiagnosticSeverity, TextDocument } from 'vscode-json-languageservice';
+import { LintData } from './types/ParseData';
 
 
 
@@ -26,12 +26,12 @@ export function makeLintData(parsedData: DatapackDocument, id: IdentityNode, doc
             .sort((errA, errB) => errA.range.start.line - errB.range.start.line)
             .forEach(err => {
                 const pos = err.range.start;
-                const paddingedLine = `   ${pos.line + 1}`.slice(-4);
-                const paddingedChar = `${pos.character + 1}     `.slice(0, 5);
-                const humanReadbleSaverity = err.severity === DiagnosticSeverity.Error ? 'Error  ' : 'Warning';
+                const paddingLine = `   ${pos.line + 1}`.slice(-4);
+                const paddingChar = `${pos.character + 1}     `.slice(0, 5);
+                const humanReadableSeverity = err.severity === DiagnosticSeverity.Error ? 'Error  ' : 'Warning';
                 const indentAdjust = err.severity === DiagnosticSeverity.Error ? '   ' : ' ';
 
-                messages.push(`${indentAdjust}${paddingedLine}:${paddingedChar} ${humanReadbleSaverity} ${err.message}`);
+                messages.push(`${indentAdjust}${paddingLine}:${paddingChar} ${humanReadableSeverity} ${err.message}`);
                 err.severity === DiagnosticSeverity.Error ? failCount.error++ : failCount.warning++;
             });
     }
@@ -58,16 +58,16 @@ export function makeDefineData(parsedData: DatapackDocument, id: IdentityNode, r
 
         const defaultVisibility = config.env.defaultVisibility;
         if (typeof defaultVisibility === 'string') {
-            const genVisivility = (pattern: string): CacheVisibility => ({ type: '*', pattern });
+            const genVisibility = (pattern: string): CacheVisibility => ({ type: '*', pattern });
             if (defaultVisibility === 'private')
-                return test(genVisivility(id.toString()));
+                return test(genVisibility(id.toString()));
 
             if (defaultVisibility === 'internal') {
                 const namespace = id.getNamespace();
                 if (namespace === IdentityNode.DefaultNamespace)
-                    return test(genVisivility(namespace));
+                    return test(genVisibility(namespace));
                 else
-                    return test([genVisivility(`${namespace}:**`), genVisivility(`${IdentityNode.DefaultNamespace}:**`)]);
+                    return test([genVisibility(`${namespace}:**`), genVisibility(`${IdentityNode.DefaultNamespace}:**`)]);
             }
             if (defaultVisibility === 'public')
                 return true;

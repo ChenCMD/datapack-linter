@@ -1,5 +1,5 @@
-import { Checksum } from '../types';
 import { promises as fsp } from 'fs';
+import { Checksum } from '../types';
 
 export class FileChangeChecker {
     private readonly _nextChecksum: {

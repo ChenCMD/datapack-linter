@@ -1,6 +1,6 @@
-import { context } from '@actions/github';
 import * as cache from '@actions/cache';
 import * as core from '@actions/core';
+import { context } from '@actions/github';
 
 const cachedFiles = ['.cache'];
 const privateCacheVersion = 1;
