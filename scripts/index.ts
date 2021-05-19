@@ -91,16 +91,18 @@ async function run(dir: string) {
     // #endregion
 
     // #region pre parse
-    const easyDLS = await EasyDatapackLanguageService.createInstance(dir, globalStoragePath, cacheFile, fileChangeChecker, 500);
+    const easyDLS = await EasyDatapackLanguageService.createInstance(dir, globalStoragePath, cacheFile, fileChangeChecker, 500).catch(() => undefined);
+    if (!easyDLS) return core.error('Failed to get the version data. Please re-run jobs');
+
     const parseFiles: IndexSignature<DocumentData> = {};
-    await Promise.all(easyDLS.roots.map(async root => await walkFile(
-        root.fsPath,
-        path.join(root.fsPath, 'data'),
+    await Promise.all(easyDLS.roots.map(async ({ fsPath: root }) => await walkFile(
+        root,
+        path.join(root, 'data'),
         async (file, rel) => {
             if (fileChangeChecker.isFileNotEqualChecksum(file, await generateChecksum(file))) {
                 const id = IdentityNode.fromRel(rel)?.id.toString();
                 if (!id || !ignoreLintPathPatterns.some(v => minimatch(id, v, { dot: true })))
-                    parseFiles[file] = { root: root.fsPath, rel };
+                    parseFiles[file] = { root, rel };
             }
         },
         async (_, rel) => isRelIncluded(rel, easyDLS.config)
@@ -163,7 +165,6 @@ async function run(dir: string) {
     // save caches
     core.debug(await easyDLS.writeCacheFile(cachePath));
     core.debug(await fileChangeChecker.writeChecksumFile(checksumPath));
-    core.debug(JSON.stringify(lintCache, undefined, ' '.repeat(4)));
     await fsp.writeFile(lintCachePath, JSON.stringify(lintCache), { encoding: 'utf8' });
     await saveCache(CacheVersion);
 }

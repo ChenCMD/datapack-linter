@@ -6,6 +6,10 @@ import fs from 'fs';
 import path from 'path';
 import { IndexSignature } from '../types';
 
+export async function setTimeOut(millisecond: number): Promise<never> {
+    return await new Promise((_, reject) => setTimeout(() => reject(new Error('Download time out')), millisecond));
+}
+
 /**
  * This function is equivalent to the one implemented in datapack-language-server/server.ts.
  *

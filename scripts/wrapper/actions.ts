@@ -31,10 +31,6 @@ export function getActionInput(type: 'string' | 'string[]' | 'number' | 'boolean
 export async function tryRestoreCache(cacheVersion: number): Promise<boolean> {
     if (!context.payload.commits) return false;
     try {
-        if (await cache.restoreCache(cachedFiles, getCacheKey(cacheVersion, context.runId))) {
-            core.info('Cache is not used because of the re-run jobs.');
-            return false;
-        }
         return !!await cache.restoreCache(cachedFiles, '', [getCacheKey(cacheVersion)]);
     } catch (e) {
         core.warning('Failed to load the cache. The following errors may be resolved by reporting them in the datapack-linter repository.');
@@ -45,7 +41,8 @@ export async function tryRestoreCache(cacheVersion: number): Promise<boolean> {
 
 export async function saveCache(cacheVersion: number): Promise<void> {
     try {
-        return void await cache.saveCache(cachedFiles, getCacheKey(cacheVersion, context.runId));
+        await cache.saveCache(cachedFiles, getCacheKey(cacheVersion, Date.now()));
+        return;
     } catch (e) {
         core.warning('Failed to save the cache. The following errors may be resolved by reporting them in the datapack-linter repository.');
         core.warning(e);

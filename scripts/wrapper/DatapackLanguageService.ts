@@ -7,7 +7,7 @@ import { loadLocale } from '@spgoding/datapack-language-server/lib/locales';
 import { Plugin } from '@spgoding/datapack-language-server/lib/plugins';
 import path from 'path';
 import { promises as fsp } from 'fs';
-import { findDatapackRoots, generateChecksum, getConfiguration } from '../utils';
+import { findDatapackRoots, generateChecksum, getConfiguration, setTimeOut } from '../utils';
 import { FileChangeChecker } from '../utils/FileChangeChecker';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import * as core from '@actions/core';
@@ -243,21 +243,16 @@ async function getConfig(dir: string): Promise<Config> {
  * SOFTWARE.
  */
 async function getLatestVersions() {
-    let ans: VersionInformation | undefined;
-    try {
-        console.info('[LatestVersions] Fetching the latest versions...');
-        const str = await Promise.race([
-            requestText('https://launchermeta.mojang.com/mc/game/version_manifest.json'),
-            new Promise<string>((_, reject) => setTimeout(() => reject(new Error('Time out!')), 7_000))
-        ]);
-        const { latest: { release, snapshot }, versions }: { latest: { release: string, snapshot: string }, versions: { id: string }[] } = JSON.parse(str);
-        const processedVersion = '1.16.2';
-        const processedVersionIndex = versions.findIndex(v => v.id === processedVersion);
-        const processedVersions = processedVersionIndex >= 0 ? versions.slice(0, processedVersionIndex + 1).map(v => v.id) : [];
-        ans = (release && snapshot) ? { latestRelease: release, latestSnapshot: snapshot, processedVersions } : undefined;
-    } catch (e) {
-        console.warn(`[LatestVersions] ${e}`);
-    }
+    console.info('[LatestVersions] Fetching the latest versions...');
+    const str = await Promise.race([
+        requestText('https://launchermeta.mojang.com/mc/game/version_manifest.json'),
+        setTimeOut(7_000)
+    ]);
+    const { latest: { release, snapshot }, versions }: { latest: { release: string, snapshot: string }, versions: { id: string }[] } = JSON.parse(str);
+    const processedVersion = '1.16.2';
+    const processedVersionIndex = versions.findIndex(v => v.id === processedVersion);
+    const processedVersions = processedVersionIndex >= 0 ? versions.slice(0, processedVersionIndex + 1).map(v => v.id) : [];
+    const ans = { latestRelease: release, latestSnapshot: snapshot, processedVersions };
     console.info(`[LatestVersions] versionInformation = ${JSON.stringify(ans)}`);
     return ans;
 }
