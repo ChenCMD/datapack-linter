@@ -50,5 +50,5 @@ export async function saveCache(cacheVersion: number): Promise<void> {
 }
 
 function getCacheKey(version: number, uniqueID?: number): string {
-    return `datapack-linter-${context.payload.ref}-${version + privateCacheVersion}-${uniqueID ?? ''}`;
+    return `datapack-linter-${context.ref}-${version + privateCacheVersion}-${uniqueID ?? ''}`;
 }
