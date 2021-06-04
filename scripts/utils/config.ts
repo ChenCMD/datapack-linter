@@ -2,6 +2,7 @@
 import { pathAccessible, readFile } from '@spgoding/datapack-language-server';
 import { Config, constructConfig } from '@spgoding/datapack-language-server/lib/types';
 import stripJsonComments from 'strip-json-comments';
+import * as jsonc from 'jsonc-parser';
 
 /**
  * Get config.
@@ -14,7 +15,7 @@ export async function getConfiguration(configPath: string): Promise<Config> {
     }
     const json = await readFile(configPath);
     const result: { [key: string]: any } = {};
-    const obj = JSON.parse(stripJsonComments(json));
+    const obj = jsonc.parse(stripJsonComments(json));
     Object.entries(obj).forEach(([path, value]) => {
         const walk = (key: { [key: string]: any }, [head, ...tail]: string[]): void => {
             if (key[head] === undefined)
