@@ -3,7 +3,7 @@ import * as core from '@actions/core';
 import { context } from '@actions/github';
 
 const cachedFiles = ['.cache'];
-const privateCacheVersion = 1;
+const privateCacheVersion = 2;
 
 export function isCommitMessageIncluded(str: string): boolean {
     return !!context.payload.commits?.some((v: { message: string }) => v.message.toLowerCase().includes(str.toLowerCase()));
