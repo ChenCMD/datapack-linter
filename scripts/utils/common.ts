@@ -80,10 +80,6 @@ export async function combineIndexSignatureForEach<T, U>(
     }
 }
 
-export function getSafeRecordValue<T extends string | number | symbol, U>(data: Record<T, U[]>, type: T): U[] {
-    return data[type] ?? (data[type] = []);
-}
-
 export async function pathAccessibles(...paths: string[]): Promise<boolean> {
     return await Promise.all(paths.map(async v => await pathAccessible(v))).then(v => v.every(v2 => v2));
 }
