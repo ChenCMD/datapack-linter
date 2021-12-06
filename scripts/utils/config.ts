@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { pathAccessible, readFile } from '@spgoding/datapack-language-server';
-import { Config, constructConfig } from '@spgoding/datapack-language-server/lib/types';
+import { Config, constructConfig, Uri } from '@spgoding/datapack-language-server/lib/types';
+import { loadLocale } from '@spgoding/datapack-language-server/lib/locales';
 import stripJsonComments from 'strip-json-comments';
 import * as jsonc from 'jsonc-parser';
+import path from 'path';
 
 /**
  * Get config.
@@ -16,17 +18,24 @@ export async function getConfiguration(configPath: string): Promise<Config> {
     const json = await readFile(configPath);
     const result: { [key: string]: any } = {};
     const obj = jsonc.parse(stripJsonComments(json));
-    Object.entries(obj).forEach(([path, value]) => {
-        const walk = (key: { [key: string]: any }, [head, ...tail]: string[]): void => {
-            if (key[head] === undefined)
-                key[head] = {};
+    Object.entries(obj).forEach(([key, value]) => {
+        const walk = (cfg: { [key: string]: any }, [head, ...tail]: string[]): void => {
+            if (cfg[head] === undefined)
+                cfg[head] = {};
 
             if (tail.length > 0)
-                walk(key[head], tail);
+                walk(cfg[head], tail);
             else
-                key[head] = value;
+                cfg[head] = value;
         };
-        return walk(result, path.split('.'));
+        return walk(result, key.split('.'));
     });
     return constructConfig(result.datapack);
+}
+
+export async function readConfig(dir: string): Promise<Config> {
+    const configUri = Uri.file(path.resolve(dir, './.vscode/settings.json'));
+    const config = await getConfiguration(configUri.fsPath);
+    await loadLocale(config.env.language, 'en');
+    return config;
 }

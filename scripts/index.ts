@@ -1,15 +1,16 @@
 import * as core from '@actions/core';
-import { pathAccessible, readFile } from '@spgoding/datapack-language-server';
+import { readFile } from '@spgoding/datapack-language-server';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { walkFile } from '@spgoding/datapack-language-server/lib/services/common';
 import { CacheFile, CacheVersion, isRelIncluded } from '@spgoding/datapack-language-server/lib/types';
 import { promises as fsp } from 'fs';
 import minimatch from 'minimatch';
 import path from 'path';
+import objHash from 'object-hash';
 import mather from './matcher.json';
 import { makeDefineData, makeLintData } from './parseResultProcessor';
 import { Checksum, DocumentData, FailCount, IndexSignature, ParsedData } from './types';
-import { combineIndexSignatureForEach, FileChangeChecker, generateChecksum, pathAccessibles } from './utils';
+import { combineIndexSignatureForEach, FileChangeChecker, generateChecksum, pathAccessibles, readConfig } from './utils';
 import { getActionEventName, getActionInput, isCommitMessageIncluded, saveCache, tryRestoreCache } from './wrapper/actions';
 import { EasyDatapackLanguageService } from './wrapper/DatapackLanguageService';
 
@@ -80,7 +81,8 @@ async function run(dir: string) {
 
     // #region post cache restore: Check config update
     const configFilePath = path.resolve(dir, './.vscode/settings.json');
-    const configFileChecksum = await pathAccessible(configFilePath) ? await generateChecksum(configFilePath) : undefined;
+    const config = await readConfig(dir);
+    const configFileChecksum = objHash.sha1(config);
     if (fileChangeChecker.isFileNotEqualChecksum(configFilePath, configFileChecksum)) {
         fileChangeChecker.clearChecksum();
         cacheFile = undefined;
@@ -91,7 +93,7 @@ async function run(dir: string) {
     // #endregion
 
     // #region pre parse
-    const easyDLS = await EasyDatapackLanguageService.createInstance(dir, globalStoragePath, cacheFile, fileChangeChecker, 500).catch(() => undefined);
+    const easyDLS = await EasyDatapackLanguageService.createInstance(dir, globalStoragePath, cacheFile, fileChangeChecker, config, 500).catch(() => undefined);
     if (!easyDLS) return core.error('Failed to get the version data. Please re-run jobs');
 
     const parseFiles: IndexSignature<DocumentData> = {};
