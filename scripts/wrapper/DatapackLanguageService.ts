@@ -1,6 +1,5 @@
 import * as core from '@actions/core';
 import { DatapackLanguageService, pathAccessible, readFile, requestText } from '@spgoding/datapack-language-server';
-import { loadLocale } from '@spgoding/datapack-language-server/lib/locales';
 import { IdentityNode } from '@spgoding/datapack-language-server/lib/nodes';
 import { Plugin } from '@spgoding/datapack-language-server/lib/plugins';
 import { PluginLoader } from '@spgoding/datapack-language-server/lib/plugins/PluginLoader';
@@ -9,7 +8,7 @@ import { CacheCategory, CacheFile, CacheType, CacheUnit, Config, DatapackDocumen
 import { promises as fsp } from 'fs';
 import path from 'path';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { findDatapackRoots, generateChecksum, getConfiguration, setTimeOut } from '../utils';
+import { findDatapackRoots, generateChecksum, setTimeOut } from '../utils';
 import { FileChangeChecker } from '../utils/FileChangeChecker';
 
 export class EasyDatapackLanguageService {
@@ -42,9 +41,9 @@ export class EasyDatapackLanguageService {
         globalStoragePath: string,
         cacheFile: CacheFile | undefined,
         fileChangeChecker: FileChangeChecker,
+        config: Config,
         gcThreshold: number
     ): Promise<EasyDatapackLanguageService> {
-        const config = await getConfig(dir);
         const easyDLS = new EasyDatapackLanguageService(
             globalStoragePath,
             config,
@@ -209,13 +208,6 @@ export class EasyDatapackLanguageService {
         }
         return res;
     }
-}
-
-async function getConfig(dir: string): Promise<Config> {
-    const configUri = Uri.file(path.resolve(dir, './.vscode/settings.json'));
-    const config = await getConfiguration(configUri.fsPath);
-    await loadLocale(config.env.language, 'en');
-    return config;
 }
 
 /**
