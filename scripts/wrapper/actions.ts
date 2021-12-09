@@ -3,7 +3,7 @@ import * as core from '@actions/core';
 import { context } from '@actions/github';
 
 const cachedFiles = ['.cache'];
-const privateCacheVersion = 2;
+const privateCacheVersion = 3;
 
 export function isCommitMessageIncluded(str: string): boolean {
     return !!context.payload.commits?.some((v: { message: string }) => v.message.toLowerCase().includes(str.toLowerCase()));
@@ -29,9 +29,15 @@ export function getActionInput(type: 'string' | 'string[]' | 'number' | 'boolean
 }
 
 export async function tryRestoreCache(cacheVersion: number): Promise<boolean> {
-    if (!context.payload.commits) return false;
     try {
-        return !!await cache.restoreCache(cachedFiles, '', [getCacheKey(cacheVersion)]);
+        const keys: string[] = [];
+        if (!context.payload.created)
+            keys.push(getCacheKey(cacheVersion, context.ref));
+        else if (context.payload.base_ref)
+            keys.push(getCacheKey(cacheVersion, context.payload.base_ref));
+
+        keys.push(getCacheKey(cacheVersion));
+        return !!await cache.restoreCache(cachedFiles, '', keys);
     } catch (e) {
         core.warning('Failed to load the cache. The following errors may be resolved by reporting them in the datapack-linter repository.');
         core.warning(e);
@@ -41,7 +47,7 @@ export async function tryRestoreCache(cacheVersion: number): Promise<boolean> {
 
 export async function saveCache(cacheVersion: number): Promise<void> {
     try {
-        await cache.saveCache(cachedFiles, getCacheKey(cacheVersion, Date.now()));
+        await cache.saveCache(cachedFiles, getCacheKey(cacheVersion, context.ref, Date.now()));
         return;
     } catch (e) {
         core.warning('Failed to save the cache. The following errors may be resolved by reporting them in the datapack-linter repository.');
@@ -49,6 +55,6 @@ export async function saveCache(cacheVersion: number): Promise<void> {
     }
 }
 
-function getCacheKey(version: number, uniqueID?: number): string {
-    return `datapack-linter-${context.ref}-${version + privateCacheVersion}-${uniqueID ?? ''}`;
+function getCacheKey(version: number, branch?: string, uniqueID?: number): string {
+    return `datapack-linter-${version + privateCacheVersion}-${branch}${branch && '-'}${uniqueID ?? ''}`;
 }
