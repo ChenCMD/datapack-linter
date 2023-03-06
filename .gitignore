@@ -4,3 +4,12 @@ node_modules
 decs
 *.js.map
 matcher.json
+
+**/.bloop
+**/.bsp
+**/.metals
+
+project/**
+!project/build.properties
+!project/plugins.sbt
+target
