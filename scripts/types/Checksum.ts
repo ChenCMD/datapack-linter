@@ -1,1 +1,0 @@
-export type Checksum = { [file: string]: string };
