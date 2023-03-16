@@ -24,6 +24,10 @@ scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
 
 scalaJSUseMainModuleInitializer := true
 
+scalacOptions ++= Seq(
+  "-deprecation"
+)
+
 javaOptions ++= Seq(
   "-Xmx2G",
   "-XX:+UseG1GC"
