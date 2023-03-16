@@ -1,20 +1,20 @@
 package com.github.chencmd.datapacklinter.generic
 
 import cats.Applicative
-import cats.implicits.given
+import cats.syntax.all.*
+import cats.kernel.Monoid
+import cats.Functor
 
 object ApplicativeExtra {
-  def whenA[F[_]: Applicative, A](
-    cond: Boolean
-  )(action: => F[A]): F[Option[A]] = {
-    if cond then Applicative[F].map(action)(_.some)
-    else Applicative[F].pure(None)
-  }
+  extension [F[_]: Applicative, A](action: => F[A]) {
+    def whenOrPureNoneA(cond: Boolean): F[Option[A]] = {
+      if cond then Functor[F].map(action)(_.some)
+      else Applicative[F].pure(None)
+    }
 
-  def unlessA[F[_]: Applicative, A](
-    cond: Boolean
-  )(action: => F[A]): F[Option[A]] = {
-    if cond then Applicative[F].pure(None)
-    else Applicative[F].map(action)(_.some)
+    def unlessOrPureNoneA(cond: Boolean): F[Option[A]] = {
+      if cond then Applicative[F].pure(None)
+      else Functor[F].map(action)(_.some)
+    }
   }
 }
