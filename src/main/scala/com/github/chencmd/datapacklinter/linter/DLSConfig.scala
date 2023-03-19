@@ -1,11 +1,11 @@
 package com.github.chencmd.datapacklinter.linter
 
-import cats.effect.IO
 import cats.data.OptionT
 import cats.syntax.all.*
+import cats.effect.kernel.Async
 
 import com.github.chencmd.datapacklinter.utils.Jsonc
-import com.github.chencmd.datapacklinter.generic.FSPExtra
+import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.generic.CastOps.*
 import com.github.chencmd.datapacklinter.generic.WrappedDictionaryExtra.*
 
@@ -21,13 +21,14 @@ import scala.annotation.tailrec
 import scala.util.chaining.*
 
 object DLSConfig {
-  def readConfig(configFilePath: String): IO[Config] = {
+  def readConfig[F[_]: Async](configFilePath: String): F[Config] = {
+    type OTF = [A] =>> OptionT[F, A]
     val program = for {
-      isAccessible <- OptionT.liftF(FSPExtra.pathAccessible(configFilePath))
-      _            <- OptionT.when(isAccessible) {
-        IO.println("Could not access the .vscode config. Use the default config file.")
+      isAccessible <- FSAsync.pathAccessible[OTF](configFilePath)
+      _            <- OptionT.unless(isAccessible) {
+        println("Could not access the .vscode config. Use the default config file.")
       }
-      rawJson      <- OptionT.liftF(FSPExtra.readFile(configFilePath))
+      rawJson      <- FSAsync.readFile[OTF](configFilePath)
       json         <- OptionT.fromOption {
         Jsonc
           .parse(rawJson)
