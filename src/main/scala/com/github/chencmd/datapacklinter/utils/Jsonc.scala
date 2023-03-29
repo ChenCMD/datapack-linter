@@ -1,9 +1,10 @@
 package com.github.chencmd.datapacklinter.utils
 
-import scala.collection.mutable
-import typings.jsoncParser.mod as jsonc
+import cats.implicits.*
+
 import scalajs.js
-import cats.syntax.all.*
+
+import typings.jsoncParser.mod as jsonc
 
 object Jsonc {
   def parse(rawJson: String): Option[js.Any] = {
