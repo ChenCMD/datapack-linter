@@ -1,9 +1,7 @@
 package com.github.chencmd.datapacklinter.generic
 
-import cats.Applicative
-import cats.syntax.all.*
-import cats.kernel.Monoid
-import cats.Functor
+import cats.{Applicative, Functor, Monoid}
+import cats.implicits.*
 
 object ApplicativeExtra {
   extension [F[_]: Applicative, A](action: => F[A]) {

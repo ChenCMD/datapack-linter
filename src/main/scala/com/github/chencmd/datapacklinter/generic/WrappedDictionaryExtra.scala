@@ -1,8 +1,6 @@
 package com.github.chencmd.datapacklinter.generic
 
-import cats.syntax.arrow.*
-
-import scala.scalajs.js.WrappedDictionary
+import scalajs.js.WrappedDictionary
 import org.scalablytyped.runtime.StringDictionary
 
 object WrappedDictionaryExtra {

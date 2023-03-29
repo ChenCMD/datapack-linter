@@ -1,7 +1,6 @@
 package com.github.chencmd.datapacklinter.generic
 
-import cats.kernel.Monoid
-import cats.MonoidK
+import cats.{Monoid, MonoidK}
 
 object MonoidExtra {
   extension [F[_]: MonoidK, A](action: => F[A]) {
