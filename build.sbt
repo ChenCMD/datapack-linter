@@ -20,6 +20,8 @@ Compile / npmDevDependencies ++= Seq(
 )
 useYarn := true
 
+webpack / version := "5.54.0"
+
 scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
 
 scalaJSUseMainModuleInitializer := true

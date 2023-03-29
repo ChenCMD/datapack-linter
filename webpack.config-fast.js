@@ -13,7 +13,8 @@ module.exports = {
     },
     output: {
         path: path.resolve(__dirname, '../../../../dist'),
-        filename: '[name]-bundle.js'
+        filename: '[name]-bundle.js',
+        hashFunction: 'xxhash64' // https://github.com/webpack/webpack/issues/14532
     },
     // devtool: 'source-map',
     resolve: {
