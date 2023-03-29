@@ -1,4 +1,4 @@
-package com.github.chencmd.datapacklinter.linter
+package com.github.chencmd.datapacklinter.dls
 
 import cats.data.OptionT
 import cats.syntax.all.*
@@ -8,10 +8,11 @@ import com.github.chencmd.datapacklinter.utils.Jsonc
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.generic.CastOps.*
 import com.github.chencmd.datapacklinter.generic.WrappedDictionaryExtra.*
+import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteraction
 
 import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 import typings.spgodingDatapackLanguageServer.libTypesConfigMod as Cfg
-import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config
+import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
 
 import org.scalablytyped.runtime.StringDictionary
 
@@ -21,14 +22,16 @@ import scala.annotation.tailrec
 import scala.util.chaining.*
 
 object DLSConfig {
-  def readConfig[F[_]: Async](configFilePath: String): F[Config] = {
-    type OTF = [A] =>> OptionT[F, A]
+  def readConfig[F[_]: Async](
+    configFilePath: String
+  )(using ciInteraction: CIPlatformInteraction[F]): F[DLSConfig] = {
+    type FOption[A] = OptionT[F, A]
     val program = for {
-      isAccessible <- FSAsync.pathAccessible[OTF](configFilePath)
-      _            <- OptionT.unless(isAccessible) {
-        println("Could not access the .vscode config. Use the default config file.")
+      isAccessible <- FSAsync.pathAccessible[FOption](configFilePath)
+      _            <- OptionT.unlessF(isAccessible) {
+        ciInteraction.printInfo("Could not access the .vscode config. Use the default config file.")
       }
-      rawJson      <- FSAsync.readFile[OTF](configFilePath)
+      rawJson      <- FSAsync.readFile[FOption](configFilePath)
       json         <- OptionT.fromOption {
         Jsonc
           .parse(rawJson)
