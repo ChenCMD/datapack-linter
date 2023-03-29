@@ -30,6 +30,10 @@ module.exports = {
                         loader: 'ts-loader'
                     }
                 ]
+            },
+            {
+                test: /\.d\.ts$/,
+                type: 'asset/source'
             }
         ]
     }
