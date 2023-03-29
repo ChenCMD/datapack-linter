@@ -12,5 +12,8 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: install dependencies
+        run: yarn install
+
       - name: build
         run: yarn build:dev

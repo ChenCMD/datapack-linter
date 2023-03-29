@@ -29,7 +29,7 @@ scalacOptions ++= Seq(
 )
 
 javaOptions ++= Seq(
-  "-Xmx2G",
+  "-Xmx4G",
   "-XX:+UseG1GC"
 )
 
