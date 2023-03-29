@@ -1,9 +1,4 @@
-node_modules
 .cache
-.vscode/tasks.json
-decs
-*.js.map
-matcher.json
 
 **/.bloop
 **/.bsp
@@ -12,4 +7,8 @@ matcher.json
 project/**
 !project/build.properties
 !project/plugins.sbt
+
 target
+
+*.worksheet.sc
+linter-config.json
