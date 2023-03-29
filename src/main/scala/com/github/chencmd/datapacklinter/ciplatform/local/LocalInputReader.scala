@@ -26,7 +26,7 @@ class LocalInputReader[F[_]: Async] extends KeyedConfigReader[F] {
 
       value <- EitherT.fromEither {
         Right(cfg.get(key))
-          .filterOrElse(_.isEmpty && required, s"Input required and not supplied: $key")
+          .filterOrElse(_.isDefined || !required, s"Input required and not supplied: $key")
           .flatMap(_.traverse(v => valueType.tryCast(key, v)))
       }
     } yield value.getOrElse(default.get)
