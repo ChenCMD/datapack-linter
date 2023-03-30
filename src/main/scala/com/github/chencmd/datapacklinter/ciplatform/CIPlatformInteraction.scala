@@ -3,8 +3,6 @@ package com.github.chencmd.datapacklinter.ciplatform
 import cats.Monad
 import cats.effect.Async
 
-import scalajs.js
-
 trait CIPlatformInteraction[F[_]: Async] extends Lifecycle[F] {
   def printError(msg: String): F[Unit]
 
@@ -18,5 +16,5 @@ trait CIPlatformInteraction[F[_]: Async] extends Lifecycle[F] {
 
   def endGroup(): F[Unit]
 
-  def setOutput(key: String, value: js.Any): F[Unit]
+  def setOutput(key: String, value: Any): F[Unit]
 }

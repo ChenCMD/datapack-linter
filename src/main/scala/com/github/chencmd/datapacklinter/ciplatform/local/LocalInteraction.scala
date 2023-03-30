@@ -35,12 +35,12 @@ class LocalInteraction[F[_]: Async] extends CIPlatformInteraction[F] {
   }
 
   private val outputs: Ref[F, Map[String, String]]            = Ref.unsafe(Map.empty)
-  override def setOutput(key: String, value: js.Any): F[Unit] = {
+  override def setOutput(key: String, value: Any): F[Unit] = {
     val strValue = value match {
       case v if v == js.undefined        => ""
       case v if v == null                => ""
       case v if js.typeOf(v) == "string" => v.asInstanceOf[String]
-      case v                             => js.JSON.stringify(v)
+      case v                             => js.JSON.stringify(v.asInstanceOf[js.Any])
     }
     outputs.update(_ + (key -> strValue))
   }

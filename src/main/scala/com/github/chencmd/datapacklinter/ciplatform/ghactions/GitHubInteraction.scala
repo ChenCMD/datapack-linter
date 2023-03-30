@@ -7,8 +7,6 @@ import cats.data.EitherT
 import cats.effect.Async
 import cats.implicits.*
 
-import scalajs.js
-
 import typings.node.pathMod as path
 import typings.actionsCore.mod as core
 
@@ -39,7 +37,7 @@ class GitHubInteraction[F[_]: Async] extends CIPlatformInteraction[F] {
     Async[F].delay(core.endGroup())
   }
 
-  override def setOutput(key: String, value: js.Any): F[Unit] = {
+  override def setOutput(key: String, value: Any): F[Unit] = {
     Async[F].delay(core.setOutput(key, value))
   }
 
