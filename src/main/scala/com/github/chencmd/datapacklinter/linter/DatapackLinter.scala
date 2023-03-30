@@ -36,15 +36,6 @@ final case class DatapackLinter[F[_]: Async] private (
 )(using ciInteraction: CIPlatformInteraction[F]) {
   type FOption[A] = OptionT[F, A]
   def lintAll(analyzedCount: AnalyzedCount): F[Unit] = {
-    enum LintPhase(val root: String, val abs: String) {
-      case ParseWaiting(override val root: String, override val abs: String, val rel: String)
-          extends LintPhase(root, abs)
-      case Cached(override val root: String, override val abs: String, val res: LintResult)
-          extends LintPhase(root, abs)
-    }
-    given Ordering[LintPhase] = new Ordering[LintPhase] {
-      override def compare(x: LintPhase, y: LintPhase): Int = x.abs compare y.abs
-    }
     def parseDoc(
       root: String,
       file: String,
@@ -136,10 +127,10 @@ final case class DatapackLinter[F[_]: Async] private (
         .mapK(OptionT.liftK)
       _          <- {
         parseFiles
-          .map(p => LintPhase.ParseWaiting(p._1, p._2, p._3))
+          .map(p => AnalyzeState.Waiting(p._1, p._2, p._3))
           .sorted
           .traverse {
-            case LintPhase.ParseWaiting(root, abs, rel) => parseDoc(root, abs, rel)
+            case AnalyzeState.Waiting(root, abs, rel) => parseDoc(root, abs, rel)
                 .flatMap(res => StateT.liftF(OptionT.liftF(printDocumentLintResult(res))))
             case _ => StateT.pure[FOption, AnalyzedCount, Unit](())
           }
