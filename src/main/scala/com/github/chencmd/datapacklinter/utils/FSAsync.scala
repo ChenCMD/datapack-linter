@@ -59,7 +59,7 @@ object FSAsync {
         files  <- readDir(dir)
         result <- files
           .map(p => Path(p, path.relative(baseDir, p)))
-          .parFlatTraverse { childPath =>
+          .flatTraverse { childPath =>
             val program = for {
               isDir    <- EitherT.liftF(isDirectory(childPath.abs))
               _        <- EitherTExtra.exitWhenA(isDir) {
@@ -94,7 +94,7 @@ object FSAsync {
         dirs   <- files
           .map(p => Path(p, path.relative(dir, p)))
           .filterA(p => isDirectory(p.abs))
-        result <- dirs.parFlatTraverse { childPath =>
+        result <- dirs.flatTraverse { childPath =>
           val program = for {
             childDir <- {
               if (currentDepth < maxDepth) {
