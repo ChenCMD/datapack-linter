@@ -1,17 +1,13 @@
 package com.github.chencmd.datapacklinter.dls
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
-import com.github.chencmd.datapacklinter.generic.CastOps.*
 import com.github.chencmd.datapacklinter.generic.WrappedDictionaryExtra.*
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.Jsonc
 
 import cats.data.OptionT
 import cats.effect.kernel.Async
-import cats.syntax.all.*
-
-import scala.annotation.tailrec
-import scala.util.chaining.*
+import cats.implicits.*
 
 import scala.scalajs.js
 

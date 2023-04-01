@@ -6,25 +6,18 @@ import com.github.chencmd.datapacklinter.ciplatform.ghactions.*
 import com.github.chencmd.datapacklinter.ciplatform.local.*
 import com.github.chencmd.datapacklinter.dls.DLSConfig
 import com.github.chencmd.datapacklinter.dls.DLSHelper
-import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
 import com.github.chencmd.datapacklinter.linter.DatapackLinter
 import com.github.chencmd.datapacklinter.linter.LinterConfig
 
-import cats.Applicative
-import cats.Monad
 import cats.data.EitherT
-import cats.data.OptionT
 import cats.effect.Async
 import cats.effect.ExitCode
-import cats.effect.IO
 import cats.effect.IOApp
 import cats.effect.Resource
 import cats.implicits.*
 
 import typings.node.pathMod as path
 import typings.node.processMod as process
-
-import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNode
 
 object Main extends IOApp {
   override def run(args: List[String]) = {

@@ -2,7 +2,6 @@ package com.github.chencmd.datapacklinter.ciplatform
 
 import cats.data.EitherT
 import cats.effect.Async
-import cats.implicits.*
 
 trait CIPlatformReadKeyedConfigInstr[F[_]] {
   import CIPlatformReadKeyedConfigInstr.ConfigValueType

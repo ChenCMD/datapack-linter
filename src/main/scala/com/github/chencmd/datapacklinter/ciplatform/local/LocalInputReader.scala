@@ -9,8 +9,6 @@ import cats.effect.Async
 import cats.effect.Resource
 import cats.implicits.*
 
-import scala.util.chaining.*
-
 import scala.scalajs.js
 
 import typings.node.pathMod as path

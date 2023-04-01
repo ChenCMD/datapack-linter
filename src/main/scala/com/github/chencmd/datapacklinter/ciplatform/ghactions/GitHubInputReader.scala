@@ -3,7 +3,6 @@ package com.github.chencmd.datapacklinter.ciplatform.ghactions
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
 
 import cats.data.EitherT
-import cats.data.OptionT
 import cats.effect.Async
 import cats.effect.Resource
 import cats.implicits.*

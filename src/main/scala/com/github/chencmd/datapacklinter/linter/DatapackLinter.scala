@@ -4,9 +4,7 @@ import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
 import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
 import com.github.chencmd.datapacklinter.generic.EitherTExtra
-import com.github.chencmd.datapacklinter.utils.Datapack
 import com.github.chencmd.datapacklinter.utils.FSAsync
-import com.github.chencmd.datapacklinter.utils.Jsonc
 
 import cats.Monad
 import cats.data.EitherT
@@ -14,8 +12,6 @@ import cats.data.OptionT
 import cats.data.StateT
 import cats.effect.Async
 import cats.implicits.*
-
-import scala.util.chaining.*
 
 import scala.scalajs.js
 import scala.scalajs.js.Date

@@ -1,6 +1,5 @@
 package com.github.chencmd.datapacklinter.generic
 
-import cats.Monoid
 import cats.MonoidK
 
 object MonoidExtra {

@@ -5,16 +5,14 @@ import com.github.chencmd.datapacklinter.generic.AsyncExtra
 import com.github.chencmd.datapacklinter.utils.Datapack
 import com.github.chencmd.datapacklinter.utils.Jsonc
 
-import cats.Monad
 import cats.data.EitherT
-import cats.data.OptionT
 import cats.effect.Async
 import cats.implicits.*
 
 import scala.concurrent.duration.*
 
 import scala.scalajs.js
-import scala.scalajs.js.Dynamic.{literal => JSObject}
+import scala.scalajs.js.Dynamic.literal as JSObject
 
 import typings.node.pathMod as path
 
