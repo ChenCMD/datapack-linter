@@ -21,8 +21,9 @@ import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNo
 
 object Main extends IOApp {
   override def run(args: List[String]) = {
-    def run[F[_]: Async]() = {
-      runForLocal[F]
+    def run[F[_]: Async]() = for {
+      dir <- Async[F].delay(process.cwd())
+      res <- runForLocal[F](dir)
         .use(EitherT.pure(_))
         .value
         .flatMap { res =>
@@ -31,44 +32,41 @@ object Main extends IOApp {
             Async[F].pure(_)
           )
         }
-    }
+    } yield res
 
     run()
   }
 
-  def runForGitHubActions[F[_]: Async]: Resource[[A] =>> EitherT[F, String, A], ExitCode] = {
+  def runForGitHubActions[F[_]: Async](
+    dir: String
+  ): Resource[[A] =>> EitherT[F, String, A], ExitCode] = {
     for {
-      dir <- Resource.eval(EitherT.liftF(Async[F].delay(process.cwd())))
-
       given CIPlatformInteractionInstr[F]     <- GitHubInteraction.createInstr(dir)
       given CIPlatformReadKeyedConfigInstr[F] <- GitHubInputReader.createInstr()
-      res                                     <- Resource.eval(lint())
+      res                                     <- Resource.eval(lint(dir))
     } yield res
   }
 
-  def runForLocal[F[_]: Async]: Resource[[A] =>> EitherT[F, String, A], ExitCode] = {
+  def runForLocal[F[_]: Async](
+    dir: String
+  ): Resource[[A] =>> EitherT[F, String, A], ExitCode] = {
     for {
-      dir <- Resource.eval(EitherT.liftF(Async[F].delay(process.cwd())))
-
       given CIPlatformInteractionInstr[F]     <- LocalInteraction.createInstr()
       given CIPlatformReadKeyedConfigInstr[F] <- LocalInputReader.createInstr(dir)
-      res                                     <- Resource.eval(lint())
+      res                                     <- Resource.eval(lint(dir))
     } yield res
   }
 
-  def lint[F[_]: Async]()(using
+  def lint[F[_]: Async](dir: String)(using
     ciInteraction: CIPlatformInteractionInstr[F],
     readConfig: CIPlatformReadKeyedConfigInstr[F]
   ): EitherT[F, String, ExitCode] = {
-    val dir            = process.cwd()
-    val configFilePath = path.join(dir, ".vscode", "settings.json")
-
     for {
-      dlsConfig <- EitherT.liftF(DLSConfig.readConfig[F](configFilePath))
-      dls       <- DLSHelper.createDLS[F](dir, dlsConfig)
+      dlsConfig <- EitherT.liftF(DLSConfig.readConfig(path.join(dir, ".vscode", "settings.json")))
+      dls       <- DLSHelper.createDLS(dir, dlsConfig)
 
       linterConfig <- LinterConfig.withReader()
-      linter       <- EitherT.liftF(DatapackLinter[F](linterConfig, dls, dlsConfig))
+      linter       <- EitherT.liftF(DatapackLinter(linterConfig, dls, dlsConfig))
 
       analyzedCount <- EitherT.liftF(linter.updateCache())
       _             <- EitherT.liftF(linter.lintAll(analyzedCount))

@@ -27,14 +27,14 @@ import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.ClientCache
 import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNode
 import typings.spgodingDatapackLanguageServer.anon.GetText
 
-private type AnalyzedCount = Int
-
 final case class DatapackLinter[F[_]: Async] private (
   private val linterConfig: LinterConfig,
   private val dls: DatapackLanguageService,
   private val dlsConfig: DLSConfig
 )(using ciInteraction: CIPlatformInteractionInstr[F]) {
-  type FOption[A] = OptionT[F, A]
+  private type AnalyzedCount = Int
+  private type FOption[A] = OptionT[F, A]
+
   def lintAll(analyzedCount: AnalyzedCount): F[Unit] = {
     def parseDoc(
       root: String,
@@ -204,11 +204,7 @@ final case class DatapackLinter[F[_]: Async] private (
   private def gc(addAnalyzedNodeCount: AnalyzedCount = 17): StateT[F, AnalyzedCount, Unit] = {
     StateT.modifyF { analyzedNodeCount =>
       if (DatapackLinter.GC_THRESHOLD <= analyzedNodeCount + addAnalyzedNodeCount) {
-        for {
-          _ <- Async[F].delay {
-            dls.caches.asInstanceOf[js.Map[String, ClientCache]].clear()
-          }
-        } yield 0
+        Async[F].delay(dls.caches.asInstanceOf[js.Map[String, ClientCache]].clear()).as(0)
       } else {
         Monad[F].pure(analyzedNodeCount + addAnalyzedNodeCount)
       }
