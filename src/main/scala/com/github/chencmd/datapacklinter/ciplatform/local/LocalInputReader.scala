@@ -22,7 +22,7 @@ object LocalInputReader {
     dir: String
   ): Resource[[A] =>> EitherT[F, String, A], CIPlatformReadKeyedConfigInstr[F]] = {
     val configPath = path.join(dir, "linter-config.json")
-    val program = for {
+    val program    = for {
       existsConfig <- FSAsync.pathAccessible[[A] =>> EitherT[F, String, A]](configPath)
       rawConfig    <- {
         if (existsConfig) {

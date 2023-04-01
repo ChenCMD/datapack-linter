@@ -33,7 +33,9 @@ private object VersionManifest {
       .filter {
         _.get("versions")
           .collect { case v if js.Array.isArray(v) => v.asInstanceOf[js.Array[js.Any]] }
-          .collect { case v if v.forall(JSObject.isObject) => v.map(JSObject.toWrappedDictionary[js.Any]) }
+          .collect {
+            case v if v.forall(JSObject.isObject) => v.map(JSObject.toWrappedDictionary[js.Any])
+          }
           .filter(_.forall(_.get("id").exists(js.typeOf(_) == "string")))
           .isDefined
       }

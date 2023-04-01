@@ -12,7 +12,8 @@ import cats.implicits.*
 import scala.scalajs.js
 
 object LocalInteraction {
-  def createInstr[F[_]: Async](): Resource[[A] =>> EitherT[F, String, A], CIPlatformInteractionInstr[F]] = {
+  def createInstr[F[_]: Async]()
+    : Resource[[A] =>> EitherT[F, String, A], CIPlatformInteractionInstr[F]] = {
     val outputs: Ref[F, Map[String, String]] = Ref.unsafe(Map.empty)
 
     val program = Async[F].delay {
@@ -53,14 +54,16 @@ object LocalInteraction {
       }
     }
 
-    Resource.make(program) { _ =>
-      for {
-        outputs   <- outputs.get
-        maxKeyLen <- Monad[F].pure(outputs.map(_._1.length()).foldLeft(0)(Math.max))
-        _         <- outputs.toList.traverse {
-          case (k, v) => Async[F].delay(println(s"%${maxKeyLen}s = %s".format(k, v)))
-        }
-      } yield ()
-    }.mapK(EitherT.liftK)
+    Resource
+      .make(program) { _ =>
+        for {
+          outputs   <- outputs.get
+          maxKeyLen <- Monad[F].pure(outputs.map(_._1.length()).foldLeft(0)(Math.max))
+          _         <- outputs.toList.traverse {
+            case (k, v) => Async[F].delay(println(s"%${maxKeyLen}s = %s".format(k, v)))
+          }
+        } yield ()
+      }
+      .mapK(EitherT.liftK)
   }
 }

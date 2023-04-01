@@ -39,7 +39,7 @@ final case class DatapackLinter[F[_]: Async] private (
   private val dlsConfig: DLSConfig
 )(using ciInteraction: CIPlatformInteractionInstr[F]) {
   private type AnalyzedCount = Int
-  private type FOption[A] = OptionT[F, A]
+  private type FOption[A]    = OptionT[F, A]
 
   def lintAll(analyzedCount: AnalyzedCount): F[Unit] = {
     def parseDoc(
