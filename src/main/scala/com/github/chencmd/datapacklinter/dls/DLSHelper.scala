@@ -1,6 +1,6 @@
 package com.github.chencmd.datapacklinter.dls
 
-import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteraction
+import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
 import com.github.chencmd.datapacklinter.utils.{Datapack, Jsonc}
 
@@ -27,7 +27,9 @@ object DLSHelper {
   def createDLS[F[_]: Async](
     dir: String,
     dlsConfig: DLSConfig
-  )(using ciInteraction: CIPlatformInteraction[F]): EitherT[F, String, DatapackLanguageService] = {
+  )(using
+    ciInteraction: CIPlatformInteractionInstr[F]
+  ): EitherT[F, String, DatapackLanguageService] = {
     type FOption[A] = EitherT[F, String, A]
     for {
       roots <-
@@ -66,7 +68,7 @@ object DLSHelper {
   }
 
   private def getLatestVersions[F[_]: Async](using
-    ciInteraction: CIPlatformInteraction[F]
+    ciInteraction: CIPlatformInteractionInstr[F]
   ): EitherT[F, String, VersionInformation] = {
     type FEither[A] = EitherT[F, String, A]
 

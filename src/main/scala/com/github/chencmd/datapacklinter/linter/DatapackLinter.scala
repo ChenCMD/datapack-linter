@@ -3,7 +3,7 @@ package com.github.chencmd.datapacklinter.linter
 import com.github.chencmd.datapacklinter.generic.{AsyncExtra, EitherTExtra}
 import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
 import com.github.chencmd.datapacklinter.utils.{Jsonc, Datapack, FSAsync}
-import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteraction
+import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 
 import cats.Monad
 import cats.data.{StateT, OptionT, EitherT}
@@ -33,7 +33,7 @@ final case class DatapackLinter[F[_]: Async] private (
   private val linterConfig: LinterConfig,
   private val dls: DatapackLanguageService,
   private val dlsConfig: DLSConfig
-)(using ciInteraction: CIPlatformInteraction[F]) {
+)(using ciInteraction: CIPlatformInteractionInstr[F]) {
   type FOption[A] = OptionT[F, A]
   def lintAll(analyzedCount: AnalyzedCount): F[Unit] = {
     def parseDoc(
@@ -223,7 +223,7 @@ object DatapackLinter {
     linterConfig: LinterConfig,
     dls: DatapackLanguageService,
     dlsConfig: DLSConfig
-  )(using ciInteraction: CIPlatformInteraction[F]): F[DatapackLinter[F]] = {
+  )(using ciInteraction: CIPlatformInteractionInstr[F]): F[DatapackLinter[F]] = {
     Async[F].delay(new DatapackLinter(linterConfig, dls, dlsConfig))
   }
 }

@@ -1,42 +1,28 @@
 package com.github.chencmd.datapacklinter.ciplatform.local
 
-import com.github.chencmd.datapacklinter.ciplatform.KeyedConfigReader
+import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
 import com.github.chencmd.datapacklinter.utils.{FSAsync, JSObject}
 
 import cats.data.EitherT
-import cats.effect.{Async, Ref}
+import cats.effect.{Async, Resource}
 import cats.implicits.*
 
 import scala.util.chaining.*
 
 import scalajs.js
-import js.WrappedDictionary
 
-import typings.node.processMod as process
 import typings.node.pathMod as path
 
-class LocalInputReader[F[_]: Async] extends KeyedConfigReader[F] {
-  private val config: Ref[F, Option[WrappedDictionary[String]]] = Ref.unsafe(None)
+object LocalInputReader {
+  import CIPlatformReadKeyedConfigInstr.ConfigValueType
 
-  override protected def readKey[A](key: String, required: Boolean, default: => Option[A])(using
-    valueType: KeyedConfigReader.ConfigValueType[A]
-  ): EitherT[F, String, A] = {
-    for {
-      cfg <- EitherT.fromOptionF(config.get, "linter-config.json is not loaded.")
-
-      value <- EitherT.fromEither {
-        Right(cfg.get(key))
-          .filterOrElse(_.isDefined || !required, s"Input required and not supplied: $key")
-          .flatMap(_.traverse(v => valueType.tryCast(key, v)))
-      }
-    } yield value.getOrElse(default.get)
-  }
-
-  override def initialize(dir: String): EitherT[F, String, Unit] = {
+  def createInstr[F[_]: Async](
+    dir: String
+  ): Resource[[A] =>> EitherT[F, String, A], CIPlatformReadKeyedConfigInstr[F]] = {
     val configPath = path.join(dir, "linter-config.json")
-    for {
+    val program = for {
       existsConfig <- FSAsync.pathAccessible[[A] =>> EitherT[F, String, A]](configPath)
-      cfg          <- {
+      rawConfig    <- {
         if (existsConfig) {
           EitherT.right(FSAsync.readFile(configPath))
         } else {
@@ -45,7 +31,29 @@ class LocalInputReader[F[_]: Async] extends KeyedConfigReader[F] {
             .leftMap(_ => "linter-config.json does not exist")
         }
       }
-      _ <- EitherT.liftF(config.set(Some(JSObject.toWrappedDictionary(js.JSON.parse(cfg)))))
-    } yield ()
+      config       <- EitherT.pure(JSObject.toWrappedDictionary[String](js.JSON.parse(rawConfig)))
+
+      instr <- EitherT.liftF(Async[F].delay {
+        new CIPlatformReadKeyedConfigInstr[F] {
+          override protected def readKey[A](
+            key: String,
+            required: Boolean,
+            default: => Option[A]
+          )(using
+            valueType: ConfigValueType[A]
+          ): EitherT[F, String, A] = {
+            EitherT
+              .fromEither {
+                Right(config.get(key))
+                  .filterOrElse(_.isDefined || !required, s"Input required and not supplied: $key")
+                  .flatMap(_.traverse(valueType.tryCast(key, _)))
+                  .map(_.getOrElse(default.get))
+              }
+          }
+        }
+      })
+    } yield instr
+
+    Resource.eval(program)
   }
 }

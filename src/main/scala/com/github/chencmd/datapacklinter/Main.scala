@@ -2,18 +2,16 @@ package com.github.chencmd.datapacklinter
 
 import cats.{Applicative, Monad}
 import cats.data.{EitherT, OptionT}
-import cats.effect.{IO, IOApp, ExitCode, Async}
+import cats.effect.{IO, IOApp, ExitCode, Async, Resource}
 import cats.implicits.*
 
 import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
 import com.github.chencmd.datapacklinter.dls.{DLSConfig, DLSHelper}
 import com.github.chencmd.datapacklinter.linter.{DatapackLinter, LinterConfig}
 import com.github.chencmd.datapacklinter.ciplatform.{
-  PlatformContext,
-  CIPlatformInteraction,
-  KeyedConfigReader
+  CIPlatformInteractionInstr,
+  CIPlatformReadKeyedConfigInstr
 }
-import com.github.chencmd.datapacklinter.ciplatform.KeyedConfigReader.ConfigValueType
 import com.github.chencmd.datapacklinter.ciplatform.local.*
 import com.github.chencmd.datapacklinter.ciplatform.ghactions.*
 
@@ -22,51 +20,58 @@ import typings.node.pathMod as path
 import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNode
 
 object Main extends IOApp {
-  override def run(args: List[String]): IO[ExitCode] = runForLocal[IO]
+  override def run(args: List[String]) = {
+    def run[F[_]: Async]() = {
+      runForLocal[F]
+        .use(EitherT.pure(_))
+        .value
+        .flatMap { res =>
+          res.fold(
+            Async[F].delay(_).as(ExitCode.Error),
+            Async[F].pure(_)
+          )
+        }
+    }
 
-  def runForGitHubActions[F[_]: Async]: F[ExitCode] = {
+    run()
+  }
+
+  def runForGitHubActions[F[_]: Async]: Resource[[A] =>> EitherT[F, String, A], ExitCode] = {
     for {
-      ciInteraction <- Async[F].delay(new GitHubInteraction)
-      inputReader   <- Async[F].delay(new GitHubInputReader)
-      res           <- lint(PlatformContext(ciInteraction, inputReader))
+      dir <- Resource.eval(EitherT.liftF(Async[F].delay(process.cwd())))
+
+      given CIPlatformInteractionInstr[F]     <- GitHubInteraction.createInstr(dir)
+      given CIPlatformReadKeyedConfigInstr[F] <- GitHubInputReader.createInstr()
+      res                                     <- Resource.eval(lint())
     } yield res
   }
 
-  def runForLocal[F[_]: Async]: F[ExitCode] = {
+  def runForLocal[F[_]: Async]: Resource[[A] =>> EitherT[F, String, A], ExitCode] = {
     for {
-      ciInteraction <- Async[F].delay(new LocalInteraction)
-      inputReader   <- Async[F].delay(new LocalInputReader)
-      res           <- lint(PlatformContext(ciInteraction, inputReader))
+      dir <- Resource.eval(EitherT.liftF(Async[F].delay(process.cwd())))
+
+      given CIPlatformInteractionInstr[F]     <- LocalInteraction.createInstr()
+      given CIPlatformReadKeyedConfigInstr[F] <- LocalInputReader.createInstr(dir)
+      res                                     <- Resource.eval(lint())
     } yield res
   }
 
-  def lint[F[_]: Async](ctx: PlatformContext[F]): F[ExitCode] = {
+  def lint[F[_]: Async]()(using
+    ciInteraction: CIPlatformInteractionInstr[F],
+    readConfig: CIPlatformReadKeyedConfigInstr[F]
+  ): EitherT[F, String, ExitCode] = {
     val dir            = process.cwd()
     val configFilePath = path.join(dir, ".vscode", "settings.json")
 
-    given CIPlatformInteraction[F] = ctx.ciInteraction
-
-    val program = for {
-      _ <- ctx.initialize(dir)
-
+    for {
       dlsConfig <- EitherT.liftF(DLSConfig.readConfig[F](configFilePath))
       dls       <- DLSHelper.createDLS[F](dir, dlsConfig)
 
-      linterConfig <- LinterConfig.withReader(ctx.keyedConfigReader)
+      linterConfig <- LinterConfig.withReader()
       linter       <- EitherT.liftF(DatapackLinter[F](linterConfig, dls, dlsConfig))
 
       analyzedCount <- EitherT.liftF(linter.updateCache())
       _             <- EitherT.liftF(linter.lintAll(analyzedCount))
-
-      _ <- ctx.finalize(dir)
     } yield ExitCode.Success
-
-    program.value
-      .flatMap { res =>
-        res.fold(
-          e => Async[F].delay(println(e)) as ExitCode.Error,
-          a => Monad[F].pure(a)
-        )
-      }
   }
 }

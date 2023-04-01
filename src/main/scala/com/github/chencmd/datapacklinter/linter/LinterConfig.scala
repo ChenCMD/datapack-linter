@@ -1,6 +1,6 @@
 package com.github.chencmd.datapacklinter.linter
 
-import com.github.chencmd.datapacklinter.ciplatform.KeyedConfigReader
+import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
 
 import cats.data.EitherT
 import cats.effect.Async
@@ -13,7 +13,9 @@ final case class LinterConfig private (
 )
 
 object LinterConfig {
-  def withReader[F[_]: Async](reader: KeyedConfigReader[F]): EitherT[F, String, LinterConfig] = {
+  def withReader[F[_]: Async]()(using
+    reader: CIPlatformReadKeyedConfigInstr[F]
+  ): EitherT[F, String, LinterConfig] = {
     for {
       forcePass             <- reader.readKeyOrElse("forcePass", false)
       muteSuccessResult     <- reader.readKeyOrElse("notOutputSuccess", false)

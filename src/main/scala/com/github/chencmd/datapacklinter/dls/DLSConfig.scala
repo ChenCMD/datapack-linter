@@ -8,7 +8,7 @@ import com.github.chencmd.datapacklinter.utils.Jsonc
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.generic.CastOps.*
 import com.github.chencmd.datapacklinter.generic.WrappedDictionaryExtra.*
-import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteraction
+import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 
 import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 import typings.spgodingDatapackLanguageServer.libTypesConfigMod as Cfg
@@ -24,7 +24,7 @@ import scala.util.chaining.*
 object DLSConfig {
   def readConfig[F[_]: Async](
     configFilePath: String
-  )(using ciInteraction: CIPlatformInteraction[F]): F[DLSConfig] = {
+  )(using ciInteraction: CIPlatformInteractionInstr[F]): F[DLSConfig] = {
     type FOption[A] = OptionT[F, A]
     val program = for {
       isAccessible <- FSAsync.pathAccessible[FOption](configFilePath)

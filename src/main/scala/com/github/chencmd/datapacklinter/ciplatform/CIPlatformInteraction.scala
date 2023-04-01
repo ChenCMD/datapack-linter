@@ -1,9 +1,6 @@
 package com.github.chencmd.datapacklinter.ciplatform
 
-import cats.Monad
-import cats.effect.Async
-
-trait CIPlatformInteraction[F[_]: Async] extends Lifecycle[F] {
+trait CIPlatformInteractionInstr[F[_]] {
   def printError(msg: String): F[Unit]
 
   def printWarning(msg: String): F[Unit]
