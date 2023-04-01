@@ -10,6 +10,7 @@ import cats.effect.kernel.Resource
 import cats.implicits.*
 
 import scala.scalajs.js
+import scala.scalajs.js.JSON
 
 object LocalInteraction {
   def createInstr[F[_]: Async]()
@@ -47,7 +48,7 @@ object LocalInteraction {
             case v if v == js.undefined        => ""
             case v if v == null                => ""
             case v if js.typeOf(v) == "string" => v.asInstanceOf[String]
-            case v                             => js.JSON.stringify(v.asInstanceOf[js.Any])
+            case v                             => JSON.stringify(v.asInstanceOf[js.Any])
           }
           outputs.update(_ + (key -> strValue))
         }

@@ -10,6 +10,7 @@ import cats.effect.Resource
 import cats.implicits.*
 
 import scala.scalajs.js
+import scala.scalajs.js.JSON
 
 import typings.node.pathMod as path
 
@@ -31,7 +32,7 @@ object LocalInputReader {
             .leftMap(_ => "linter-config.json does not exist")
         }
       }
-      config       <- EitherT.pure(JSObject.toWrappedDictionary[String](js.JSON.parse(rawConfig)))
+      config       <- EitherT.pure(JSObject.toWrappedDictionary[String](JSON.parse(rawConfig)))
 
       instr <- EitherT.liftF(Async[F].delay {
         new CIPlatformReadKeyedConfigInstr[F] {

@@ -8,31 +8,35 @@ import cats.effect.Async
 import cats.effect.Resource
 import cats.implicits.*
 
+import scala.scalajs.js
+import scala.scalajs.js.JSON
+import scala.scalajs.js.Dynamic.literal as JSObject
+
 import typings.actionsCore.mod as core
 import typings.node.pathMod as path
 
 object GitHubInteraction {
-  private val matcherJson = """
-{
-  "problemMatcher": [{
-    "owner": "datapack-linter",
-    "pattern": [
-      {
-        "regexp": "^.*✗[^(]+\\((.+)\\)$",
-        "file": 1
-      },
-      {
-        "regexp": "^\\s+(\\d+):(\\d+)\\s+(Error|Warning)\\s+(.*)$",
-        "line": 1,
-        "column": 2,
-        "severity": 3,
-        "message": 4,
-        "loop": true
-      }
-    ]
-  }]
-}
-"""
+  private val matcher = JSObject(
+    "problemMatcher" -> js.Array(
+      JSObject(
+        "owner"   -> "datapack-linter",
+        "pattern" -> js.Array(
+          JSObject(
+            "regexp"   -> """^.*✗[^(]+\((.+)\)$""",
+            "file"     -> 1
+          ),
+          JSObject(
+            "regexp"   -> """^\s+(\d+):(\d+)\s+(Error|Warning)\s+(.*)$""",
+            "line"     -> 1,
+            "column"   -> 2,
+            "severity" -> 3,
+            "message"  -> 4,
+            "loop"     -> true
+          )
+        )
+      )
+    )
+  )
 
   def createInstr[F[_]: Async](
     dir: String
@@ -71,7 +75,7 @@ object GitHubInteraction {
           }
         }
       }
-      _     <- FSAsync.writeFile(path.join(dir, "matcher.json"), matcherJson)
+      _     <- FSAsync.writeFile(path.join(dir, "matcher.json"), JSON.stringify(matcher))
       _     <- instr.printInfo(":add-matcher::matcher.json")
     } yield instr
 

@@ -13,6 +13,7 @@ import scala.concurrent.duration.*
 
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal as JSObject
+import scala.scalajs.js.JSON
 
 import typings.node.pathMod as path
 
@@ -101,7 +102,7 @@ object DLSHelper {
         )
       }
       _               <- EitherT.liftF {
-        ciInteraction.printInfo(s"[LatestVersions] versionInformation = ${js.JSON.stringify(ans)}")
+        ciInteraction.printInfo(s"[LatestVersions] versionInformation = ${JSON.stringify(ans)}")
       }
     } yield ans
   }
