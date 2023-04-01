@@ -2,26 +2,29 @@ package com.github.chencmd.datapacklinter.dls
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
-import com.github.chencmd.datapacklinter.utils.{Datapack, Jsonc}
+import com.github.chencmd.datapacklinter.utils.Datapack
+import com.github.chencmd.datapacklinter.utils.Jsonc
 
 import cats.Monad
-import cats.data.{OptionT, EitherT}
+import cats.data.EitherT
+import cats.data.OptionT
 import cats.effect.Async
 import cats.implicits.*
 
 import scala.concurrent.duration.*
 
-import scalajs.js
-import js.Dynamic.literal as JSObject
+import scala.scalajs.js
+import scala.scalajs.js.Dynamic.{literal => JSObject}
 
 import typings.node.pathMod as path
-import typings.spgodingDatapackLanguageServer.mod as DLS
-import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
-import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
-import typings.spgodingDatapackLanguageServer.libPluginsPluginLoaderMod.PluginLoader
-import typings.spgodingDatapackLanguageServer.libTypesVersionInformationMod.VersionInformation
+
 import typings.spgodingDatapackLanguageServer.libTypesClientCapabilitiesMod as ClientCapabilities
+import typings.spgodingDatapackLanguageServer.mod as DLS
+import typings.spgodingDatapackLanguageServer.libPluginsPluginLoaderMod.PluginLoader
 import typings.spgodingDatapackLanguageServer.libServicesDatapackLanguageServiceMod.DatapackLanguageServiceOptions
+import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
+import typings.spgodingDatapackLanguageServer.libTypesVersionInformationMod.VersionInformation
+import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
 
 object DLSHelper {
   def createDLS[F[_]: Async](

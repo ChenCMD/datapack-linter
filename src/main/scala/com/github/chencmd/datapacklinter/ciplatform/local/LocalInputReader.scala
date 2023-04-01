@@ -1,15 +1,17 @@
 package com.github.chencmd.datapacklinter.ciplatform.local
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
-import com.github.chencmd.datapacklinter.utils.{FSAsync, JSObject}
+import com.github.chencmd.datapacklinter.utils.FSAsync
+import com.github.chencmd.datapacklinter.utils.JSObject
 
 import cats.data.EitherT
-import cats.effect.{Async, Resource}
+import cats.effect.Async
+import cats.effect.Resource
 import cats.implicits.*
 
 import scala.util.chaining.*
 
-import scalajs.js
+import scala.scalajs.js
 
 import typings.node.pathMod as path
 

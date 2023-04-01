@@ -2,7 +2,7 @@ package com.github.chencmd.datapacklinter.utils
 
 import cats.implicits.*
 
-import scalajs.js
+import scala.scalajs.js
 
 import typings.jsoncParser.mod as jsonc
 

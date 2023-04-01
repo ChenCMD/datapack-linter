@@ -1,25 +1,24 @@
 package com.github.chencmd.datapacklinter.dls
 
-import cats.data.OptionT
-import cats.syntax.all.*
-import cats.effect.kernel.Async
-
-import com.github.chencmd.datapacklinter.utils.Jsonc
-import com.github.chencmd.datapacklinter.utils.FSAsync
+import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.generic.CastOps.*
 import com.github.chencmd.datapacklinter.generic.WrappedDictionaryExtra.*
-import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
+import com.github.chencmd.datapacklinter.utils.FSAsync
+import com.github.chencmd.datapacklinter.utils.Jsonc
 
-import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
-import typings.spgodingDatapackLanguageServer.libTypesConfigMod as Cfg
-import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
-
-import org.scalablytyped.runtime.StringDictionary
-
-import scalajs.js
+import cats.data.OptionT
+import cats.effect.kernel.Async
+import cats.syntax.all.*
 
 import scala.annotation.tailrec
 import scala.util.chaining.*
+
+import scala.scalajs.js
+
+import org.scalablytyped.runtime.StringDictionary
+import typings.spgodingDatapackLanguageServer.libTypesConfigMod as Cfg
+import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
+import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 
 object DLSConfig {
   def readConfig[F[_]: Async](

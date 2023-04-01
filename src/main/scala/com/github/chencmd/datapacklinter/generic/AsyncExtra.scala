@@ -2,7 +2,7 @@ package com.github.chencmd.datapacklinter.generic
 
 import cats.effect.Async
 
-import scalajs.js
+import scala.scalajs.js
 
 object AsyncExtra {
   class PartiallyAppliedFromPromise[F[_]](private val dummy: Boolean = true) extends AnyVal {

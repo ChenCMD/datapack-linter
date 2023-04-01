@@ -4,11 +4,12 @@ import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 
 import cats.Monad
 import cats.data.EitherT
-import cats.effect.{Async, Ref}
+import cats.effect.Async
+import cats.effect.Ref
+import cats.effect.kernel.Resource
 import cats.implicits.*
 
-import scalajs.js
-import cats.effect.kernel.Resource
+import scala.scalajs.js
 
 object LocalInteraction {
   def createInstr[F[_]: Async](): Resource[[A] =>> EitherT[F, String, A], CIPlatformInteractionInstr[F]] = {

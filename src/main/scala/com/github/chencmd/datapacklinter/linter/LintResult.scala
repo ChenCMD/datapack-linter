@@ -4,11 +4,13 @@ import cats.effect.Async
 import cats.implicits.*
 
 import typings.node.pathMod as path
-import typings.vscodeLanguageserverTypes.mod.{Range, Diagnostic}
-import typings.spgodingDatapackLanguageServer.libTypesParsingErrorMod.ParsingError
+import typings.vscodeLanguageserverTextdocument.mod.TextDocument
+import typings.vscodeLanguageserverTypes.mod.Diagnostic
+import typings.vscodeLanguageserverTypes.mod.Range
+
 import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNode
 import typings.spgodingDatapackLanguageServer.libTypesDatapackDocumentMod.DatapackDocument
-import typings.vscodeLanguageserverTextdocument.mod.TextDocument
+import typings.spgodingDatapackLanguageServer.libTypesParsingErrorMod.ParsingError
 
 final case class LintResult(
   dpFilePath: String,

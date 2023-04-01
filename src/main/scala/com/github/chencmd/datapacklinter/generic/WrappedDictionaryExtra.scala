@@ -1,6 +1,7 @@
 package com.github.chencmd.datapacklinter.generic
 
-import scalajs.js.WrappedDictionary
+import scala.scalajs.js.WrappedDictionary
+
 import org.scalablytyped.runtime.StringDictionary
 
 object WrappedDictionaryExtra {

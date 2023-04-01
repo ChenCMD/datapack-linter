@@ -1,19 +1,19 @@
 package com.github.chencmd.datapacklinter.utils
 
+import com.github.chencmd.datapacklinter.generic.ApplicativeExtra.*
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
 import com.github.chencmd.datapacklinter.generic.EitherTExtra
-import com.github.chencmd.datapacklinter.generic.ApplicativeExtra.*
 import com.github.chencmd.datapacklinter.generic.MonoidExtra.*
 
 import cats.Monad
 import cats.data.EitherT
 import cats.effect.Async
-import cats.implicits.*
 import cats.effect.implicits.*
+import cats.implicits.*
 
 import typings.node.pathMod as path
-import typings.node.fsMod.promises as fsp
 import typings.node.BufferEncoding
+import typings.node.fsMod.promises as fsp
 
 object FSAsync {
   def pathAccessible[F[_]: Async](path: String): F[Boolean] = {

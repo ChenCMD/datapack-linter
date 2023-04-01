@@ -2,8 +2,8 @@ package com.github.chencmd.datapacklinter.dls
 
 import com.github.chencmd.datapacklinter.utils.JSObject
 
-import scalajs.js
-import js.WrappedDictionary
+import scala.scalajs.js
+import scala.scalajs.js.WrappedDictionary
 
 private trait VersionManifestLatestInfo extends js.Object {
   val release: String

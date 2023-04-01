@@ -1,22 +1,29 @@
 package com.github.chencmd.datapacklinter
 
-import cats.{Applicative, Monad}
-import cats.data.{EitherT, OptionT}
-import cats.effect.{IO, IOApp, ExitCode, Async, Resource}
+import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
+import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
+import com.github.chencmd.datapacklinter.ciplatform.ghactions.*
+import com.github.chencmd.datapacklinter.ciplatform.local.*
+import com.github.chencmd.datapacklinter.dls.DLSConfig
+import com.github.chencmd.datapacklinter.dls.DLSHelper
+import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
+import com.github.chencmd.datapacklinter.linter.DatapackLinter
+import com.github.chencmd.datapacklinter.linter.LinterConfig
+
+import cats.Applicative
+import cats.Monad
+import cats.data.EitherT
+import cats.data.OptionT
+import cats.effect.Async
+import cats.effect.ExitCode
+import cats.effect.IO
+import cats.effect.IOApp
+import cats.effect.Resource
 import cats.implicits.*
 
-import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
-import com.github.chencmd.datapacklinter.dls.{DLSConfig, DLSHelper}
-import com.github.chencmd.datapacklinter.linter.{DatapackLinter, LinterConfig}
-import com.github.chencmd.datapacklinter.ciplatform.{
-  CIPlatformInteractionInstr,
-  CIPlatformReadKeyedConfigInstr
-}
-import com.github.chencmd.datapacklinter.ciplatform.local.*
-import com.github.chencmd.datapacklinter.ciplatform.ghactions.*
-
-import typings.node.processMod as process
 import typings.node.pathMod as path
+import typings.node.processMod as process
+
 import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNode
 
 object Main extends IOApp {

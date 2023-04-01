@@ -1,6 +1,8 @@
 package com.github.chencmd.datapacklinter.generic
 
-import cats.{Applicative, Functor, Monoid}
+import cats.Applicative
+import cats.Functor
+import cats.Monoid
 import cats.implicits.*
 
 object ApplicativeExtra {

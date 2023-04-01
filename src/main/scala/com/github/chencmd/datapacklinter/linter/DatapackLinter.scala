@@ -1,31 +1,37 @@
 package com.github.chencmd.datapacklinter.linter
 
-import com.github.chencmd.datapacklinter.generic.{AsyncExtra, EitherTExtra}
-import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
-import com.github.chencmd.datapacklinter.utils.{Jsonc, Datapack, FSAsync}
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
+import com.github.chencmd.datapacklinter.generic.AsyncExtra
+import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
+import com.github.chencmd.datapacklinter.generic.EitherTExtra
+import com.github.chencmd.datapacklinter.utils.Datapack
+import com.github.chencmd.datapacklinter.utils.FSAsync
+import com.github.chencmd.datapacklinter.utils.Jsonc
 
 import cats.Monad
-import cats.data.{StateT, OptionT, EitherT}
+import cats.data.EitherT
+import cats.data.OptionT
+import cats.data.StateT
 import cats.effect.Async
 import cats.implicits.*
 
 import scala.util.chaining.*
 
-import scalajs.js
-import js.Date
+import scala.scalajs.js
+import scala.scalajs.js.Date
 
 import typings.node.pathMod as path
 import typings.vscodeUri.mod.URI
-import typings.spgodingDatapackLanguageServer.spgodingDatapackLanguageServerStrings as DLSStr
-import typings.spgodingDatapackLanguageServer.mod as DLS
-import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
+
 import typings.spgodingDatapackLanguageServer.libServicesCommonMod as DLSCommon
-import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
-import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
-import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.ClientCache
-import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNode
+import typings.spgodingDatapackLanguageServer.mod as DLS
+import typings.spgodingDatapackLanguageServer.spgodingDatapackLanguageServerStrings as DLSStr
 import typings.spgodingDatapackLanguageServer.anon.GetText
+import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNode
+import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.ClientCache
+import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
+import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
+import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
 
 final case class DatapackLinter[F[_]: Async] private (
   private val linterConfig: LinterConfig,

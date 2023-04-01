@@ -1,7 +1,7 @@
 package com.github.chencmd.datapacklinter.utils
 
-import scalajs.js
-import js.WrappedDictionary
+import scala.scalajs.js
+import scala.scalajs.js.WrappedDictionary
 
 object JSObject {
   def isObject(value: js.Any): Boolean = {
