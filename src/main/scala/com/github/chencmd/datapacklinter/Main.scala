@@ -22,45 +22,41 @@ import typings.node.processMod as process
 object Main extends IOApp {
   override def run(args: List[String]) = {
     def run[F[_]: Async]() = for {
-      dir <- Async[F].delay(process.cwd())
-      res <- runForLocal[F](dir)
-        .use(EitherT.pure(_))
-        .value
-        .flatMap { res =>
-          res.fold(
-            Async[F].delay(_).as(ExitCode.Error),
-            Async[F].pure(_)
-          )
-        }
-    } yield res
+      dir        <- Async[F].delay(process.cwd())
+      lintResult <- githubActionsContextResource[F](dir).use { ctx =>
+        given CIPlatformInteractionInstr[F]     = ctx._1
+        given CIPlatformReadKeyedConfigInstr[F] = ctx._2
+
+        lint(dir)
+      }.value
+      exitCode   <- lintResult match {
+        case Right(_)  => Async[F].pure {
+            ExitCode.Success
+          }
+        case Left(mes) => Async[F].delay {
+            println(mes)
+            ExitCode.Error
+          }
+      }
+    } yield exitCode
 
     run()
   }
 
-  def runForGitHubActions[F[_]: Async](
-    dir: String
-  ): Resource[[A] =>> EitherT[F, String, A], ExitCode] = {
-    for {
-      given CIPlatformInteractionInstr[F]     <- GitHubInteraction.createInstr(dir)
-      given CIPlatformReadKeyedConfigInstr[F] <- GitHubInputReader.createInstr()
-      res                                     <- Resource.eval(lint(dir))
-    } yield res
-  }
+  private def githubActionsContextResource[F[_]: Async](dir: String) = Resource.both(
+    GitHubInteraction.createInstr(dir),
+    GitHubInputReader.createInstr()
+  )
 
-  def runForLocal[F[_]: Async](
-    dir: String
-  ): Resource[[A] =>> EitherT[F, String, A], ExitCode] = {
-    for {
-      given CIPlatformInteractionInstr[F]     <- LocalInteraction.createInstr()
-      given CIPlatformReadKeyedConfigInstr[F] <- LocalInputReader.createInstr(dir)
-      res                                     <- Resource.eval(lint(dir))
-    } yield res
-  }
+  private def localContextResource[F[_]: Async](dir: String) = Resource.both(
+    LocalInteraction.createInstr(),
+    LocalInputReader.createInstr(dir)
+  )
 
-  def lint[F[_]: Async](dir: String)(using
+  private def lint[F[_]: Async](dir: String)(using
     ciInteraction: CIPlatformInteractionInstr[F],
     readConfig: CIPlatformReadKeyedConfigInstr[F]
-  ): EitherT[F, String, ExitCode] = {
+  ): EitherT[F, String, Unit] = {
     for {
       dlsConfig <- EitherT.liftF(DLSConfig.readConfig(path.join(dir, ".vscode", "settings.json")))
       dls       <- DLSHelper.createDLS(dir, dlsConfig)
@@ -70,6 +66,6 @@ object Main extends IOApp {
 
       analyzedCount <- EitherT.liftF(linter.updateCache())
       _             <- EitherT.liftF(linter.lintAll(analyzedCount))
-    } yield ExitCode.Success
+    } yield ()
   }
 }
