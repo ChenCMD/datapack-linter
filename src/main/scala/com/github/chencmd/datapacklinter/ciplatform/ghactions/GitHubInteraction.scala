@@ -40,7 +40,7 @@ object GitHubInteraction {
 
   def createInstr[F[_]: Async](
     dir: String
-  ): Resource[[A] =>> EitherT[F, String, A], CIPlatformInteractionInstr[F]] = {
+  ): Resource[F, CIPlatformInteractionInstr[F]] = {
     val program = for {
       instr <- Async[F].delay {
         new CIPlatformInteractionInstr[F] {
@@ -79,8 +79,6 @@ object GitHubInteraction {
       _     <- instr.printInfo(":add-matcher::matcher.json")
     } yield instr
 
-    Resource
-      .make(program)(_ => FSAsync.removeFile(path.join(dir, "matcher.json")))
-      .mapK(EitherT.liftK)
+    Resource.make(program)(_ => FSAsync.removeFile(path.join(dir, "matcher.json")))
   }
 }

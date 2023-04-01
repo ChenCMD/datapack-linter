@@ -13,8 +13,7 @@ import scala.scalajs.js
 import scala.scalajs.js.JSON
 
 object LocalInteraction {
-  def createInstr[F[_]: Async]()
-    : Resource[[A] =>> EitherT[F, String, A], CIPlatformInteractionInstr[F]] = {
+  def createInstr[F[_]: Async](): Resource[F, CIPlatformInteractionInstr[F]] = {
     val outputs: Ref[F, Map[String, String]] = Ref.unsafe(Map.empty)
 
     val program = Async[F].delay {
@@ -55,8 +54,7 @@ object LocalInteraction {
       }
     }
 
-    Resource
-      .make(program) { _ =>
+    Resource.make(program) { _ =>
         for {
           outputs   <- outputs.get
           maxKeyLen <- Monad[F].pure(outputs.map(_._1.length()).foldLeft(0)(Math.max))
@@ -65,6 +63,5 @@ object LocalInteraction {
           }
         } yield ()
       }
-      .mapK(EitherT.liftK)
   }
 }

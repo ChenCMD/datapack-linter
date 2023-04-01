@@ -19,9 +19,9 @@ object LocalInputReader {
 
   def createInstr[F[_]: Async](
     dir: String
-  ): Resource[[A] =>> EitherT[F, String, A], CIPlatformReadKeyedConfigInstr[F]] = {
+  ): EitherT[F, String, CIPlatformReadKeyedConfigInstr[F]] = {
     val configPath = path.join(dir, "linter-config.json")
-    val program    = for {
+    for {
       existsConfig <- FSAsync.pathAccessible[[A] =>> EitherT[F, String, A]](configPath)
       rawConfig    <- {
         if (existsConfig) {
@@ -54,7 +54,5 @@ object LocalInputReader {
         }
       })
     } yield instr
-
-    Resource.eval(program)
   }
 }

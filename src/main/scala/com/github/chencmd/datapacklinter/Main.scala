@@ -20,16 +20,23 @@ import typings.node.pathMod as path
 import typings.node.processMod as process
 
 object Main extends IOApp {
+  private case class CIPlatformContext[F[_]](
+    interaction: CIPlatformInteractionInstr[F],
+    inputReader: CIPlatformReadKeyedConfigInstr[F]
+  )
+
   override def run(args: List[String]) = {
     def run[F[_]: Async]() = for {
-      dir        <- Async[F].delay(process.cwd())
-      lintResult <- githubActionsContextResource[F](dir).use { ctx =>
-        given CIPlatformInteractionInstr[F]     = ctx._1
-        given CIPlatformReadKeyedConfigInstr[F] = ctx._2
+      dir <- Async[F].delay(process.cwd())
+
+      lintResult <- githubActionsContextResource(dir).use { ctx =>
+        given CIPlatformInteractionInstr[F]     = ctx.interaction
+        given CIPlatformReadKeyedConfigInstr[F] = ctx.inputReader
 
         lint(dir)
       }.value
-      exitCode   <- lintResult match {
+
+      exitCode <- lintResult match {
         case Right(_)  => Async[F].pure {
             ExitCode.Success
           }
@@ -43,15 +50,28 @@ object Main extends IOApp {
     run()
   }
 
-  private def githubActionsContextResource[F[_]: Async](dir: String) = Resource.both(
-    GitHubInteraction.createInstr(dir),
-    GitHubInputReader.createInstr()
-  )
+  private def githubActionsContextResource[F[_]: Async](dir: String): Resource[
+    [A] =>> EitherT[F, String, A],
+    CIPlatformContext[F]
+  ] = {
+    val program = for {
+      interaction <- GitHubInteraction.createInstr(dir)
+      inputReader <- Resource.eval(GitHubInputReader.createInstr())
+    } yield CIPlatformContext(interaction, inputReader)
 
-  private def localContextResource[F[_]: Async](dir: String) = Resource.both(
-    LocalInteraction.createInstr(),
-    LocalInputReader.createInstr(dir)
-  )
+    program.mapK(EitherT.liftK)
+  }
+
+  private def localContextResource[F[_]: Async](dir: String): Resource[
+    [A] =>> EitherT[F, String, A],
+    CIPlatformContext[F]
+  ] = {
+    val program = for {
+      interaction <- LocalInteraction.createInstr().mapK(EitherT.liftK)
+      inputReader <- Resource.eval(LocalInputReader.createInstr(dir))
+    } yield CIPlatformContext(interaction, inputReader)
+    program
+  }
 
   private def lint[F[_]: Async](dir: String)(using
     ciInteraction: CIPlatformInteractionInstr[F],

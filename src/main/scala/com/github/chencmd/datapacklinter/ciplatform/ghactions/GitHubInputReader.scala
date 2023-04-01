@@ -13,9 +13,8 @@ import typings.actionsCore.mod.InputOptions
 object GitHubInputReader {
   import CIPlatformReadKeyedConfigInstr.ConfigValueType
 
-  def createInstr[F[_]: Async]()
-    : Resource[[A] =>> EitherT[F, String, A], CIPlatformReadKeyedConfigInstr[F]] = {
-    val program = Async[F].delay {
+  def createInstr[F[_]: Async](): F[CIPlatformReadKeyedConfigInstr[F]] = {
+    Async[F].delay {
       new CIPlatformReadKeyedConfigInstr[F] {
         override protected def readKey[A](key: String, required: Boolean, default: => Option[A])(
           using valueType: ConfigValueType[A]
@@ -31,7 +30,5 @@ object GitHubInputReader {
         }
       }
     }
-
-    Resource.eval(program).mapK(EitherT.liftK)
   }
 }
