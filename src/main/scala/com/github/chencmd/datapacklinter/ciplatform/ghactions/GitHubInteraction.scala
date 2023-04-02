@@ -9,8 +9,8 @@ import cats.effect.Resource
 import cats.implicits.*
 
 import scala.scalajs.js
-import scala.scalajs.js.JSON
 import scala.scalajs.js.Dynamic.literal as JSObject
+import scala.scalajs.js.JSON
 
 import typings.actionsCore.mod as core
 import typings.node.pathMod as path
