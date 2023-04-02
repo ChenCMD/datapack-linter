@@ -12,27 +12,27 @@ import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNo
 import typings.spgodingDatapackLanguageServer.libTypesDatapackDocumentMod.DatapackDocument
 import typings.spgodingDatapackLanguageServer.libTypesParsingErrorMod.ParsingError
 
-final case class LintResult(
+final case class AnalyzeResult(
   dpFilePath: String,
   resourcePath: String,
   errors: List[DocumentError],
   analyzedLength: Int
 )
 
-object LintResult {
+object AnalyzeResult {
   def apply[F[_]: Async](
     root: String,
     filePath: String,
     id: IdentityNode,
     parsedDoc: DatapackDocument,
     doc: TextDocument
-  ): F[LintResult] = {
+  ): F[AnalyzeResult] = {
     parsedDoc.nodes
       .flatMap(_.errors)
       .toList
       .traverse(DocumentError(_, doc))
       .map { a =>
-        LintResult(
+        AnalyzeResult(
           path.relative(path.dirname(root), filePath).replace("\\", "/"),
           id.toString(),
           a.sortBy(_.range.start.line),

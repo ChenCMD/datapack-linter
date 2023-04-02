@@ -37,12 +37,14 @@ final case class DatapackLinter[F[_]: Async] private (
   private type AnalyzedCount = Int
   private type FOption[A]    = OptionT[F, A]
 
-  def lintAll(analyzedCount: AnalyzedCount): F[Unit] = {
+  def lintAll(
+    analyzedCount: AnalyzedCount
+  )(lintCallback: AnalyzeResult => EitherT[F, String, Unit]): EitherT[F, String, Unit] = {
     def parseDoc(
       root: String,
       file: String,
       rel: String
-    ): StateT[FOption, AnalyzedCount, LintResult] = {
+    ): StateT[F, AnalyzedCount, Option[AnalyzeResult]] = {
       val program = for {
         languageID <- OptionT.fromOption {
           val dotIdx   = file.lastIndexOf(".")
@@ -70,53 +72,17 @@ final case class DatapackLinter[F[_]: Async] private (
         }
         parsedDoc <- OptionT(AsyncExtra.fromPromise[F](dls.parseDocument(doc)).map(_.toOption))
 
-        res <- LintResult[FOption](root, file, id, parsedDoc, doc)
+        res <- AnalyzeResult[FOption](root, file, id, parsedDoc, doc)
       } yield res
 
       for {
-        res <- StateT.liftF(program)
-        _   <- gc(res.analyzedLength).mapK(OptionT.liftK)
+        res <- StateT.liftF(program.value)
+        _   <- res.traverse(r => gc(r.analyzedLength))
       } yield res
     }
 
-    def printDocumentLintResult(res: LintResult): F[Unit] = {
-      val title = s"${res.resourcePath} (${res.dpFilePath})"
-
-      if (res.errors.exists(_.severity <= 2)) {
-        for {
-          _ <- ciInteraction.printInfo(s"\u001b[91m✗\u001b[39m  ${title}")
-          _ <- res.errors
-            .filter(_.severity <= 2)
-            .map { e =>
-              val pos                   = e.range.start
-              val paddedPosition        =
-                f"${pos.line.asInstanceOf[Int]}%5d:${pos.character.asInstanceOf[Int]}%-5d"
-              val indentAdjuster        = " " * (if (e.severity == 1) then 2 else 0)
-              val humanReadableSeverity = {
-                val raw = e.severity match {
-                  case 1 => "Error"
-                  case 2 => "Warning"
-                  case _ => "Unknown"
-                }
-                f"${raw}%-7s"
-              }
-              (e.severity, s" $indentAdjuster$paddedPosition $humanReadableSeverity ${e.message}")
-            }
-            .traverse {
-              case (1, res) => ciInteraction.printError(res)
-              case (2, res) => ciInteraction.printWarning(res)
-              case (_, res) => ciInteraction.printInfo(res)
-            }
-        } yield ()
-      } else if (true) {
-        ciInteraction.printInfo(s"\u001b[92m✓\u001b[39m  ${title}")
-      } else {
-        Monad[F].pure(())
-      }
-    }
-
     val program = for {
-      parseFiles <- StateT
+      parseFiles: List[AnalyzeState] <- StateT
         .liftF(dls.roots.toList.flatTraverse { root =>
           val dir = path.join(root.fsPath, "data")
           FSAsync
@@ -132,22 +98,20 @@ final case class DatapackLinter[F[_]: Async] private (
                   .exists(!linterConfig.ignorePathsIncludes(_))
                 isRelIncluded && isPathValid
               }
-            )(p => (root.fsPath, p.abs, p.rel).pure[F])
+            )(p => AnalyzeState.Waiting(root.fsPath, p.abs, p.rel).pure[F])
         })
-        .mapK(OptionT.liftK)
-      _          <- {
-        parseFiles
-          .map(p => AnalyzeState.Waiting(p._1, p._2, p._3))
-          .sorted
-          .traverse {
-            case AnalyzeState.Waiting(root, abs, rel) => parseDoc(root, abs, rel)
-                .flatMap(res => StateT.liftF(OptionT.liftF(printDocumentLintResult(res))))
-            case _ => StateT.pure[FOption, AnalyzedCount, Unit](())
-          }
-          .void
+        .mapK(EitherT.liftK)
+      _                              <- {
+        parseFiles.sorted.traverse {
+          case AnalyzeState.Waiting(root, abs, rel) => parseDoc(root, abs, rel)
+              .mapK(EitherT.liftK)
+              .flatMapF(_.traverse(lintCallback).void)
+          case AnalyzeState.Cached(root, abs, res)  => StateT.liftF(lintCallback(res))
+        }
       }
     } yield ()
-    program.runA(analyzedCount).value.void
+
+    program.runA(analyzedCount)
   }
 
   def getDeclares = { ??? }

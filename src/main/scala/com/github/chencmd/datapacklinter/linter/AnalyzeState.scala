@@ -3,7 +3,7 @@ package com.github.chencmd.datapacklinter.linter
 enum AnalyzeState(val root: String, val abs: String) {
   case Waiting(override val root: String, override val abs: String, val rel: String)
       extends AnalyzeState(root, abs)
-  case Cached(override val root: String, override val abs: String, val res: LintResult)
+  case Cached(override val root: String, override val abs: String, val res: AnalyzeResult)
       extends AnalyzeState(root, abs)
 }
 
