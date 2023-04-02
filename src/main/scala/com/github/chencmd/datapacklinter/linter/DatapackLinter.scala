@@ -120,11 +120,19 @@ final case class DatapackLinter[F[_]: Async] private (
         .liftF(dls.roots.toList.flatTraverse { root =>
           val dir = path.join(root.fsPath, "data")
           FSAsync
-            .foreachFileRec(root.fsPath, dir, p => dlsConfig.isRelIncluded(p.rel)) { p =>
-              // val id = IdentityNode.fromRel(p.rel).map(_.id.toString)
-              Monad[F].pure(List((root.fsPath, p.abs, p.rel)))
-            }
-            .map(_.flatten)
+            .foreachFileRec(
+              root.fsPath,
+              dir,
+              p => {
+                val isRelIncluded    = dlsConfig.isRelIncluded(p.rel)
+                // リソースパスが存在して かつ ignorePathsに含まれていない
+                lazy val isPathValid = IdentityNode
+                  .fromRel(p.rel)
+                  .map(_.id.toString)
+                  .exists(!linterConfig.ignorePathsIncludes(_))
+                isRelIncluded && isPathValid
+              }
+            )(p => (root.fsPath, p.abs, p.rel).pure[F])
         })
         .mapK(OptionT.liftK)
       _          <- {
