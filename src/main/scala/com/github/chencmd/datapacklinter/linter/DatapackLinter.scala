@@ -39,7 +39,9 @@ final case class DatapackLinter[F[_]: Async] private (
 
   def lintAll(
     analyzedCount: AnalyzedCount
-  )(lintCallback: AnalyzeResult => EitherT[F, String, Unit]): EitherT[F, String, Unit] = {
+  )(
+    analyzeCallback: AnalyzeResult => EitherT[F, String, Unit]
+  ): EitherT[F, String, Map[ErrorSeverity, Int]] = {
     def parseDoc(
       root: String,
       file: String,
@@ -81,35 +83,39 @@ final case class DatapackLinter[F[_]: Async] private (
       } yield res
     }
 
-    val program = for {
-      parseFiles: List[AnalyzeState] <- StateT
-        .liftF(dls.roots.toList.flatTraverse { root =>
-          val dir = path.join(root.fsPath, "data")
-          FSAsync
-            .foreachFileRec(
-              root.fsPath,
-              dir,
-              p => {
-                val isRelIncluded    = dlsConfig.isRelIncluded(p.rel)
-                // リソースパスが存在して かつ ignorePathsに含まれていない
-                lazy val isPathValid = IdentityNode
-                  .fromRel(p.rel)
-                  .map(_.id.toString)
-                  .exists(!linterConfig.ignorePathsIncludes(_))
-                isRelIncluded && isPathValid
+    val program = {
+      for {
+        parseFiles: List[AnalyzeState] <- StateT
+          .liftF(
+            dls.roots.toList
+              .flatTraverse { root =>
+                val dir = path.join(root.fsPath, "data")
+                FSAsync.foreachFileRec(root.fsPath, dir, p => dlsConfig.isRelIncluded(p.rel)) { p =>
+                  // リソースパスが存在して かつ ignorePathsに含まれていない
+                  val isPathValid = IdentityNode
+                    .fromRel(p.rel)
+                    .map(_.id.toString)
+                    .exists(!linterConfig.ignorePathsIncludes(_))
+
+                  Option.when(isPathValid)(AnalyzeState.Waiting(root.fsPath, p.abs, p.rel)).pure[F]
+                }
               }
-            )(p => AnalyzeState.Waiting(root.fsPath, p.abs, p.rel).pure[F])
-        })
-        .mapK(EitherT.liftK)
-      _                              <- {
-        parseFiles.sorted.traverse {
-          case AnalyzeState.Waiting(root, abs, rel) => parseDoc(root, abs, rel)
-              .mapK(EitherT.liftK)
-              .flatMapF(_.traverse(lintCallback).void)
-          case AnalyzeState.Cached(root, abs, res)  => StateT.liftF(lintCallback(res))
+              .map(_.flatten)
+          )
+          .mapK(EitherT.liftK)
+
+        results <- {
+          parseFiles.sorted.flatTraverse {
+            case AnalyzeState.Waiting(root, abs, rel) => parseDoc(root, abs, rel)
+                .mapK(EitherT.liftK)
+                .flatMapF(res => res.traverse(analyzeCallback).as(res.toList))
+            case AnalyzeState.Cached(_, _, res) => StateT.liftF(analyzeCallback(res).as(List(res)))
+          }
         }
+      } yield results.foldLeft(Map.empty[ErrorSeverity, Int]) { (map, r) =>
+        r.errors.foldLeft(map)((m, e) => m.updatedWith(e.severity)(a => Some(a.getOrElse(0) + 1)))
       }
-    } yield ()
+    }
 
     program.runA(analyzedCount)
   }

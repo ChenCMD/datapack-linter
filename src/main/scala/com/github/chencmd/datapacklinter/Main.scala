@@ -39,13 +39,8 @@ object Main extends IOApp {
       }.value
 
       exitCode <- lintResult match {
-        case Right(_)  => Async[F].pure {
-            ExitCode.Success
-          }
-        case Left(mes) => Async[F].delay {
-            println(mes)
-            ExitCode.Error
-          }
+        case Right(exitCode) => Async[F].pure(exitCode)
+        case Left(mes)       => Async[F].delay(println(mes)).as(ExitCode.Error)
       }
     } yield exitCode
 
@@ -78,7 +73,7 @@ object Main extends IOApp {
   private def lint[F[_]: Async](dir: String)(using
     ciInteraction: CIPlatformInteractionInstr[F],
     readConfig: CIPlatformReadKeyedConfigInstr[F]
-  ): EitherT[F, String, Unit] = {
+  ): EitherT[F, String, ExitCode] = {
     for {
       dlsConfig <- EitherT.liftF(DLSConfig.readConfig(path.join(dir, ".vscode", "settings.json")))
       dls       <- DLSHelper.createDLS(dir, dlsConfig)
@@ -87,16 +82,23 @@ object Main extends IOApp {
       linter       <- EitherT.liftF(DatapackLinter(linterConfig, dls, dlsConfig))
 
       analyzedCount <- EitherT.liftF(linter.updateCache())
-      _             <- linter.lintAll(analyzedCount)(printLintResult)
-    } yield ()
+      errors        <- linter.lintAll(analyzedCount)(printLintResult)
+    } yield {
+      if errors.values.sum == 0 then {
+        ExitCode.Success
+      } else {
+        ExitCode.Error
+      }
+    }
   }
 
   def printLintResult[F[_]: Async](res: AnalyzeResult)(using
     ciInteraction: CIPlatformInteractionInstr[F]
   ): EitherT[F, String, Unit] = {
-      val title = s"${res.resourcePath} (${res.dpFilePath})"
+    val title = s"${res.resourcePath} (${res.dpFilePath})"
 
-      val program = if (res.errors.exists(_.severity <= 2)) {
+    val program = {
+      if (res.errors.exists(_.severity <= 2)) {
         for {
           _ <- ciInteraction.printInfo(s"\u001b[91m✗\u001b[39m  ${title}")
           _ <- res.errors
@@ -127,7 +129,8 @@ object Main extends IOApp {
       } else {
         Monad[F].pure(())
       }
-
-      EitherT.liftF(program)
     }
+
+    EitherT.liftF(program)
+  }
 }

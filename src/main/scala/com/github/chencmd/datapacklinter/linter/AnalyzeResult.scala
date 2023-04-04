@@ -42,7 +42,9 @@ object AnalyzeResult {
   }
 }
 
-final case class DocumentError private (message: String, severity: Int, range: Range) {}
+type ErrorSeverity = 1 | 2 | 3 | 4
+
+final case class DocumentError private (message: String, severity: ErrorSeverity, range: Range) {}
 
 object DocumentError {
   def apply[F[_]: Async](docError: ParsingError, doc: TextDocument): F[DocumentError] = {
@@ -54,7 +56,7 @@ object DocumentError {
   def apply(docError: ParsingError, rangeInfo: Range): DocumentError = {
     DocumentError(
       docError.message,
-      docError.severity.asInstanceOf[Int],
+      docError.severity.asInstanceOf[ErrorSeverity],
       rangeInfo
     )
   }
