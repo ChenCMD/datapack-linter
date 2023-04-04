@@ -84,7 +84,7 @@ object Main extends IOApp {
       analyzedCount <- EitherT.liftF(linter.updateCache())
       errors        <- linter.lintAll(analyzedCount)(printLintResult)
     } yield {
-      if errors.values.sum == 0 then {
+      if linterConfig.forcePass || errors.values.sum == 0 then {
         ExitCode.Success
       } else {
         ExitCode.Error
