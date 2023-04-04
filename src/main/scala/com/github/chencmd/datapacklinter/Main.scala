@@ -12,6 +12,7 @@ import com.github.chencmd.datapacklinter.linter.LinterConfig
 
 import cats.Monad
 import cats.data.EitherT
+import cats.data.StateT
 import cats.effect.Async
 import cats.effect.ExitCode
 import cats.effect.IOApp
@@ -74,15 +75,17 @@ object Main extends IOApp {
     ciInteraction: CIPlatformInteractionInstr[F],
     readConfig: CIPlatformReadKeyedConfigInstr[F]
   ): EitherT[F, String, ExitCode] = {
-    for {
-      dlsConfig <- EitherT.liftF(DLSConfig.readConfig(path.join(dir, ".vscode", "settings.json")))
-      dls       <- DLSHelper.createDLS(dir, dlsConfig)
+    val program = for {
+      dlsConfig <- StateT.liftF {
+        EitherT.liftF(DLSConfig.readConfig(path.join(dir, ".vscode", "settings.json")))
+      }
+      dls       <- StateT.liftF(DLSHelper.createDLS(dir, dlsConfig))
 
-      linterConfig <- LinterConfig.withReader()
-      linter       <- EitherT.liftF(DatapackLinter(linterConfig, dls, dlsConfig))
+      linterConfig <- StateT.liftF(LinterConfig.withReader())
+      linter       <- StateT.liftF(EitherT.liftF(DatapackLinter(linterConfig, dls, dlsConfig)))
 
-      analyzedCount <- EitherT.liftF(linter.updateCache())
-      errors        <- linter.lintAll(analyzedCount)(printLintResult)
+      _      <- linter.updateCache().mapK(EitherT.liftK)
+      errors <- linter.lintAll(printLintResult)
     } yield {
       if linterConfig.forcePass || errors.values.sum == 0 then {
         ExitCode.Success
@@ -90,6 +93,8 @@ object Main extends IOApp {
         ExitCode.Error
       }
     }
+
+    program.runEmptyA
   }
 
   def printLintResult[F[_]: Async](res: AnalyzeResult)(using

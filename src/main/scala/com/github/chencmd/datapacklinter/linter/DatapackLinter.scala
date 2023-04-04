@@ -38,10 +38,8 @@ final case class DatapackLinter[F[_]: Async] private (
   private type FOption[A]    = OptionT[F, A]
 
   def lintAll(
-    analyzedCount: AnalyzedCount
-  )(
     analyzeCallback: AnalyzeResult => EitherT[F, String, Unit]
-  ): EitherT[F, String, Map[ErrorSeverity, Int]] = {
+  ): StateT[[A] =>> EitherT[F, String, A], AnalyzedCount, Map[ErrorSeverity, Int]] = {
     def parseDoc(
       root: String,
       file: String,
@@ -117,12 +115,12 @@ final case class DatapackLinter[F[_]: Async] private (
       }
     }
 
-    program.runA(analyzedCount)
+    program
   }
 
   def getDeclares = { ??? }
 
-  def updateCache(): F[AnalyzedCount] = {
+  def updateCache(): StateT[F, AnalyzedCount, Unit] = {
     def checkFilesInCache: F[Unit] = {
       for {
         uriStrings <- Monad[F].pure {
@@ -161,15 +159,15 @@ final case class DatapackLinter[F[_]: Async] private (
     }
 
     for {
-      time1    <- Async[F].delay(Date.now())
-      _        <- checkFilesInCache
-      time2    <- Async[F].delay(Date.now())
-      _        <- ciInteraction.printInfo(s"[updateCacheFile] [1] ${time2 - time1} ms")
-      analyzed <- addNewFileToCache.runS(0)
-      time3    <- Async[F].delay(Date.now())
-      _        <- ciInteraction.printInfo(s"[updateCacheFile] [2] ${time3 - time2} ms")
-      _        <- ciInteraction.printInfo(s"[updateCacheFile] [T] ${time3 - time1} ms")
-    } yield analyzed
+      time1 <- StateT.liftF(Async[F].delay(Date.now()))
+      _     <- StateT.liftF(checkFilesInCache)
+      time2 <- StateT.liftF(Async[F].delay(Date.now()))
+      _     <- StateT.liftF(ciInteraction.printInfo(s"[updateCacheFile] [1] ${time2 - time1} ms"))
+      _     <- addNewFileToCache
+      time3 <- StateT.liftF(Async[F].delay(Date.now()))
+      _     <- StateT.liftF(ciInteraction.printInfo(s"[updateCacheFile] [2] ${time3 - time2} ms"))
+      _     <- StateT.liftF(ciInteraction.printInfo(s"[updateCacheFile] [T] ${time3 - time1} ms"))
+    } yield ()
   }
 
   private def gc(force: true): StateT[F, AnalyzedCount, Unit] = {
