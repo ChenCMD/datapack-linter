@@ -143,7 +143,7 @@ final case class DatapackAnalyzer[F[_]: Async] private (
             val alreadyCached = dls.cacheFile.files.contains(uri.toString())
 
             val program = for {
-              _ <- EitherTExtra.exitWhenA(alreadyCached)(Monad[F].pure(()))
+              _ <- EitherTExtra.exitWhenA(alreadyCached)(Monad[F].unit)
               _ <- EitherT.liftF {
                 ciInteraction.printDebug(s"[updateCacheFile] file add detected: ${uri.fsPath}")
               }

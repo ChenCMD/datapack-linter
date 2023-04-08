@@ -139,7 +139,7 @@ object Main extends IOApp {
       } else if (true) {
         ciInteraction.printInfo(s"\u001b[92m✓\u001b[39m  ${title}")
       } else {
-        Monad[F].pure(())
+        Monad[F].unit
       }
     }
 
