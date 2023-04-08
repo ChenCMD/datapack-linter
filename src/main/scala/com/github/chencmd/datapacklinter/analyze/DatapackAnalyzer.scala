@@ -40,47 +40,6 @@ final case class DatapackAnalyzer[F[_]: Async] private (
   def analyzeAll(
     analyzeCallback: AnalyzeResult => EitherT[F, String, Unit]
   ): StateT[[A] =>> EitherT[F, String, A], AnalyzedCount, List[AnalyzeResult]] = {
-    def parseDoc(
-      root: String,
-      file: String,
-      rel: String
-    ): StateT[F, AnalyzedCount, Option[AnalyzeResult]] = {
-      val program = for {
-        languageID <- OptionT.fromOption {
-          val dotIdx   = file.lastIndexOf(".")
-          val slashIdx = file.lastIndexOf("/")
-          for {
-            rawLang <- Option.when(dotIdx != -1 && slashIdx < dotIdx)(file.substring(dotIdx + 1))
-            lang    <- rawLang match {
-              case "mcfunction" => Some(DLSStr.mcfunction)
-              case "json"       => Some(DLSStr.json)
-              case _            => None
-            }
-          } yield lang: (DLSStr.mcfunction | DLSStr.json)
-        }
-
-        id <- OptionT.fromOption(IdentityNode.fromRel(rel).toOption.map(_.id))
-
-        doc       <- AsyncExtra.fromPromise[FOption] {
-          DLSCommon.getTextDocument(
-            GetText(
-              getText = () => DLS.readFile(file),
-              langID = languageID,
-              uri = Uri.file(file).asInstanceOf[URI]
-            )
-          )
-        }
-        parsedDoc <- OptionT(AsyncExtra.fromPromise[F](dls.parseDocument(doc)).map(_.toOption))
-
-        res <- AnalyzeResult[FOption](root, file, id, parsedDoc, doc)
-      } yield res
-
-      for {
-        res <- StateT.liftF(program.value)
-        _   <- res.traverse(r => gc(r.analyzedLength))
-      } yield res
-    }
-
     val program = {
       for {
         parseFiles: List[AnalyzeState] <- StateT
@@ -114,6 +73,47 @@ final case class DatapackAnalyzer[F[_]: Async] private (
     }
 
     program
+  }
+
+  def parseDoc(
+    root: String,
+    file: String,
+    rel: String
+  ): StateT[F, AnalyzedCount, Option[AnalyzeResult]] = {
+    val program = for {
+      languageID <- OptionT.fromOption {
+        val dotIdx   = file.lastIndexOf(".")
+        val slashIdx = file.lastIndexOf("/")
+        for {
+          rawLang <- Option.when(dotIdx != -1 && slashIdx < dotIdx)(file.substring(dotIdx + 1))
+          lang    <- rawLang match {
+            case "mcfunction" => Some(DLSStr.mcfunction)
+            case "json"       => Some(DLSStr.json)
+            case _            => None
+          }
+        } yield lang: (DLSStr.mcfunction | DLSStr.json)
+      }
+
+      id <- OptionT.fromOption(IdentityNode.fromRel(rel).toOption.map(_.id))
+
+      doc       <- AsyncExtra.fromPromise[FOption] {
+        DLSCommon.getTextDocument(
+          GetText(
+            getText = () => DLS.readFile(file),
+            langID = languageID,
+            uri = Uri.file(file).asInstanceOf[URI]
+          )
+        )
+      }
+      parsedDoc <- OptionT(AsyncExtra.fromPromise[F](dls.parseDocument(doc)).map(_.toOption))
+
+      res <- AnalyzeResult[FOption](root, file, id, parsedDoc, doc)
+    } yield res
+
+    for {
+      res <- StateT.liftF(program.value)
+      _   <- res.traverse(r => gc(r.analyzedLength))
+    } yield res
   }
 
   def getDeclares = { ??? }
