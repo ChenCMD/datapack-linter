@@ -1,15 +1,15 @@
 package com.github.chencmd.datapacklinter
 
+import com.github.chencmd.datapacklinter.analyze.AnalyzeResult
+import com.github.chencmd.datapacklinter.analyze.AnalyzerConfig
+import com.github.chencmd.datapacklinter.analyze.DatapackAnalyzer
+import com.github.chencmd.datapacklinter.analyze.ErrorSeverity
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
 import com.github.chencmd.datapacklinter.ciplatform.ghactions.*
 import com.github.chencmd.datapacklinter.ciplatform.local.*
 import com.github.chencmd.datapacklinter.dls.DLSConfig
 import com.github.chencmd.datapacklinter.dls.DLSHelper
-import com.github.chencmd.datapacklinter.analyze.AnalyzerConfig
-import com.github.chencmd.datapacklinter.analyze.AnalyzeResult
-import com.github.chencmd.datapacklinter.analyze.DatapackAnalyzer
-import com.github.chencmd.datapacklinter.analyze.ErrorSeverity
 import com.github.chencmd.datapacklinter.linter.LintResultPrinter
 import com.github.chencmd.datapacklinter.linter.LinterConfig
 
