@@ -10,6 +10,7 @@ import com.github.chencmd.datapacklinter.analyze.AnalyzerConfig
 import com.github.chencmd.datapacklinter.analyze.AnalyzeResult
 import com.github.chencmd.datapacklinter.analyze.DatapackAnalyzer
 import com.github.chencmd.datapacklinter.analyze.ErrorSeverity
+import com.github.chencmd.datapacklinter.linter.LintResultPrinter
 import com.github.chencmd.datapacklinter.linter.LinterConfig
 
 import cats.Monad
@@ -89,7 +90,7 @@ object Main extends IOApp {
       analyzer <- StateT.liftF(EitherT.liftF(DatapackAnalyzer(analyzerConfig, dls, dlsConfig)))
 
       _      <- analyzer.updateCache().mapK(EitherT.liftK)
-      result <- analyzer.analyzeAll(printLintResult)
+      result <- analyzer.analyzeAll(r => EitherT.liftF(LintResultPrinter.print(r)))
     } yield {
       val errors = result.foldLeft(Map.empty[ErrorSeverity, Int]) { (map, r) =>
         r.errors.foldLeft(map)((m, e) => m.updatedWith(e.severity)(a => Some(a.getOrElse(0) + 1)))
@@ -102,47 +103,5 @@ object Main extends IOApp {
     }
 
     program.runEmptyA
-  }
-
-  def printLintResult[F[_]: Async](res: AnalyzeResult)(using
-    ciInteraction: CIPlatformInteractionInstr[F]
-  ): EitherT[F, String, Unit] = {
-    val title = s"${res.resourcePath} (${res.dpFilePath})"
-
-    val program = {
-      if (res.errors.exists(_.severity <= 2)) {
-        for {
-          _ <- ciInteraction.printInfo(s"\u001b[91m✗\u001b[39m  ${title}")
-          _ <- res.errors
-            .filter(_.severity <= 2)
-            .map { e =>
-              val pos                   = e.range.start
-              val paddedPosition        =
-                f"${pos.line.asInstanceOf[Int]}%5d:${pos.character.asInstanceOf[Int]}%-5d"
-              val indentAdjuster        = " " * (if (e.severity == 1) then 2 else 0)
-              val humanReadableSeverity = {
-                val raw = e.severity match {
-                  case 1 => "Error"
-                  case 2 => "Warning"
-                  case _ => "Unknown"
-                }
-                f"${raw}%-7s"
-              }
-              (e.severity, s" $indentAdjuster$paddedPosition $humanReadableSeverity ${e.message}")
-            }
-            .traverse {
-              case (1, res) => ciInteraction.printError(res)
-              case (2, res) => ciInteraction.printWarning(res)
-              case (_, res) => ciInteraction.printInfo(res)
-            }
-        } yield ()
-      } else if (true) {
-        ciInteraction.printInfo(s"\u001b[92m✓\u001b[39m  ${title}")
-      } else {
-        Monad[F].unit
-      }
-    }
-
-    EitherT.liftF(program)
   }
 }
