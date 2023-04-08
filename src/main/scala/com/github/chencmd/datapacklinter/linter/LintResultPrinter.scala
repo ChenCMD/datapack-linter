@@ -9,7 +9,7 @@ import cats.effect.kernel.Async
 import cats.implicits.*
 
 object LintResultPrinter {
-  def print[F[_]: Async](res: AnalyzeResult)(using
+  def print[F[_]: Async](res: AnalyzeResult, muteSuccessResult: Boolean)(using
     ciInteraction: CIPlatformInteractionInstr[F]
   ): F[Unit] = {
     val title = s"${res.resourcePath} (${res.dpFilePath})"
@@ -40,7 +40,7 @@ object LintResultPrinter {
             case (_, res) => ciInteraction.printInfo(res)
           }
       } yield ()
-    } else if (true) {
+    } else if (!muteSuccessResult) {
       ciInteraction.printInfo(s"\u001b[92m✓\u001b[39m  ${title}")
     } else {
       Monad[F].unit

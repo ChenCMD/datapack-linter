@@ -90,7 +90,9 @@ object Main extends IOApp {
       analyzer <- StateT.liftF(EitherT.liftF(DatapackAnalyzer(analyzerConfig, dls, dlsConfig)))
 
       _      <- analyzer.updateCache().mapK(EitherT.liftK)
-      result <- analyzer.analyzeAll(r => EitherT.liftF(LintResultPrinter.print(r)))
+      result <- analyzer.analyzeAll { r =>
+        EitherT.liftF(LintResultPrinter.print(r, linterConfig.muteSuccessResult))
+      }
     } yield {
       val errors = result.foldLeft(Map.empty[ErrorSeverity, Int]) { (map, r) =>
         r.errors.foldLeft(map)((m, e) => m.updatedWith(e.severity)(a => Some(a.getOrElse(0) + 1)))
