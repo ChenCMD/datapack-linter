@@ -29,7 +29,7 @@ import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSCon
 import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
 
-final case class DatapackAnalyzer[F[_]: Async] private (
+final class DatapackAnalyzer[F[_]: Async] private (
   private val analyzerConfig: AnalyzerConfig,
   private val dls: DatapackLanguageService,
   private val dlsConfig: DLSConfig
