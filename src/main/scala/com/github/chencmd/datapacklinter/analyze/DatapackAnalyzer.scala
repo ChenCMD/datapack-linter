@@ -1,4 +1,4 @@
-package com.github.chencmd.datapacklinter.linter
+package com.github.chencmd.datapacklinter.analyze
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
@@ -29,17 +29,17 @@ import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSCon
 import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
 
-final case class DatapackLinter[F[_]: Async] private (
-  private val linterConfig: LinterConfig,
+final case class DatapackAnalyzer[F[_]: Async] private (
+  private val analyzerConfig: AnalyzerConfig,
   private val dls: DatapackLanguageService,
   private val dlsConfig: DLSConfig
 )(using ciInteraction: CIPlatformInteractionInstr[F]) {
   private type AnalyzedCount = Int
   private type FOption[A]    = OptionT[F, A]
 
-  def lintAll(
+  def analyzeAll(
     analyzeCallback: AnalyzeResult => EitherT[F, String, Unit]
-  ): StateT[[A] =>> EitherT[F, String, A], AnalyzedCount, Map[ErrorSeverity, Int]] = {
+  ): StateT[[A] =>> EitherT[F, String, A], AnalyzedCount, List[AnalyzeResult]] = {
     def parseDoc(
       root: String,
       file: String,
@@ -93,7 +93,7 @@ final case class DatapackLinter[F[_]: Async] private (
                   val isPathValid = IdentityNode
                     .fromRel(p.rel)
                     .map(_.id.toString)
-                    .exists(!linterConfig.ignorePathsIncludes(_))
+                    .exists(!analyzerConfig.ignorePathsIncludes(_))
 
                   Option.when(isPathValid)(AnalyzeState.Waiting(root.fsPath, p.abs, p.rel)).pure[F]
                 }
@@ -110,9 +110,7 @@ final case class DatapackLinter[F[_]: Async] private (
             case AnalyzeState.Cached(_, _, res) => StateT.liftF(analyzeCallback(res).as(List(res)))
           }
         }
-      } yield results.foldLeft(Map.empty[ErrorSeverity, Int]) { (map, r) =>
-        r.errors.foldLeft(map)((m, e) => m.updatedWith(e.severity)(a => Some(a.getOrElse(0) + 1)))
-      }
+      } yield results
     }
 
     program
@@ -181,7 +179,7 @@ final case class DatapackLinter[F[_]: Async] private (
 
   private def gc(addAnalyzedNodeCount: AnalyzedCount = 17): StateT[F, AnalyzedCount, Unit] = {
     StateT.modifyF { analyzedNodeCount =>
-      if (DatapackLinter.GC_THRESHOLD <= analyzedNodeCount + addAnalyzedNodeCount) {
+      if (DatapackAnalyzer.GC_THRESHOLD <= analyzedNodeCount + addAnalyzedNodeCount) {
         Async[F].delay(dls.caches.asInstanceOf[js.Map[String, ClientCache]].clear()).as(0)
       } else {
         Monad[F].pure(analyzedNodeCount + addAnalyzedNodeCount)
@@ -190,14 +188,14 @@ final case class DatapackLinter[F[_]: Async] private (
   }
 }
 
-object DatapackLinter {
+object DatapackAnalyzer {
   private val GC_THRESHOLD = 500
 
   def apply[F[_]: Async](
-    linterConfig: LinterConfig,
+    analyzerConfig: AnalyzerConfig,
     dls: DatapackLanguageService,
     dlsConfig: DLSConfig
-  )(using ciInteraction: CIPlatformInteractionInstr[F]): F[DatapackLinter[F]] = {
-    Async[F].delay(new DatapackLinter(linterConfig, dls, dlsConfig))
+  )(using ciInteraction: CIPlatformInteractionInstr[F]): F[DatapackAnalyzer[F]] = {
+    Async[F].delay(new DatapackAnalyzer(analyzerConfig, dls, dlsConfig))
   }
 }

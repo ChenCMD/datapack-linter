@@ -13,11 +13,7 @@ final case class LinterConfig private (
   muteSuccessResult: Boolean,
   ignorePaths: List[String],
   checkAlwaysAllFile: Boolean
-) {
-  def ignorePathsIncludes(path: String): Boolean = {
-    ignorePaths.exists(minimatch(path, _, IOptions().setDot(true)))
-  }
-}
+)
 
 object LinterConfig {
   def withReader[F[_]: Async]()(using

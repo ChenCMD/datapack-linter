@@ -1,4 +1,4 @@
-package com.github.chencmd.datapacklinter.linter
+package com.github.chencmd.datapacklinter.analyze
 
 import cats.effect.Async
 import cats.implicits.*

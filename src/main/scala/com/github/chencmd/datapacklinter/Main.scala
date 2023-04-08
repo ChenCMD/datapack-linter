@@ -6,8 +6,10 @@ import com.github.chencmd.datapacklinter.ciplatform.ghactions.*
 import com.github.chencmd.datapacklinter.ciplatform.local.*
 import com.github.chencmd.datapacklinter.dls.DLSConfig
 import com.github.chencmd.datapacklinter.dls.DLSHelper
-import com.github.chencmd.datapacklinter.linter.AnalyzeResult
-import com.github.chencmd.datapacklinter.linter.DatapackLinter
+import com.github.chencmd.datapacklinter.analyze.AnalyzerConfig
+import com.github.chencmd.datapacklinter.analyze.AnalyzeResult
+import com.github.chencmd.datapacklinter.analyze.DatapackAnalyzer
+import com.github.chencmd.datapacklinter.analyze.ErrorSeverity
 import com.github.chencmd.datapacklinter.linter.LinterConfig
 
 import cats.Monad
@@ -76,17 +78,22 @@ object Main extends IOApp {
     readConfig: CIPlatformReadKeyedConfigInstr[F]
   ): EitherT[F, String, ExitCode] = {
     val program = for {
-      dlsConfig <- StateT.liftF {
-        EitherT.liftF(DLSConfig.readConfig(path.join(dir, ".vscode", "settings.json")))
-      }
-      dls       <- StateT.liftF(DLSHelper.createDLS(dir, dlsConfig))
+      dlsConfig      <- StateT.liftF(EitherT.liftF {
+        DLSConfig.readConfig(path.join(dir, ".vscode", "settings.json"))
+      })
+      linterConfig   <- StateT.liftF(LinterConfig.withReader())
+      analyzerConfig <- StateT.liftF(EitherT.pure(AnalyzerConfig(linterConfig.ignorePaths)))
 
-      linterConfig <- StateT.liftF(LinterConfig.withReader())
-      linter       <- StateT.liftF(EitherT.liftF(DatapackLinter(linterConfig, dls, dlsConfig)))
+      dls <- StateT.liftF(DLSHelper.createDLS(dir, dlsConfig))
 
-      _      <- linter.updateCache().mapK(EitherT.liftK)
-      errors <- linter.lintAll(printLintResult)
+      analyzer <- StateT.liftF(EitherT.liftF(DatapackAnalyzer(analyzerConfig, dls, dlsConfig)))
+
+      _      <- analyzer.updateCache().mapK(EitherT.liftK)
+      result <- analyzer.analyzeAll(printLintResult)
     } yield {
+      val errors = result.foldLeft(Map.empty[ErrorSeverity, Int]) { (map, r) =>
+        r.errors.foldLeft(map)((m, e) => m.updatedWith(e.severity)(a => Some(a.getOrElse(0) + 1)))
+      }
       if linterConfig.forcePass || errors.values.sum == 0 then {
         ExitCode.Success
       } else {
