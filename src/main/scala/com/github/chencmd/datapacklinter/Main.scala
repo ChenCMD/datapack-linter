@@ -78,26 +78,30 @@ object Main extends IOApp {
     ciInteraction: CIPlatformInteractionInstr[F],
     readConfig: CIPlatformReadKeyedConfigInstr[F]
   ): EitherT[F, String, ExitCode] = {
-    val program = for {
-      dlsConfig      <- StateT.liftF(EitherT.liftF {
+    val contexts = for {
+      dlsConfig      <- EitherT.liftF {
         DLSConfig.readConfig(path.join(dir, ".vscode", "settings.json"))
-      })
-      linterConfig   <- StateT.liftF(LinterConfig.withReader())
-      analyzerConfig <- StateT.liftF(EitherT.pure(AnalyzerConfig(linterConfig.ignorePaths)))
+      }
+      linterConfig   <- LinterConfig.withReader()
+      analyzerConfig <- EitherT.pure(AnalyzerConfig(linterConfig.ignorePaths))
 
-      dls <- StateT.liftF(DLSHelper.createDLS(dir, dlsConfig))
+      dls <- DLSHelper.createDLS(dir, dlsConfig)
 
-      analyzer <- StateT.liftF(EitherT.liftF(DatapackAnalyzer(analyzerConfig, dls, dlsConfig)))
+      analyzer <- EitherT.liftF(DatapackAnalyzer(analyzerConfig, dls, dlsConfig))
+    } yield (linterConfig, analyzer)
 
+    val program = for {
+      ctx <- StateT.liftF(contexts)
+      (config, analyzer) = ctx
       _      <- analyzer.updateCache().mapK(EitherT.liftK)
       result <- analyzer.analyzeAll { r =>
-        EitherT.liftF(LintResultPrinter.print(r, linterConfig.muteSuccessResult))
+        EitherT.liftF(LintResultPrinter.print(r, config.muteSuccessResult))
       }
     } yield {
       val errors = result.foldLeft(Map.empty[ErrorSeverity, Int]) { (map, r) =>
         r.errors.foldLeft(map)((m, e) => m.updatedWith(e.severity)(a => Some(a.getOrElse(0) + 1)))
       }
-      if linterConfig.forcePass || errors.values.sum == 0 then {
+      if config.forcePass || errors.values.sum == 0 then {
         ExitCode.Success
       } else {
         ExitCode.Error
