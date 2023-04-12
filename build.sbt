@@ -34,7 +34,8 @@ semanticdbEnabled := true
 semanticdbVersion := scalafixSemanticdb.revision
 
 scalacOptions ++= Seq(
-  "-deprecation"
+  "-deprecation",
+  "-Ykind-projector:underscores"
 )
 
 javaOptions ++= Seq(

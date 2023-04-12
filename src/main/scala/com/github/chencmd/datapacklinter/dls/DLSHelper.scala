@@ -32,7 +32,7 @@ object DLSHelper {
   )(using
     ciInteraction: CIPlatformInteractionInstr[F]
   ): EitherT[F, String, DatapackLanguageService] = {
-    type FOption[A] = EitherT[F, String, A]
+    type FOption = EitherT[F, String, _]
     for {
       roots <-
         Datapack.findDatapackRoots[FOption](dir, dlsConfig.env.detectionDepth.asInstanceOf[Int])
@@ -63,7 +63,7 @@ object DLSHelper {
 
       _ <- AsyncExtra.fromPromise[FOption](dls.init())
       _ <- AsyncExtra.fromPromise[FOption](dls.getVanillaData(dlsConfig))
-      _ <- Async[FOption].delay { dls.roots.push(roots: _*) }
+      _ <- Async[FOption].delay { dls.roots.push(roots*) }
       _ <- EitherT.liftF(ciInteraction.printInfo("datapack roots:"))
       _ <- EitherT.liftF(roots.map(_.path).traverse(ciInteraction.printInfo))
     } yield dls
@@ -72,8 +72,6 @@ object DLSHelper {
   private def getLatestVersions[F[_]: Async](using
     ciInteraction: CIPlatformInteractionInstr[F]
   ): EitherT[F, String, VersionInformation] = {
-    type FEither[A] = EitherT[F, String, A]
-
     inline val VER_INFO_URI    = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
     inline val PROCESSABLE_VER = "1.16.2"
 
@@ -81,7 +79,7 @@ object DLSHelper {
       _               <- EitherT.liftF {
         ciInteraction.printInfo("[LatestVersions] Fetching the latest versions...")
       }
-      rawVersionInfo  <- Async[FEither].timeoutTo(
+      rawVersionInfo  <- Async[EitherT[F, String, _]].timeoutTo(
         AsyncExtra.fromPromise(DLS.requestText(VER_INFO_URI)),
         7.seconds,
         EitherT.leftT("[LatestVersions] Fetch timeout")

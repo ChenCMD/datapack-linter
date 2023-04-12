@@ -35,11 +35,10 @@ final class DatapackAnalyzer[F[_]: Async] private (
   private val dlsConfig: DLSConfig
 )(using ciInteraction: CIPlatformInteractionInstr[F]) {
   private type AnalyzedCount = Int
-  private type FOption[A]    = OptionT[F, A]
 
   def analyzeAll(
     analyzeCallback: AnalyzeResult => EitherT[F, String, Unit]
-  ): StateT[[A] =>> EitherT[F, String, A], AnalyzedCount, List[AnalyzeResult]] = {
+  ): StateT[EitherT[F, String, _], AnalyzedCount, List[AnalyzeResult]] = {
     val program = {
       for {
         parseFiles: List[AnalyzeState] <- StateT
@@ -96,7 +95,7 @@ final class DatapackAnalyzer[F[_]: Async] private (
 
       id <- OptionT.fromOption(IdentityNode.fromRel(rel).toOption.map(_.id))
 
-      doc       <- AsyncExtra.fromPromise[FOption] {
+      doc       <- AsyncExtra.fromPromise[OptionT[F, _]] {
         DLSCommon.getTextDocument(
           GetText(
             getText = () => DLS.readFile(file),
@@ -107,7 +106,7 @@ final class DatapackAnalyzer[F[_]: Async] private (
       }
       parsedDoc <- OptionT(AsyncExtra.fromPromise[F](dls.parseDocument(doc)).map(_.toOption))
 
-      res <- AnalyzeResult[FOption](root, file, id, parsedDoc, doc)
+      res <- AnalyzeResult[OptionT[F, _]](root, file, id, parsedDoc, doc)
     } yield res
 
     for {

@@ -20,13 +20,12 @@ object DLSConfig {
   def readConfig[F[_]: Async](
     configFilePath: String
   )(using ciInteraction: CIPlatformInteractionInstr[F]): F[DLSConfig] = {
-    type FOption[A] = OptionT[F, A]
     val program = for {
-      isAccessible <- FSAsync.pathAccessible[FOption](configFilePath)
+      isAccessible <- FSAsync.pathAccessible[OptionT[F, _]](configFilePath)
       _            <- OptionT.unlessF(isAccessible) {
         ciInteraction.printInfo("Could not access the .vscode config. Use the default config file.")
       }
-      rawJson      <- FSAsync.readFile[FOption](configFilePath)
+      rawJson      <- FSAsync.readFile[OptionT[F, _]](configFilePath)
       json         <- OptionT.fromOption {
         Jsonc
           .parse(rawJson)

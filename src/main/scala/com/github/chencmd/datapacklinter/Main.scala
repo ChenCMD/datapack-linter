@@ -52,7 +52,7 @@ object Main extends IOApp {
   }
 
   private def githubActionsContextResource[F[_]: Async](dir: String): Resource[
-    [A] =>> EitherT[F, String, A],
+    EitherT[F, String, _],
     CIPlatformContext[F]
   ] = {
     val program = for {
@@ -64,7 +64,7 @@ object Main extends IOApp {
   }
 
   private def localContextResource[F[_]: Async](dir: String): Resource[
-    [A] =>> EitherT[F, String, A],
+    EitherT[F, String, _],
     CIPlatformContext[F]
   ] = {
     val program = for {
