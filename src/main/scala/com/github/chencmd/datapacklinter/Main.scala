@@ -10,7 +10,7 @@ import com.github.chencmd.datapacklinter.ciplatform.ghactions.*
 import com.github.chencmd.datapacklinter.ciplatform.local.*
 import com.github.chencmd.datapacklinter.dls.DLSConfig
 import com.github.chencmd.datapacklinter.dls.DLSHelper
-import com.github.chencmd.datapacklinter.linter.LintResultPrinter
+import com.github.chencmd.datapacklinter.linter.DatapackLinter
 import com.github.chencmd.datapacklinter.linter.LinterConfig
 
 import cats.Monad
@@ -95,12 +95,10 @@ object Main extends IOApp {
       (config, analyzer) = ctx
       _      <- analyzer.updateCache().mapK(EitherT.liftK)
       result <- analyzer.analyzeAll { r =>
-        EitherT.liftF(LintResultPrinter.print(r, config.muteSuccessResult))
+        EitherT.liftF(DatapackLinter.printResult(r, config.muteSuccessResult))
       }
     } yield {
-      val errors = result.foldLeft(Map.empty[ErrorSeverity, Int]) { (map, r) =>
-        r.errors.foldLeft(map)((m, e) => m.updatedWith(e.severity)(a => Some(a.getOrElse(0) + 1)))
-      }
+      val errors = DatapackLinter.extractErrorCount(result)
       if config.forcePass || errors.values.sum == 0 then {
         ExitCode.Success
       } else {
