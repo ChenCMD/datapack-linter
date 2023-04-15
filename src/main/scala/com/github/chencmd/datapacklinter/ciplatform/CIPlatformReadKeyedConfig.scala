@@ -28,18 +28,18 @@ object CIPlatformReadKeyedConfigInstr {
     }
   }
 
-  given ConfigValueType[String]       = new ConfigValueType {
+  given ConfigValueType[String] with       {
     def tryCast(key: String, value: String): Either[String, String] = Right(value)
   }
-  given ConfigValueType[Int]          = new ConfigValueType {
+  given ConfigValueType[Int] with          {
     def tryCast(key: String, value: String): Either[String, Int] =
       value.toIntOption.toRight(typeMismatchError(key, "Int"))
   }
-  given ConfigValueType[Double]       = new ConfigValueType {
+  given ConfigValueType[Double] with       {
     def tryCast(key: String, value: String): Either[String, Double] =
       value.toDoubleOption.toRight(typeMismatchError(key, "Double"))
   }
-  given ConfigValueType[Boolean]      = new ConfigValueType {
+  given ConfigValueType[Boolean] with      {
     val trueValue  = List("true", "True", "TRUE")
     val falseValue = List("false", "False", "FALSE")
     def tryCast(key: String, value: String): Either[String, Boolean] = {
@@ -48,7 +48,7 @@ object CIPlatformReadKeyedConfigInstr {
       Left(typeMismatchError(key, "Boolean"))
     }
   }
-  given ConfigValueType[List[String]] = new ConfigValueType {
+  given ConfigValueType[List[String]] with {
     def tryCast(key: String, value: String): Either[String, List[String]] =
       Right(value.split("\n").toList)
   }
