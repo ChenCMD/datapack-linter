@@ -37,9 +37,9 @@ jobs:
 
       - name: Test run
         run: yarn dev
-        with:
-          forcePass: true
-          ignoreLintPathPattern: 'test:ignore/**'
+        env:
+          INPUT_FORCEPASS: true
+          INPUT_IGNORELINTPATHPATTERN: 'test:ignore/**'
 
       - name: Pre deploy
         if: ${{ github.ref == 'ref/heads/main' }}
