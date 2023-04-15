@@ -11,5 +11,7 @@ project/**
 
 target
 
+dist
+
 *.worksheet.sc
 linter-config.json
