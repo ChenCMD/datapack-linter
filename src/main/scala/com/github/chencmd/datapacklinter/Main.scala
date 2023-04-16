@@ -24,6 +24,7 @@ import cats.implicits.*
 
 import typings.node.pathMod as path
 import typings.node.processMod as process
+import typings.node.global.console.^ as console
 
 object Main extends IOApp {
   private case class CIPlatformContext[F[_]](
@@ -44,7 +45,7 @@ object Main extends IOApp {
 
       exitCode <- lintResult match {
         case Right(exitCode) => Async[F].pure(exitCode)
-        case Left(mes)       => Async[F].delay(println(mes)).as(ExitCode.Error)
+        case Left(mes)       => Async[F].delay(console.error(mes)) as ExitCode.Error
       }
     } yield exitCode
 
