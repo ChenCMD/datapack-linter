@@ -1,5 +1,6 @@
 package com.github.chencmd.datapacklinter.linter
 
+import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
 
 import cats.data.EitherT
@@ -17,6 +18,7 @@ final case class LinterConfig private (
 
 object LinterConfig {
   def withReader[F[_]: Async]()(using
+    ciInteraction: CIPlatformInteractionInstr[F],
     reader: CIPlatformReadKeyedConfigInstr[F]
   ): EitherT[F, String, LinterConfig] = {
     for {

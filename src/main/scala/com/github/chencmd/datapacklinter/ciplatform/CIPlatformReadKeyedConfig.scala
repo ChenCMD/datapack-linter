@@ -7,14 +7,17 @@ trait CIPlatformReadKeyedConfigInstr[F[_]] {
   import CIPlatformReadKeyedConfigInstr.ConfigValueType
 
   final def readKeyOrElse[A](key: String, default: => A)(using
+    ciInteraction: CIPlatformInteractionInstr[F],
     valueType: ConfigValueType[A]
   ): EitherT[F, String, A] = readKey(key, false, Some(default))
 
   final def readKey[A](key: String)(using
+    ciInteraction: CIPlatformInteractionInstr[F],
     valueType: ConfigValueType[A]
-  ): EitherT[F, String, A] = readKey(key, false, None)
+  ): EitherT[F, String, A] = readKey(key, true, None)
 
   protected def readKey[A](key: String, required: Boolean, default: => Option[A])(using
+    ciInteraction: CIPlatformInteractionInstr[F],
     valueType: ConfigValueType[A]
   ): EitherT[F, String, A]
 }

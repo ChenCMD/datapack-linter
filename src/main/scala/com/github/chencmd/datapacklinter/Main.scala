@@ -36,7 +36,7 @@ object Main extends IOApp {
     def run[F[_]: Async]() = for {
       dir <- Async[F].delay(process.cwd())
 
-      lintResult <- githubActionsContextResource(dir).use { ctx =>
+      lintResult <- getContextResources(dir, args.get(0)).use { ctx =>
         given CIPlatformInteractionInstr[F]     = ctx.interaction
         given CIPlatformReadKeyedConfigInstr[F] = ctx.inputReader
 
@@ -52,27 +52,40 @@ object Main extends IOApp {
     run()
   }
 
-  private def githubActionsContextResource[F[_]: Async](dir: String): Resource[
-    EitherT[F, String, _],
-    CIPlatformContext[F]
-  ] = {
-    val program = for {
-      interaction <- GitHubInteraction.createInstr(dir)
-      inputReader <- Resource.eval(GitHubInputReader.createInstr())
-    } yield CIPlatformContext(interaction, inputReader)
+  private def getContextResources[F[_]: Async](
+    dir: String,
+    configFilePath: Option[String]
+  ): Resource[EitherT[F, String, _], CIPlatformContext[F]] = {
+    enum Platform {
+      case GitHubActions
+      case Local
+    }
+    for {
+      context <- Resource.eval(Async[EitherT[F, String, _]].delay {
+        if (process.env.contains("GITHUB_ACTIONS")) {
+          Platform.GitHubActions
+        } else {
+          Platform.Local
+        }
+      })
 
-    program.mapK(EitherT.liftK)
-  }
+      interaction <- {
+        context match {
+          case Platform.GitHubActions => GitHubInteraction.createInstr(dir)
+          case Platform.Local         => LocalInteraction.createInstr()
+        }
+      }.mapK(EitherT.liftK)
 
-  private def localContextResource[F[_]: Async](dir: String): Resource[
-    EitherT[F, String, _],
-    CIPlatformContext[F]
-  ] = {
-    val program = for {
-      interaction <- LocalInteraction.createInstr().mapK(EitherT.liftK)
-      inputReader <- Resource.eval(LocalInputReader.createInstr(dir))
+      inputReader <- Resource.eval {
+        configFilePath.fold {
+          EitherT.pure(EnvironmentInputReader.createInstr { k =>
+            s"INPUT_${k.replace(" ", "_").toUpperCase()}"
+          })
+        } {
+          FileInputReader.createInstr(_)
+        }
+      }
     } yield CIPlatformContext(interaction, inputReader)
-    program
   }
 
   private def lint[F[_]: Async](dir: String)(using
