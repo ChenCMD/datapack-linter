@@ -3,6 +3,7 @@ package com.github.chencmd.datapacklinter.ciplatform.ghactions
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.utils.FSAsync
 
+import cats.Monad
 import cats.data.EitherT
 import cats.effect.Async
 import cats.effect.Resource
@@ -14,7 +15,6 @@ import scala.scalajs.js.JSON
 
 import typings.actionsCore.mod as core
 import typings.node.pathMod as path
-import cats.Monad
 
 object GitHubInteraction {
   private val matcher = JSObject(

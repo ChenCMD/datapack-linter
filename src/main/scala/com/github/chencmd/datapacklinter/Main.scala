@@ -33,7 +33,7 @@ object Main extends IOApp {
   )
 
   override def run(args: List[String]) = {
-    def run[F[_]: Async]() = for {
+    def run[F[_]: Async](): F[ExitCode] = for {
       dir <- Async[F].delay(process.cwd())
 
       lintResult <- getContextResources(dir, args.get(0)).use { ctx =>

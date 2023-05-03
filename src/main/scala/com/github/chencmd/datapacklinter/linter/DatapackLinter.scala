@@ -1,13 +1,13 @@
 package com.github.chencmd.datapacklinter.linter
 
 import com.github.chencmd.datapacklinter.analyze.AnalyzeResult
+import com.github.chencmd.datapacklinter.analyze.ErrorSeverity
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 
 import cats.Monad
 import cats.data.EitherT
 import cats.effect.kernel.Async
 import cats.implicits.*
-import com.github.chencmd.datapacklinter.analyze.ErrorSeverity
 
 object DatapackLinter {
   def printResult[F[_]: Async](res: AnalyzeResult, muteSuccessResult: Boolean)(using
