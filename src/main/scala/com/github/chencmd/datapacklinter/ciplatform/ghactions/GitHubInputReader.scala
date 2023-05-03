@@ -13,22 +13,17 @@ import typings.actionsCore.mod.InputOptions
 object GitHubInputReader {
   import CIPlatformReadKeyedConfigInstr.ConfigValueType
 
-  def createInstr[F[_]: Async](): F[CIPlatformReadKeyedConfigInstr[F]] = {
-    Async[F].delay {
-      new CIPlatformReadKeyedConfigInstr[F] {
-        override protected def readKey[A](key: String, required: Boolean, default: => Option[A])(
-          using valueType: ConfigValueType[A]
-        ): EitherT[F, String, A] = {
-          EitherT(Async[F].delay {
-            try {
-              Some(core.getInput(key, InputOptions().setRequired(required)))
-                .filter(_.nonEmpty)
-                .traverse(v => valueType.tryCast(key, v))
-                .map(_.getOrElse(default.get))
-            } catch e => Left(e.getMessage())
-          })
-        }
-      }
+  def createInstr[F[_]: Async](): CIPlatformReadKeyedConfigInstr[F] =
+    new CIPlatformReadKeyedConfigInstr[F] {
+      override protected def readKey[A](key: String, required: Boolean, default: => Option[A])(using
+        valueType: ConfigValueType[A]
+      ): EitherT[F, String, A] = EitherT(Async[F].delay {
+        try {
+          Some(core.getInput(key, InputOptions().setRequired(required)))
+            .filter(_.nonEmpty)
+            .traverse(v => valueType.tryCast(key, v))
+            .map(_.getOrElse(default.get))
+        } catch e => Left(e.getMessage())
+      })
     }
-  }
 }

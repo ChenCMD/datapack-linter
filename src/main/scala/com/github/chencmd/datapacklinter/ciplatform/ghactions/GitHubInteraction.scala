@@ -14,6 +14,7 @@ import scala.scalajs.js.JSON
 
 import typings.actionsCore.mod as core
 import typings.node.pathMod as path
+import cats.Monad
 
 object GitHubInteraction {
   private val matcher = JSObject(
@@ -42,7 +43,7 @@ object GitHubInteraction {
     dir: String
   ): Resource[F, CIPlatformInteractionInstr[F]] = {
     val program = for {
-      instr <- Async[F].delay {
+      instr <- Monad[F].pure {
         new CIPlatformInteractionInstr[F] {
           override def printError(msg: String): F[Unit] = {
             // Error detection is more versatile with matcher, so here we use info for output.

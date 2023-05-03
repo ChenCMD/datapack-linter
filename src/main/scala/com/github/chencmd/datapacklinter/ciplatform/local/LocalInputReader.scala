@@ -1,5 +1,6 @@
 package com.github.chencmd.datapacklinter.ciplatform.local
 
+import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.JSObject
@@ -34,7 +35,7 @@ object LocalInputReader {
       }
       config       <- EitherT.pure(JSObject.toWrappedDictionary[String](JSON.parse(rawConfig)))
 
-      instr <- EitherT.liftF(Async[F].delay {
+      instr <- EitherT.pure {
         new CIPlatformReadKeyedConfigInstr[F] {
           override protected def readKey[A](
             key: String,
@@ -42,17 +43,14 @@ object LocalInputReader {
             default: => Option[A]
           )(using
             valueType: ConfigValueType[A]
-          ): EitherT[F, String, A] = {
-            EitherT
-              .fromEither {
-                Right(config.get(key))
-                  .filterOrElse(_.isDefined || !required, s"Input required and not supplied: $key")
-                  .flatMap(_.traverse(valueType.tryCast(key, _)))
-                  .map(_.getOrElse(default.get))
-              }
+          ): EitherT[F, String, A] = EitherT.fromEither {
+            Right(config.get(key))
+              .filterOrElse(_.isDefined || !required, s"Input required and not supplied: $key")
+              .flatMap(_.traverse(valueType.tryCast(key, _)))
+              .map(_.getOrElse(default.get))
           }
         }
-      })
+      }
     } yield instr
   }
 }
