@@ -16,7 +16,7 @@ final case class LinterConfig private (
 
 object LinterConfig {
   def withReader[F[_]: Async]()(using
-    raise: Raise[F, String],
+    R: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     reader: CIPlatformReadKeyedConfigInstr[F]
   ): F[LinterConfig] = {

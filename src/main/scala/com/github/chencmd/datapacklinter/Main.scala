@@ -32,7 +32,7 @@ object Main extends IOApp {
   )
 
   override def run(args: List[String]) = {
-    def run[F[_]: Async]()(using raise: Raise[F, String]): F[ExitCode] = for {
+    def run[F[_]: Async]()(using R: Raise[F, String]): F[ExitCode] = for {
       dir <- Async[F].delay(process.cwd())
 
       exitCode <- getContextResources(dir, args.get(0)).use { ctx =>
@@ -56,7 +56,7 @@ object Main extends IOApp {
   private def getContextResources[F[_]: Async](
     dir: String,
     configFilePath: Option[String]
-  )(using raise: Raise[F, String]): Resource[F, CIPlatformContext[F]] = {
+  )(using R: Raise[F, String]): Resource[F, CIPlatformContext[F]] = {
     enum Platform {
       case GitHubActions
       case Local
@@ -88,7 +88,7 @@ object Main extends IOApp {
   }
 
   private def lint[F[_]: Async](dir: String)(using
-    raise: Raise[F, String],
+    R: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     readConfig: CIPlatformReadKeyedConfigInstr[F]
   ): F[ExitCode] = {

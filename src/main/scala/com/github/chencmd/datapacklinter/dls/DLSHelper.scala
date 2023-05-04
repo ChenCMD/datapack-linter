@@ -31,7 +31,7 @@ object DLSHelper {
     dir: String,
     dlsConfig: DLSConfig
   )(using
-    raise: Raise[F, String],
+    R: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F]
   ): F[DatapackLanguageService] = {
     for {
@@ -70,7 +70,7 @@ object DLSHelper {
   }
 
   private def getLatestVersions[F[_]: Async](using
-    err: Raise[F, String],
+    R: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F]
   ): F[VersionInformation] = {
     inline val VER_INFO_URI    = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
@@ -81,13 +81,13 @@ object DLSHelper {
       rawVersionInfo  <- Async[F].timeoutTo(
         AsyncExtra.fromPromise(DLS.requestText(VER_INFO_URI)),
         7.seconds,
-        err.raise("[LatestVersions] Fetch timeout")
+        R.raise("[LatestVersions] Fetch timeout")
       )
       versionManifest <- Jsonc
         .parse(rawVersionInfo)
         .flatMap(VersionManifest.attemptToVersionManifest)
         .map(Monad[F].pure)
-        .getOrElse(err.raise("[LatestVersions] Failed to parsing version_manifest.json"))
+        .getOrElse(R.raise("[LatestVersions] Failed to parsing version_manifest.json"))
       ans             <- Monad[F].pure {
         VersionInformation(
           versionManifest.latest.release,

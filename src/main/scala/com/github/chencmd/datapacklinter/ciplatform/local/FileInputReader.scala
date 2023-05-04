@@ -16,13 +16,13 @@ object FileInputReader {
 
   def createInstr[F[_]: Async](
     configPath: String
-  )(using raise: Raise[F, String]): F[CIPlatformReadKeyedConfigInstr[F]] = for {
+  )(using R: Raise[F, String]): F[CIPlatformReadKeyedConfigInstr[F]] = for {
     existsConfig <- FSAsync.pathAccessible(configPath)
     rawConfig    <- {
       if (existsConfig) {
         FSAsync.readFile(configPath)
       } else {
-        raise.raise("linter-config.json does not exist")
+        R.raise("linter-config.json does not exist")
       }
     }
     config       <- Monad[F].pure(JSObject.toWrappedDictionary[String](JSON.parse(rawConfig)))
