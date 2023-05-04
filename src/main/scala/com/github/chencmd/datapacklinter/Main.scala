@@ -25,6 +25,8 @@ import cats.implicits.*
 import typings.node.pathMod as path
 import typings.node.processMod as process
 import typings.node.global.console
+import cats.mtl.Raise
+import cats.effect.IO
 
 object Main extends IOApp {
   private case class CIPlatformContext[F[_]](
@@ -33,35 +35,37 @@ object Main extends IOApp {
   )
 
   override def run(args: List[String]) = {
-    def run[F[_]: Async](): F[ExitCode] = for {
+    def run[F[_]: Async]()(using raise: Raise[F, String]): F[ExitCode] = for {
       dir <- Async[F].delay(process.cwd())
 
-      lintResult <- getContextResources(dir, args.get(0)).use { ctx =>
+      exitCode <- getContextResources(dir, args.get(0)).use { ctx =>
         given CIPlatformInteractionInstr[F]     = ctx.interaction
         given CIPlatformReadKeyedConfigInstr[F] = ctx.inputReader
 
         lint(dir)
-      }.value
-
-      exitCode <- lintResult match {
-        case Right(exitCode) => Async[F].pure(exitCode)
-        case Left(mes)       => Async[F].delay(console.error(mes)) as ExitCode.Error
       }
     } yield exitCode
 
-    run()
+    def catchErr[F[_]: Async](program: EitherT[F, String, ExitCode]): F[ExitCode] = {
+      program.value.flatMap {
+        case Right(exitCode) => Async[F].pure(exitCode)
+        case Left(mes)       => Async[F].delay(console.error(mes)) as ExitCode.Error
+      }
+    }
+
+    catchErr(run())
   }
 
   private def getContextResources[F[_]: Async](
     dir: String,
     configFilePath: Option[String]
-  ): Resource[EitherT[F, String, _], CIPlatformContext[F]] = {
+  )(using raise: Raise[F, String]): Resource[F, CIPlatformContext[F]] = {
     enum Platform {
       case GitHubActions
       case Local
     }
     for {
-      context <- Resource.eval(Async[EitherT[F, String, _]].delay {
+      context <- Resource.eval(Async[F].delay {
         if (process.env.contains("GITHUB_ACTIONS")) {
           Platform.GitHubActions
         } else {
@@ -74,42 +78,39 @@ object Main extends IOApp {
           case Platform.GitHubActions => GitHubInteraction.createInstr(dir)
           case Platform.Local         => LocalInteraction.createInstr()
         }
-      }.mapK(EitherT.liftK)
+      }
 
       inputReader <- Resource.eval {
-        configFilePath.fold {
-          EitherT.pure(EnvironmentInputReader.createInstr { k =>
-            s"INPUT_${k.replace(" ", "_").toUpperCase()}"
+        configFilePath
+          .map(FileInputReader.createInstr)
+          .getOrElse(Monad[F].pure {
+            EnvironmentInputReader.createInstr(k => s"INPUT_${k.replace(" ", "_").toUpperCase()}")
           })
-        } {
-          FileInputReader.createInstr(_)
-        }
       }
     } yield CIPlatformContext(interaction, inputReader)
   }
 
   private def lint[F[_]: Async](dir: String)(using
+    raise: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     readConfig: CIPlatformReadKeyedConfigInstr[F]
-  ): EitherT[F, String, ExitCode] = {
+  ): F[ExitCode] = {
     val contexts = for {
-      dlsConfig      <- EitherT.liftF {
-        DLSConfig.readConfig(path.join(dir, ".vscode", "settings.json"))
-      }
+      dlsConfig      <- DLSConfig.readConfig(path.join(dir, ".vscode", "settings.json"))
       linterConfig   <- LinterConfig.withReader()
-      analyzerConfig <- EitherT.pure(AnalyzerConfig(linterConfig.ignorePaths))
+      analyzerConfig <- Monad[F].pure(AnalyzerConfig(linterConfig.ignorePaths))
 
       dls <- DLSHelper.createDLS(dir, dlsConfig)
 
-      analyzer <- EitherT.liftF(DatapackAnalyzer(analyzerConfig, dls, dlsConfig))
+      analyzer <- Monad[F].pure(DatapackAnalyzer(analyzerConfig, dls, dlsConfig))
     } yield (linterConfig, analyzer)
 
     val program = for {
       ctx <- StateT.liftF(contexts)
       (config, analyzer) = ctx
-      _      <- analyzer.updateCache().mapK(EitherT.liftK)
+      _      <- analyzer.updateCache()
       result <- analyzer.analyzeAll { r =>
-        EitherT.liftF(DatapackLinter.printResult(r, config.muteSuccessResult))
+        DatapackLinter.printResult(r, config.muteSuccessResult)
       }
     } yield {
       val errors = DatapackLinter.extractErrorCount(result)

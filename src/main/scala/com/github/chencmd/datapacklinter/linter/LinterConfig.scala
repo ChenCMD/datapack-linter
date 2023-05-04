@@ -8,6 +8,8 @@ import cats.effect.Async
 
 import typings.minimatch.mod as minimatch
 import typings.minimatch.mod.IOptions
+import cats.mtl.Raise
+import cats.implicits.*
 
 final case class LinterConfig private (
   forcePass: Boolean,
@@ -18,9 +20,10 @@ final case class LinterConfig private (
 
 object LinterConfig {
   def withReader[F[_]: Async]()(using
+    raise: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     reader: CIPlatformReadKeyedConfigInstr[F]
-  ): EitherT[F, String, LinterConfig] = {
+  ): F[LinterConfig] = {
     for {
       forcePass          <- reader.readKeyOrElse("forcePass", false)
       muteSuccessResult  <- reader.readKeyOrElse("notOutputSuccess", false)

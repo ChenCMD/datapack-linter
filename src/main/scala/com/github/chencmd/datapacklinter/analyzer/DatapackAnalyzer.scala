@@ -37,41 +37,30 @@ final class DatapackAnalyzer[F[_]: Async] private (
   private type AnalyzedCount = Int
 
   def analyzeAll(
-    analyzeCallback: AnalyzeResult => EitherT[F, String, Unit]
-  ): StateT[EitherT[F, String, _], AnalyzedCount, List[AnalyzeResult]] = {
-    val program = {
-      for {
-        parseFiles: List[AnalyzeState] <- StateT
-          .liftF(
-            dls.roots.toList
-              .flatTraverse { root =>
-                val dir = path.join(root.fsPath, "data")
-                FSAsync.foreachFileRec(root.fsPath, dir, p => dlsConfig.isRelIncluded(p.rel)) { p =>
-                  // リソースパスが存在して かつ ignorePathsに含まれていない
-                  val isPathValid = IdentityNode
-                    .fromRel(p.rel)
-                    .map(_.id.toString)
-                    .exists(!analyzerConfig.ignorePathsIncludes(_))
+    analyzeCallback: AnalyzeResult => F[Unit]
+  ): StateT[F, AnalyzedCount, List[AnalyzeResult]] = {
+    val program = dls.roots.toList
+      .flatTraverse { root =>
+        val dir = path.join(root.fsPath, "data")
+        FSAsync.foreachFileRec(root.fsPath, dir, p => dlsConfig.isRelIncluded(p.rel)) { p =>
+          // リソースパスが存在して かつ ignorePathsに含まれていない
+          val isPathValid = IdentityNode
+            .fromRel(p.rel)
+            .map(_.id.toString)
+            .exists(!analyzerConfig.ignorePathsIncludes(_))
 
-                  Option.when(isPathValid)(AnalyzeState.Waiting(root.fsPath, p.abs, p.rel)).pure[F]
-                }
-              }
-              .map(_.flatten)
-          )
-          .mapK(EitherT.liftK)
-
-        results <- {
-          parseFiles.sorted.flatTraverse {
-            case AnalyzeState.Waiting(root, abs, rel) => parseDoc(root, abs, rel)
-                .mapK(EitherT.liftK)
-                .flatMapF(res => res.traverse(analyzeCallback).as(res.toList))
-            case AnalyzeState.Cached(_, _, res) => StateT.liftF(analyzeCallback(res).as(List(res)))
-          }
+          Option.when(isPathValid)(AnalyzeState.Waiting(root.fsPath, p.abs, p.rel)).pure[F]
         }
-      } yield results
-    }
-
-    program
+      }
+      .map(_.flatten)
+    for {
+      parseFiles <- StateT.liftF(program)
+      results    <- parseFiles.sorted.flatTraverse {
+        case AnalyzeState.Waiting(root, abs, rel) => parseDoc(root, abs, rel)
+            .flatMapF(res => res.traverse(analyzeCallback).as(res.toList))
+        case AnalyzeState.Cached(_, _, res) => StateT.liftF(analyzeCallback(res).as(List(res)))
+      }
+    } yield results
   }
 
   def parseDoc(
@@ -194,7 +183,7 @@ object DatapackAnalyzer {
     analyzerConfig: AnalyzerConfig,
     dls: DatapackLanguageService,
     dlsConfig: DLSConfig
-  )(using ciInteraction: CIPlatformInteractionInstr[F]): F[DatapackAnalyzer[F]] = {
-    Async[F].delay(new DatapackAnalyzer(analyzerConfig, dls, dlsConfig))
+  )(using ciInteraction: CIPlatformInteractionInstr[F]): DatapackAnalyzer[F] = {
+    new DatapackAnalyzer(analyzerConfig, dls, dlsConfig)
   }
 }

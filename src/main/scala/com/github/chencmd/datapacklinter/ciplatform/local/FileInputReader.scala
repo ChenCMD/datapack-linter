@@ -14,39 +14,45 @@ import scala.scalajs.js
 import scala.scalajs.js.JSON
 
 import typings.node.pathMod as path
+import cats.mtl.Raise
+import cats.Monad
 
 object FileInputReader {
   import CIPlatformReadKeyedConfigInstr.ConfigValueType
 
   def createInstr[F[_]: Async](
     configPath: String
-  ): EitherT[F, String, CIPlatformReadKeyedConfigInstr[F]] = for {
-    existsConfig <- FSAsync.pathAccessible[EitherT[F, String, _]](configPath)
+  )(using raise: Raise[F, String]): F[CIPlatformReadKeyedConfigInstr[F]] = for {
+    existsConfig <- FSAsync.pathAccessible(configPath)
     rawConfig    <- {
       if (existsConfig) {
-        EitherT.right(FSAsync.readFile(configPath))
+        FSAsync.readFile(configPath)
       } else {
-        EitherT
-          .left(FSAsync.writeFile(configPath, "{}"))
-          .leftMap(_ => "linter-config.json does not exist")
+        raise.raise("linter-config.json does not exist")
       }
     }
-    config       <- EitherT.pure(JSObject.toWrappedDictionary[String](JSON.parse(rawConfig)))
+    config       <- Monad[F].pure(JSObject.toWrappedDictionary[String](JSON.parse(rawConfig)))
 
-    instr <- EitherT.pure {
+    instr <- Monad[F].pure {
       new CIPlatformReadKeyedConfigInstr[F] {
         override protected def readKey[A](
           key: String,
           required: Boolean,
           default: => Option[A]
         )(using
+          raise: Raise[F, String],
           ciInteraction: CIPlatformInteractionInstr[F],
           valueType: ConfigValueType[A]
-        ): EitherT[F, String, A] = for {
-          v <- EitherT.pure(config.get(key))
-          _ <- EitherT.liftF(ciInteraction.printDebug(s"read key: $key, result: $v"))
-          _ <- EitherT.cond(v.isDefined || !required, (), s"Input required and not supplied: $key")
-          b <- EitherT.fromEither(v.traverse(valueType.tryCast(key, _)))
+        ): F[A] = for {
+          v <- Monad[F].pure(config.get(key))
+          _ <- ciInteraction.printDebug(s"read key: $key, result: $v")
+          _ <- Monad[F].whenA(v.isEmpty && required) {
+            raise.raise(s"Input required and not supplied: $key")
+          }
+          b <- v.traverse(valueType.tryCast(key, _)) match {
+            case Right(value) => Monad[F].pure(value)
+            case Left(value)  => raise.raise(value)
+          }
         } yield b.getOrElse(default.get)
       }
     }

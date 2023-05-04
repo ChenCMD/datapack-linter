@@ -2,24 +2,28 @@ package com.github.chencmd.datapacklinter.ciplatform
 
 import cats.data.EitherT
 import cats.effect.Async
+import cats.mtl.Raise
 
 trait CIPlatformReadKeyedConfigInstr[F[_]] {
   import CIPlatformReadKeyedConfigInstr.ConfigValueType
 
   final def readKeyOrElse[A](key: String, default: => A)(using
+    raise: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     valueType: ConfigValueType[A]
-  ): EitherT[F, String, A] = readKey(key, false, Some(default))
+  ): F[A] = readKey(key, false, Some(default))
 
   final def readKey[A](key: String)(using
+    raise: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     valueType: ConfigValueType[A]
-  ): EitherT[F, String, A] = readKey(key, true, None)
+  ): F[A] = readKey(key, true, None)
 
   protected def readKey[A](key: String, required: Boolean, default: => Option[A])(using
+    raise: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     valueType: ConfigValueType[A]
-  ): EitherT[F, String, A]
+  ): F[A]
 }
 
 object CIPlatformReadKeyedConfigInstr {

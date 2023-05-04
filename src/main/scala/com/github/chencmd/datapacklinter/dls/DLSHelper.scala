@@ -24,20 +24,21 @@ import typings.spgodingDatapackLanguageServer.libServicesDatapackLanguageService
 import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
 import typings.spgodingDatapackLanguageServer.libTypesVersionInformationMod.VersionInformation
 import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
+import cats.mtl.Raise
+import cats.Monad
 
 object DLSHelper {
   def createDLS[F[_]: Async](
     dir: String,
     dlsConfig: DLSConfig
   )(using
+    raise: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F]
-  ): EitherT[F, String, DatapackLanguageService] = {
-    type FOption = EitherT[F, String, _]
+  ): F[DatapackLanguageService] = {
     for {
-      roots <-
-        Datapack.findDatapackRoots[FOption](dir, dlsConfig.env.detectionDepth.asInstanceOf[Int])
+      roots <- Datapack.findDatapackRoots(dir, dlsConfig.env.detectionDepth.asInstanceOf[Int])
 
-      capabilities <- EitherT.pure {
+      capabilities <- Monad[F].pure {
         ClientCapabilities.getClientCapabilities(
           JSObject(
             "workspace" -> JSObject(
@@ -48,8 +49,8 @@ object DLSHelper {
         )
       }
       versionInfo  <- getLatestVersions
-      plugins      <- AsyncExtra.fromPromise[FOption](PluginLoader.load())
-      dls          <- Async[FOption].delay {
+      plugins      <- AsyncExtra.fromPromise(PluginLoader.load())
+      dls          <- Monad[F].pure {
         new DatapackLanguageService(
           DatapackLanguageServiceOptions()
             .setCapabilities(capabilities)
@@ -61,36 +62,34 @@ object DLSHelper {
         )
       }
 
-      _ <- AsyncExtra.fromPromise[FOption](dls.init())
-      _ <- AsyncExtra.fromPromise[FOption](dls.getVanillaData(dlsConfig))
-      _ <- Async[FOption].delay { dls.roots.push(roots*) }
-      _ <- EitherT.liftF(ciInteraction.printInfo("datapack roots:"))
-      _ <- EitherT.liftF(roots.map(_.path).traverse(ciInteraction.printInfo))
+      _ <- AsyncExtra.fromPromise(dls.init())
+      _ <- AsyncExtra.fromPromise(dls.getVanillaData(dlsConfig))
+      _ <- Async[F].delay { dls.roots.push(roots*) }
+      _ <- ciInteraction.printInfo("datapack roots:")
+      _ <- roots.map(_.path).traverse(ciInteraction.printInfo)
     } yield dls
   }
 
   private def getLatestVersions[F[_]: Async](using
+    err: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F]
-  ): EitherT[F, String, VersionInformation] = {
+  ): F[VersionInformation] = {
     inline val VER_INFO_URI    = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
     inline val PROCESSABLE_VER = "1.16.2"
 
     for {
-      _               <- EitherT.liftF {
-        ciInteraction.printInfo("[LatestVersions] Fetching the latest versions...")
-      }
-      rawVersionInfo  <- Async[EitherT[F, String, _]].timeoutTo(
+      _               <- ciInteraction.printInfo("[LatestVersions] Fetching the latest versions...")
+      rawVersionInfo  <- Async[F].timeoutTo(
         AsyncExtra.fromPromise(DLS.requestText(VER_INFO_URI)),
         7.seconds,
-        EitherT.leftT("[LatestVersions] Fetch timeout")
+        err.raise("[LatestVersions] Fetch timeout")
       )
-      versionManifest <- EitherT.fromEither {
-        Jsonc
-          .parse(rawVersionInfo)
-          .flatMap(VersionManifest.attemptToVersionManifest)
-          .toRight("[LatestVersions] Failed to parsing version_manifest.json")
-      }
-      ans             <- EitherT.pure {
+      versionManifest <- Jsonc
+        .parse(rawVersionInfo)
+        .flatMap(VersionManifest.attemptToVersionManifest)
+        .map(Monad[F].pure)
+        .getOrElse(err.raise("[LatestVersions] Failed to parsing version_manifest.json"))
+      ans             <- Monad[F].pure {
         VersionInformation(
           versionManifest.latest.release,
           versionManifest.latest.snapshot,
@@ -99,9 +98,7 @@ object DLSHelper {
             .map(_.id)
         )
       }
-      _               <- EitherT.liftF {
-        ciInteraction.printInfo(s"[LatestVersions] versionInformation = ${JSON.stringify(ans)}")
-      }
+      _ <- ciInteraction.printInfo(s"[LatestVersions] versionInformation = ${JSON.stringify(ans)}")
     } yield ans
   }
 }
