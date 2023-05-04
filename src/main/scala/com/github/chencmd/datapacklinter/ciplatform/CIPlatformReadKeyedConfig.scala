@@ -3,8 +3,11 @@ package com.github.chencmd.datapacklinter.ciplatform
 import cats.data.EitherT
 import cats.effect.Async
 import cats.mtl.Raise
+import cats.implicits.*
+import cats.effect.kernel.Sync
+import cats.Monad
 
-trait CIPlatformReadKeyedConfigInstr[F[_]] {
+trait CIPlatformReadKeyedConfigInstr[F[_]: Sync] {
   import CIPlatformReadKeyedConfigInstr.ConfigValueType
 
   final def readKeyOrElse[A](key: String, default: => A)(using
@@ -19,11 +22,25 @@ trait CIPlatformReadKeyedConfigInstr[F[_]] {
     valueType: ConfigValueType[A]
   ): F[A] = readKey(key, true, None)
 
-  protected def readKey[A](key: String, required: Boolean, default: => Option[A])(using
+  private def readKey[A](key: String, required: Boolean, default: => Option[A])(using
     raise: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     valueType: ConfigValueType[A]
-  ): F[A]
+  ): F[A] = {
+    for {
+      v <- read(key)
+      _ <- ciInteraction.printDebug(s"read key: $key, result: $v")
+      _ <- Monad[F].whenA(v.isEmpty && required) {
+        raise.raise(s"Input required and not supplied: $key")
+      }
+      b <- v.traverse(valueType.tryCast(key, _)) match {
+        case Right(value) => Monad[F].pure(value)
+        case Left(value)  => raise.raise(value)
+      }
+    } yield b.getOrElse(default.get)
+  }
+
+  protected def read(key: String): F[Option[String]]
 }
 
 object CIPlatformReadKeyedConfigInstr {

@@ -35,25 +35,9 @@ object FileInputReader {
 
     instr <- Monad[F].pure {
       new CIPlatformReadKeyedConfigInstr[F] {
-        override protected def readKey[A](
-          key: String,
-          required: Boolean,
-          default: => Option[A]
-        )(using
-          raise: Raise[F, String],
-          ciInteraction: CIPlatformInteractionInstr[F],
-          valueType: ConfigValueType[A]
-        ): F[A] = for {
-          v <- Monad[F].pure(config.get(key))
-          _ <- ciInteraction.printDebug(s"read key: $key, result: $v")
-          _ <- Monad[F].whenA(v.isEmpty && required) {
-            raise.raise(s"Input required and not supplied: $key")
-          }
-          b <- v.traverse(valueType.tryCast(key, _)) match {
-            case Right(value) => Monad[F].pure(value)
-            case Left(value)  => raise.raise(value)
-          }
-        } yield b.getOrElse(default.get)
+        override protected def read(key: String): F[Option[String]] = Monad[F].pure {
+          config.get(key).filter(_.nonEmpty)
+        }
       }
     }
   } yield instr
