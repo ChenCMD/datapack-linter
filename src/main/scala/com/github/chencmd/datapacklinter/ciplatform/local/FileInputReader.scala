@@ -42,12 +42,12 @@ object FileInputReader {
         )(using
           ciInteraction: CIPlatformInteractionInstr[F],
           valueType: ConfigValueType[A]
-        ): EitherT[F, String, A] = EitherT.fromEither {
-          Right(config.get(key))
-            .filterOrElse(_.isDefined || !required, s"Input required and not supplied: $key")
-            .flatMap(_.traverse(valueType.tryCast(key, _)))
-            .map(_.getOrElse(default.get))
-        }
+        ): EitherT[F, String, A] = for {
+          v <- EitherT.pure(config.get(key))
+          _ <- EitherT.liftF(ciInteraction.printDebug(s"read key: $key, result: $v"))
+          _ <- EitherT.cond(v.isDefined || !required, (), s"Input required and not supplied: $key")
+          b <- EitherT.fromEither(v.traverse(valueType.tryCast(key, _)))
+        } yield b.getOrElse(default.get)
       }
     }
   } yield instr
