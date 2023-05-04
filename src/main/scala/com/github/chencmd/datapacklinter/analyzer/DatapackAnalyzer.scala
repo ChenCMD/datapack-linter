@@ -1,4 +1,4 @@
-package com.github.chencmd.datapacklinter.analyze
+package com.github.chencmd.datapacklinter.analyzer
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.generic.AsyncExtra

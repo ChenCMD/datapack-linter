@@ -1,7 +1,7 @@
 package com.github.chencmd.datapacklinter.linter
 
-import com.github.chencmd.datapacklinter.analyze.AnalyzeResult
-import com.github.chencmd.datapacklinter.analyze.ErrorSeverity
+import com.github.chencmd.datapacklinter.analyzer.AnalyzeResult
+import com.github.chencmd.datapacklinter.analyzer.ErrorSeverity
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 
 import cats.Monad

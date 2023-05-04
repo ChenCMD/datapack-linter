@@ -1,4 +1,4 @@
-package com.github.chencmd.datapacklinter.analyze
+package com.github.chencmd.datapacklinter.analyzer
 
 import typings.minimatch.mod as minimatch
 import typings.minimatch.mod.IOptions

@@ -1,4 +1,4 @@
-package com.github.chencmd.datapacklinter.analyze
+package com.github.chencmd.datapacklinter.analyzer
 
 enum AnalyzeState(val root: String, val abs: String) {
   case Waiting(override val root: String, override val abs: String, val rel: String)
