@@ -24,7 +24,7 @@ import cats.implicits.*
 
 import typings.node.pathMod as path
 import typings.node.processMod as process
-import typings.node.global.console.^ as console
+import typings.node.global.console
 
 object Main extends IOApp {
   private case class CIPlatformContext[F[_]](
