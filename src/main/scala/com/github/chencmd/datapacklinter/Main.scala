@@ -43,14 +43,14 @@ object Main extends IOApp {
       }
     } yield exitCode
 
-    def catchErr[F[_]: Async](program: EitherT[F, String, ExitCode]): F[ExitCode] = {
+    def handleError[F[_]: Async](program: EitherT[F, String, ExitCode]): F[ExitCode] = {
       program.value.flatMap {
         case Right(exitCode) => Async[F].pure(exitCode)
         case Left(mes)       => Async[F].delay(console.error(mes)) as ExitCode.Error
       }
     }
 
-    catchErr(run())
+    handleError(run())
   }
 
   private def getContextResources[F[_]: Async](
