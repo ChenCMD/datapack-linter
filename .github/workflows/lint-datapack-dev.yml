@@ -17,14 +17,12 @@ jobs:
       - name: Cache Node dependencies
         uses: actions/cache@v3
         with:
-          id: node-deps
           path: "./node_modules"
           key: ${{ runner.os }}-node-deps-${{ hashFiles('./yarn.lock') }}
 
       - name: Cache SBT dependencies
         uses: actions/cache@v3
         with:
-          id: sbt-deps
           path: |
             '~/.sbt'
             '~/.ivy2/cache'
@@ -35,11 +33,11 @@ jobs:
       - name: Install Node dependencies
         run: yarn install
 
+      - name: Build for production
+        run: yarn build
+
       - name: Test run
-        run: yarn dev
-        env:
-          INPUT_FORCEPASS: true
-          INPUT_IGNORELINTPATHPATTERN: 'test:ignore/**'
+        run: yarn test
 
       - name: Pre deploy
         if: ${{ github.ref == 'ref/heads/main' }}
