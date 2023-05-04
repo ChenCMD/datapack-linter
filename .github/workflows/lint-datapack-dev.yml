@@ -2,7 +2,7 @@ name: Test run and Deploy to dist branch
 on:
   push:
     branches-ignore:
-      - "dist"
+      - dist
   pull_request:
   workflow_dispatch:
 jobs:
@@ -17,17 +17,17 @@ jobs:
       - name: Cache Node dependencies
         uses: actions/cache@v3
         with:
-          path: "./node_modules"
+          path: ./node_modules
           key: ${{ runner.os }}-node-deps-${{ hashFiles('./yarn.lock') }}
 
       - name: Cache SBT dependencies
         uses: actions/cache@v3
         with:
           path: |
-            '~/.sbt'
-            '~/.ivy2/cache'
-            '~/.ivy2/local/org.scalablytyped'
-            './target/scala-*/scalajs-bundler/node_modules'
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.ivy2/local/org.scalablytyped
+            ./target/scala-*/scalajs-bundler/node_modules
           key: ${{ runner.os }}-sbt-deps-${{ hashFiles('./build.sbt') }}
 
       - name: Install Node dependencies
