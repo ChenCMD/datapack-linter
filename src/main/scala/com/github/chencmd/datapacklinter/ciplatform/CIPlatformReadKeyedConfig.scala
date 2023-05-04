@@ -46,8 +46,8 @@ object CIPlatformReadKeyedConfigInstr {
     val trueValue  = List("true", "True", "TRUE")
     val falseValue = List("false", "False", "FALSE")
     def tryCast(key: String, value: String): Either[String, Boolean] = {
-      if (trueValue.contains(value)) Right(true)
-      if (falseValue.contains(value)) Right(false)
+      if (trueValue.contains(value)) return Right(true)
+      if (falseValue.contains(value)) return Right(false)
       Left(typeMismatchError(key, "Boolean"))
     }
   }
