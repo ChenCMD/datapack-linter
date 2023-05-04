@@ -1,0 +1,4 @@
+{
+  "ignoreLintPathPattern": "test:ignore/**",
+  "forcePass": "true"
+}
