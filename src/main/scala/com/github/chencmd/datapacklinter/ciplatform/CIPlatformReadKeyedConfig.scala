@@ -1,11 +1,10 @@
 package com.github.chencmd.datapacklinter.ciplatform
 
-import cats.data.EitherT
-import cats.effect.Async
-import cats.mtl.Raise
-import cats.implicits.*
-import cats.effect.kernel.Sync
 import cats.Monad
+import cats.data.EitherT
+import cats.effect.Sync
+import cats.implicits.*
+import cats.mtl.Raise
 
 trait CIPlatformReadKeyedConfigInstr[F[_]: Sync] {
   import CIPlatformReadKeyedConfigInstr.ConfigValueType

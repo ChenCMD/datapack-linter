@@ -4,7 +4,6 @@ import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.utils.FSAsync
 
 import cats.Monad
-import cats.data.EitherT
 import cats.effect.Async
 import cats.effect.Resource
 import cats.implicits.*

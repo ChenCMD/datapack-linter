@@ -3,13 +3,9 @@ package com.github.chencmd.datapacklinter.linter
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
 
-import cats.data.EitherT
 import cats.effect.Async
-
-import typings.minimatch.mod as minimatch
-import typings.minimatch.mod.IOptions
-import cats.mtl.Raise
 import cats.implicits.*
+import cats.mtl.Raise
 
 final case class LinterConfig private (
   forcePass: Boolean,

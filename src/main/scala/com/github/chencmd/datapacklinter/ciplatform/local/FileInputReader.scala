@@ -1,21 +1,15 @@
 package com.github.chencmd.datapacklinter.ciplatform.local
 
-import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.JSObject
 
-import cats.data.EitherT
-import cats.effect.Async
-import cats.effect.Resource
-import cats.implicits.*
-
-import scala.scalajs.js
-import scala.scalajs.js.JSON
-
-import typings.node.pathMod as path
-import cats.mtl.Raise
 import cats.Monad
+import cats.effect.Async
+import cats.implicits.*
+import cats.mtl.Raise
+
+import scala.scalajs.js.JSON
 
 object FileInputReader {
   import CIPlatformReadKeyedConfigInstr.ConfigValueType

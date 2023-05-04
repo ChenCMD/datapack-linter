@@ -5,9 +5,10 @@ import com.github.chencmd.datapacklinter.generic.AsyncExtra
 import com.github.chencmd.datapacklinter.utils.Datapack
 import com.github.chencmd.datapacklinter.utils.Jsonc
 
-import cats.data.EitherT
+import cats.Monad
 import cats.effect.Async
 import cats.implicits.*
+import cats.mtl.Raise
 
 import scala.concurrent.duration.*
 
@@ -24,8 +25,6 @@ import typings.spgodingDatapackLanguageServer.libServicesDatapackLanguageService
 import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
 import typings.spgodingDatapackLanguageServer.libTypesVersionInformationMod.VersionInformation
 import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
-import cats.mtl.Raise
-import cats.Monad
 
 object DLSHelper {
   def createDLS[F[_]: Async](

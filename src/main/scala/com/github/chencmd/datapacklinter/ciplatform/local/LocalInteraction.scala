@@ -3,10 +3,9 @@ package com.github.chencmd.datapacklinter.ciplatform.local
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 
 import cats.Monad
-import cats.data.EitherT
 import cats.effect.Async
 import cats.effect.Ref
-import cats.effect.kernel.Resource
+import cats.effect.Resource
 import cats.implicits.*
 
 import scala.scalajs.js

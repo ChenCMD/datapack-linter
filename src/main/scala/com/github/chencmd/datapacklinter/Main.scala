@@ -1,9 +1,7 @@
 package com.github.chencmd.datapacklinter
 
-import com.github.chencmd.datapacklinter.analyzer.AnalyzeResult
 import com.github.chencmd.datapacklinter.analyzer.AnalyzerConfig
 import com.github.chencmd.datapacklinter.analyzer.DatapackAnalyzer
-import com.github.chencmd.datapacklinter.analyzer.ErrorSeverity
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
 import com.github.chencmd.datapacklinter.ciplatform.ghactions.*
@@ -21,12 +19,11 @@ import cats.effect.ExitCode
 import cats.effect.IOApp
 import cats.effect.Resource
 import cats.implicits.*
+import cats.mtl.Raise
 
 import typings.node.pathMod as path
 import typings.node.processMod as process
 import typings.node.global.console
-import cats.mtl.Raise
-import cats.effect.IO
 
 object Main extends IOApp {
   private case class CIPlatformContext[F[_]](

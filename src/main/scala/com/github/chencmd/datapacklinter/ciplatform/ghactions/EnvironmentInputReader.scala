@@ -1,18 +1,13 @@
 package com.github.chencmd.datapacklinter.ciplatform.ghactions
 
-import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
 
-import cats.Monad
-import cats.data.EitherT
 import cats.effect.Async
-import cats.effect.Resource
 import cats.implicits.*
 
 import scala.util.chaining.*
 
 import typings.node.processMod as process
-import cats.mtl.Raise
 
 object EnvironmentInputReader {
   import CIPlatformReadKeyedConfigInstr.ConfigValueType

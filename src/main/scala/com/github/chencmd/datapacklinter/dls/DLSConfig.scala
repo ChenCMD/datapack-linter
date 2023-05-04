@@ -6,7 +6,7 @@ import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.Jsonc
 
 import cats.data.OptionT
-import cats.effect.kernel.Async
+import cats.effect.Async
 import cats.implicits.*
 
 import scala.scalajs.js
@@ -14,7 +14,6 @@ import scala.scalajs.js
 import org.scalablytyped.runtime.StringDictionary
 import typings.spgodingDatapackLanguageServer.libTypesConfigMod as Cfg
 import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
-import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 
 object DLSConfig {
   def readConfig[F[_]: Async](

@@ -5,8 +5,7 @@ import com.github.chencmd.datapacklinter.analyzer.ErrorSeverity
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 
 import cats.Monad
-import cats.data.EitherT
-import cats.effect.kernel.Async
+import cats.effect.Async
 import cats.implicits.*
 
 object DatapackLinter {
