@@ -2,41 +2,34 @@ package com.github.chencmd.datapacklinter.ciplatform
 
 import cats.Monad
 import cats.data.EitherT
+import cats.data.ValidatedNec
 import cats.effect.Sync
 import cats.implicits.*
-import cats.mtl.Raise
 
 trait CIPlatformReadKeyedConfigInstr[F[_]: Sync] {
   import CIPlatformReadKeyedConfigInstr.ConfigValueType
 
   final def readKeyOrElse[A](key: String, default: => A)(using
-    R: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     valueType: ConfigValueType[A]
-  ): F[A] = readKey(key, false, Some(default))
+  ): F[ValidatedNec[String, A]] = readKey(key, false, Some(default))
 
   final def readKey[A](key: String)(using
-    R: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     valueType: ConfigValueType[A]
-  ): F[A] = readKey(key, true, None)
+  ): F[ValidatedNec[String, A]] = readKey(key, true, None)
 
   private def readKey[A](key: String, required: Boolean, default: => Option[A])(using
-    R: Raise[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     valueType: ConfigValueType[A]
-  ): F[A] = {
-    for {
-      v <- read(key)
-      _ <- ciInteraction.printDebug(s"read key: $key, result: $v")
-      _ <- Monad[F].whenA(v.isEmpty && required) {
-        R.raise(s"Input required and not supplied: $key")
-      }
-      b <- v.traverse(valueType.tryCast(key, _)) match {
-        case Right(value) => Monad[F].pure(value)
-        case Left(value)  => R.raise(value)
-      }
+  ): F[ValidatedNec[String, A]] = {
+    val program = for {
+      v <- EitherT.liftF(read(key))
+      _ <- EitherT.liftF(ciInteraction.printDebug(s"read key: $key, result: $v"))
+      _ <- EitherT.cond(v.isDefined || !required, (), s"Input required and not supplied: $key")
+      b <- EitherT.fromEither(v.traverse(valueType.tryCast(key, _)))
     } yield b.getOrElse(default.get)
+    program.toValidatedNec
   }
 
   protected def read(key: String): F[Option[String]]

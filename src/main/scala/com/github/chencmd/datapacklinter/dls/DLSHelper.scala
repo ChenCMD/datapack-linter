@@ -2,13 +2,13 @@ package com.github.chencmd.datapacklinter.dls
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
+import com.github.chencmd.datapacklinter.generic.RaiseNec.*
 import com.github.chencmd.datapacklinter.utils.Datapack
 import com.github.chencmd.datapacklinter.utils.Jsonc
 
 import cats.Monad
 import cats.effect.Async
 import cats.implicits.*
-import cats.mtl.Raise
 
 import scala.concurrent.duration.*
 
@@ -31,7 +31,7 @@ object DLSHelper {
     dir: String,
     dlsConfig: DLSConfig
   )(using
-    R: Raise[F, String],
+    R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F]
   ): F[DatapackLanguageService] = {
     for {
@@ -70,7 +70,7 @@ object DLSHelper {
   }
 
   private def getLatestVersions[F[_]: Async](using
-    R: Raise[F, String],
+    R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F]
   ): F[VersionInformation] = {
     inline val VER_INFO_URI    = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
@@ -81,13 +81,13 @@ object DLSHelper {
       rawVersionInfo  <- Async[F].timeoutTo(
         AsyncExtra.fromPromise(DLS.requestText(VER_INFO_URI)),
         7.seconds,
-        R.raise("[LatestVersions] Fetch timeout")
+        R.raiseOne("[LatestVersions] Fetch timeout")
       )
       versionManifest <- Jsonc
         .parse(rawVersionInfo)
         .flatMap(VersionManifest.attemptToVersionManifest)
         .map(Monad[F].pure)
-        .getOrElse(R.raise("[LatestVersions] Failed to parsing version_manifest.json"))
+        .getOrElse(R.raiseOne("[LatestVersions] Failed to parsing version_manifest.json"))
       ans             <- Monad[F].pure {
         VersionInformation(
           versionManifest.latest.release,

@@ -8,18 +8,19 @@ import com.github.chencmd.datapacklinter.ciplatform.ghactions.*
 import com.github.chencmd.datapacklinter.ciplatform.local.*
 import com.github.chencmd.datapacklinter.dls.DLSConfig
 import com.github.chencmd.datapacklinter.dls.DLSHelper
+import com.github.chencmd.datapacklinter.generic.RaiseNec.*
 import com.github.chencmd.datapacklinter.linter.DatapackLinter
 import com.github.chencmd.datapacklinter.linter.LinterConfig
 
 import cats.Monad
 import cats.data.EitherT
+import cats.data.NonEmptyChain
 import cats.data.StateT
 import cats.effect.Async
 import cats.effect.ExitCode
 import cats.effect.IOApp
 import cats.effect.Resource
 import cats.implicits.*
-import cats.mtl.Raise
 
 import typings.node.pathMod as path
 import typings.node.processMod as process
@@ -32,7 +33,7 @@ object Main extends IOApp {
   )
 
   override def run(args: List[String]) = {
-    def run[F[_]: Async]()(using R: Raise[F, String]): F[ExitCode] = for {
+    def run[F[_]: Async]()(using R: RaiseNec[F, String]): F[ExitCode] = for {
       dir <- Async[F].delay(process.cwd())
 
       exitCode <- getContextResources(dir, args.get(0)).use { ctx =>
@@ -43,10 +44,14 @@ object Main extends IOApp {
       }
     } yield exitCode
 
-    def handleError[F[_]: Async](program: EitherT[F, String, ExitCode]): F[ExitCode] = {
+    def handleError[F[_]: Async](
+      program: EitherT[F, NonEmptyChain[String], ExitCode]
+    ): F[ExitCode] = {
       program.value.flatMap {
         case Right(exitCode) => Async[F].pure(exitCode)
-        case Left(mes)       => Async[F].delay(console.error(mes)) as ExitCode.Error
+        case Left(messages)  => messages
+            .traverse_(mes => Async[F].delay(console.error(mes)))
+            .as(ExitCode.Error)
       }
     }
 
@@ -56,7 +61,7 @@ object Main extends IOApp {
   private def getContextResources[F[_]: Async](
     dir: String,
     configFilePath: Option[String]
-  )(using R: Raise[F, String]): Resource[F, CIPlatformContext[F]] = {
+  )(using R: RaiseNec[F, String]): Resource[F, CIPlatformContext[F]] = {
     enum Platform {
       case GitHubActions
       case Local
@@ -88,7 +93,7 @@ object Main extends IOApp {
   }
 
   private def lint[F[_]: Async](dir: String)(using
-    R: Raise[F, String],
+    R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     readConfig: CIPlatformReadKeyedConfigInstr[F]
   ): F[ExitCode] = {

@@ -1,13 +1,13 @@
 package com.github.chencmd.datapacklinter.ciplatform.local
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
+import com.github.chencmd.datapacklinter.generic.RaiseNec.*
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.JSObject
 
 import cats.Monad
 import cats.effect.Async
 import cats.implicits.*
-import cats.mtl.Raise
 
 import scala.scalajs.js.JSON
 
@@ -16,13 +16,13 @@ object FileInputReader {
 
   def createInstr[F[_]: Async](
     configPath: String
-  )(using R: Raise[F, String]): F[CIPlatformReadKeyedConfigInstr[F]] = for {
+  )(using R: RaiseNec[F, String]): F[CIPlatformReadKeyedConfigInstr[F]] = for {
     existsConfig <- FSAsync.pathAccessible(configPath)
     rawConfig    <- {
       if (existsConfig) {
         FSAsync.readFile(configPath)
       } else {
-        R.raise("linter-config.json does not exist")
+        R.raiseOne("linter-config.json does not exist")
       }
     }
     config       <- Monad[F].pure(JSObject.toWrappedDictionary[String](JSON.parse(rawConfig)))
