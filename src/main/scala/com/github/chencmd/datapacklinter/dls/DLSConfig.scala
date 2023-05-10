@@ -46,20 +46,18 @@ object DLSConfig {
     obj: StringDictionary[js.Any],
     keyFragments: List[String],
     value: js.Any
-  ): StringDictionary[js.Any] = {
-    keyFragments match {
-      case splittedKey :: tails if tails.nonEmpty =>
-        obj
-          .updateWith(splittedKey) { v =>
-            walk(
-              v.map(_.asInstanceOf[StringDictionary[js.Any]]).getOrElse(StringDictionary.empty),
-              tails,
-              value
-            ).some
-          }
-          .toStringDictionary
-      case splittedKey :: tails => obj.addOne(splittedKey, value).toStringDictionary
-      case Nil                  => StringDictionary.empty
-    }
+  ): StringDictionary[js.Any] = keyFragments match {
+    case splittedKey :: tails if tails.nonEmpty =>
+      obj
+        .updateWith(splittedKey) { v =>
+          walk(
+            v.map(_.asInstanceOf[StringDictionary[js.Any]]).getOrElse(StringDictionary.empty),
+            tails,
+            value
+          ).some
+        }
+        .toStringDictionary
+    case splittedKey :: tails                   => obj.addOne(splittedKey, value).toStringDictionary
+    case Nil                                    => StringDictionary.empty
   }
 }

@@ -54,29 +54,27 @@ object FSAsync {
   )(
     f: Path => F[A]
   ): F[List[A]] = {
-    def walk(dir: String, currentDepth: Int): F[List[A]] = {
-      for {
-        files  <- readDir(dir)
-        result <- files
-          .map(p => Path(p, path.relative(baseDir, p)))
-          .flatTraverse { childPath =>
-            val program = for {
-              isDir    <- EitherT.liftF(isDirectory(childPath.abs))
-              _        <- EitherTExtra.exitWhenA(isDir) {
-                if (currentDepth < maxDepth) {
-                  walk(childPath.abs, currentDepth + 1)
-                } else {
-                  Monad[F].pure(List.empty)
-                }
+    def walk(dir: String, currentDepth: Int): F[List[A]] = for {
+      files  <- readDir(dir)
+      result <- files
+        .map(p => Path(p, path.relative(baseDir, p)))
+        .flatTraverse { childPath =>
+          val program = for {
+            isDir    <- EitherT.liftF(isDirectory(childPath.abs))
+            _        <- EitherTExtra.exitWhenA(isDir) {
+              if (currentDepth < maxDepth) {
+                walk(childPath.abs, currentDepth + 1)
+              } else {
+                Monad[F].pure(List.empty)
               }
-              fApplied <- EitherT.liftF(f(childPath))
-            } yield List(fApplied)
-            program.merge
-              .whenOrPureNoneA(pathFilter(childPath))
-              .map(_.getOrElse(List.empty))
-          }
-      } yield result
-    }
+            }
+            fApplied <- EitherT.liftF(f(childPath))
+          } yield List(fApplied)
+          program.merge
+            .whenOrPureNoneA(pathFilter(childPath))
+            .map(_.getOrElse(List.empty))
+        }
+    } yield result
     walk(targetDir, 0)
   }
 
@@ -88,29 +86,27 @@ object FSAsync {
   )(
     f: Path => F[A]
   ): F[List[A]] = {
-    def walk(dir: String, currentDepth: Int): F[List[A]] = {
-      for {
-        files  <- readDir(dir)
-        dirs   <- files
-          .map(p => Path(p, path.relative(dir, p)))
-          .filterA(p => isDirectory(p.abs))
-        result <- dirs.flatTraverse { childPath =>
-          val program = for {
-            childDir <- {
-              if (currentDepth < maxDepth) {
-                walk(childPath.abs, currentDepth + 1)
-              } else {
-                Monad[F].pure(List.empty)
-              }
+    def walk(dir: String, currentDepth: Int): F[List[A]] = for {
+      files  <- readDir(dir)
+      dirs   <- files
+        .map(p => Path(p, path.relative(dir, p)))
+        .filterA(p => isDirectory(p.abs))
+      result <- dirs.flatTraverse { childPath =>
+        val program = for {
+          childDir <- {
+            if (currentDepth < maxDepth) {
+              walk(childPath.abs, currentDepth + 1)
+            } else {
+              Monad[F].pure(List.empty)
             }
-            fApplied <- f(childPath)
-          } yield List(fApplied) ::: childDir
-          program
-            .whenOrPureNoneA(pathFilter(childPath))
-            .map(_.getOrElse(List.empty))
-        }
-      } yield result
-    }
+          }
+          fApplied <- f(childPath)
+        } yield List(fApplied) ::: childDir
+        program
+          .whenOrPureNoneA(pathFilter(childPath))
+          .map(_.getOrElse(List.empty))
+      }
+    } yield result
     walk(targetDir, 0)
   }
 }

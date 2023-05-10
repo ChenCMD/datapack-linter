@@ -33,41 +33,39 @@ object DLSHelper {
   )(using
     R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F]
-  ): F[DatapackLanguageService] = {
-    for {
-      roots <- Datapack.findDatapackRoots(dir, dlsConfig.env.detectionDepth.asInstanceOf[Int])
+  ): F[DatapackLanguageService] = for {
+    roots <- Datapack.findDatapackRoots(dir, dlsConfig.env.detectionDepth.asInstanceOf[Int])
 
-      capabilities <- Monad[F].pure {
-        ClientCapabilities.getClientCapabilities(
-          JSObject(
-            "workspace" -> JSObject(
-              "configuration"          -> true,
-              "didChangeConfiguration" -> JSObject("dynamicRegistration" -> true)
-            )
+    capabilities <- Monad[F].pure {
+      ClientCapabilities.getClientCapabilities(
+        JSObject(
+          "workspace" -> JSObject(
+            "configuration"          -> true,
+            "didChangeConfiguration" -> JSObject("dynamicRegistration" -> true)
           )
         )
-      }
-      versionInfo  <- getLatestVersions
-      plugins      <- AsyncExtra.fromPromise(PluginLoader.load())
-      dls          <- Monad[F].pure {
-        new DatapackLanguageService(
-          DatapackLanguageServiceOptions()
-            .setCapabilities(capabilities)
-            .setCacheFileUndefined
-            .setGlobalStoragePath(path.join(dir, ".cache"))
-            .setFetchConfig(_ => js.Promise.resolve(dlsConfig))
-            .setPlugins(plugins)
-            .setVersionInformation(versionInfo)
-        )
-      }
+      )
+    }
+    versionInfo  <- getLatestVersions
+    plugins      <- AsyncExtra.fromPromise(PluginLoader.load())
+    dls          <- Monad[F].pure {
+      new DatapackLanguageService(
+        DatapackLanguageServiceOptions()
+          .setCapabilities(capabilities)
+          .setCacheFileUndefined
+          .setGlobalStoragePath(path.join(dir, ".cache"))
+          .setFetchConfig(_ => js.Promise.resolve(dlsConfig))
+          .setPlugins(plugins)
+          .setVersionInformation(versionInfo)
+      )
+    }
 
-      _ <- AsyncExtra.fromPromise(dls.init())
-      _ <- AsyncExtra.fromPromise(dls.getVanillaData(dlsConfig))
-      _ <- Async[F].delay { dls.roots.push(roots*) }
-      _ <- ciInteraction.printInfo("datapack roots:")
-      _ <- roots.map(_.path).traverse(ciInteraction.printInfo)
-    } yield dls
-  }
+    _ <- AsyncExtra.fromPromise(dls.init())
+    _ <- AsyncExtra.fromPromise(dls.getVanillaData(dlsConfig))
+    _ <- Async[F].delay { dls.roots.push(roots*) }
+    _ <- ciInteraction.printInfo("datapack roots:")
+    _ <- roots.map(_.path).traverse(ciInteraction.printInfo)
+  } yield dls
 
   private def getLatestVersions[F[_]: Async](using
     R: RaiseNec[F, String],
