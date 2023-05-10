@@ -104,8 +104,6 @@ final class DatapackAnalyzer[F[_]: Async] private (
     } yield res
   }
 
-  def getDeclares = { ??? }
-
   def updateCache(): StateT[F, AnalyzedCount, Unit] = {
     def checkFilesInCache: F[Unit] = {
       for {
