@@ -55,7 +55,7 @@ object LocalInteraction {
       for {
         outputs   <- outputs.get
         maxKeyLen <- Monad[F].pure(outputs.map(_._1.length()).foldLeft(0)(Math.max))
-        _         <- outputs.toList.traverse {
+        _         <- outputs.toList.traverse_ {
           case (k, v) => Async[F].delay(println(s"%${maxKeyLen}s = %s".format(k, v)))
         }
       } yield ()

@@ -64,7 +64,7 @@ object DLSHelper {
     _ <- AsyncExtra.fromPromise(dls.getVanillaData(dlsConfig))
     _ <- Async[F].delay { dls.roots.push(roots*) }
     _ <- ciInteraction.printInfo("datapack roots:")
-    _ <- roots.map(_.path).traverse(ciInteraction.printInfo)
+    _ <- roots.map(_.path).traverse_(ciInteraction.printInfo)
   } yield dls
 
   private def getLatestVersions[F[_]: Async](using

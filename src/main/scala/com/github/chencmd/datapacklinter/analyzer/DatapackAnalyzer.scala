@@ -57,7 +57,7 @@ final class DatapackAnalyzer[F[_]: Async] private (
       parseFiles <- StateT.liftF(program)
       results    <- parseFiles.sorted.flatTraverse {
         case AnalyzeState.Waiting(root, abs, rel) => parseDoc(root, abs, rel)
-            .flatMapF(res => res.traverse(analyzeCallback).as(res.toList))
+            .flatMapF(res => res.traverse_(analyzeCallback).as(res.toList))
         case AnalyzeState.Cached(_, _, res) => StateT.liftF(analyzeCallback(res).as(List(res)))
       }
     } yield results
@@ -100,7 +100,7 @@ final class DatapackAnalyzer[F[_]: Async] private (
 
     for {
       res <- StateT.liftF(program.value)
-      _   <- res.traverse(r => gc(r.analyzedLength))
+      _   <- res.traverse_(r => gc(r.analyzedLength))
     } yield res
   }
 
@@ -122,21 +122,19 @@ final class DatapackAnalyzer[F[_]: Async] private (
           }
         }
       }
-      _         <- {
-        filePaths.flatten.traverse { filePath =>
-          val uri           = dls.parseUri(Uri.file(filePath).toString())
-          val alreadyCached = dls.cacheFile.files.contains(uri.toString())
+      _         <- filePaths.flatten.traverse_ { filePath =>
+        val uri           = dls.parseUri(Uri.file(filePath).toString())
+        val alreadyCached = dls.cacheFile.files.contains(uri.toString())
 
-          val program = for {
-            _ <- EitherTExtra.exitWhenA(alreadyCached)(Monad[F].unit)
-            _ <- EitherT.liftF {
-              ciInteraction.printDebug(s"[updateCacheFile] file add detected: ${uri.fsPath}")
-            }
-            _ <- EitherT.liftF(AsyncExtra.fromPromise[F](dls.onAddedFile(uri)))
-          } yield ()
+        val program = for {
+          _ <- EitherTExtra.exitWhenA(alreadyCached)(Monad[F].unit)
+          _ <- EitherT.liftF {
+            ciInteraction.printDebug(s"[updateCacheFile] file add detected: ${uri.fsPath}")
+          }
+          _ <- EitherT.liftF(AsyncExtra.fromPromise[F](dls.onAddedFile(uri)))
+        } yield ()
 
-          StateT.liftF(program.merge).flatMap(_ => gc())
-        }
+        StateT.liftF(program.merge).flatMap(_ => gc())
       }
     } yield ()
 

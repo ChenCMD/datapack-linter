@@ -34,7 +34,7 @@ object DatapackLinter {
             }
             (e.severity, s" $indentAdjuster$paddedPosition $humanReadableSeverity ${e.message}")
           }
-          .traverse {
+          .traverse_ {
             case (1, res) => ciInteraction.printError(res)
             case (2, res) => ciInteraction.printWarning(res)
             case (_, res) => ciInteraction.printInfo(res)
