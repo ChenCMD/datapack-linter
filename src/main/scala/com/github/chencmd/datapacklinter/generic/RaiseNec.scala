@@ -1,8 +1,8 @@
 package com.github.chencmd.datapacklinter.generic
 
+import cats.Functor
 import cats.data.NonEmptyChain
 import cats.mtl.Raise
-import cats.Functor
 
 trait RaiseNec[F[_], -E] extends Raise[F, NonEmptyChain[E]] {
   def raiseOne[A](a: E): F[A] = raise(NonEmptyChain.one(a))
