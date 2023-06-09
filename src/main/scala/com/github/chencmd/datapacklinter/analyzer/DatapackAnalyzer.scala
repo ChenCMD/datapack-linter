@@ -29,15 +29,15 @@ import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSCon
 import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
 
-final class DatapackAnalyzer[F[_]: Async] private (
+final class DatapackAnalyzer private (
   private val analyzerConfig: AnalyzerConfig,
   private val dls: DatapackLanguageService,
   private val dlsConfig: DLSConfig
-)(using ciInteraction: CIPlatformInteractionInstr[F]) {
+) {
   private type AnalyzedCount = Int
 
-  def analyzeAll(
-    analyzeCallback: AnalyzeResult => F[Unit]
+  def analyzeAll[F[_]: Async](analyzeCallback: AnalyzeResult => F[Unit])(using
+    ciInteraction: CIPlatformInteractionInstr[F]
   ): StateT[F, AnalyzedCount, List[AnalyzeResult]] = {
     val program = dls.roots.toList
       .flatTraverse { root =>
@@ -63,7 +63,7 @@ final class DatapackAnalyzer[F[_]: Async] private (
     } yield results
   }
 
-  def parseDoc(
+  def parseDoc[F[_]: Async](
     root: String,
     file: String,
     rel: String
@@ -104,7 +104,9 @@ final class DatapackAnalyzer[F[_]: Async] private (
     } yield res
   }
 
-  def updateCache(): StateT[F, AnalyzedCount, Unit] = {
+  def updateCache[F[_]: Async]()(using
+    ciInteraction: CIPlatformInteractionInstr[F]
+  ): StateT[F, AnalyzedCount, Unit] = {
     def checkFilesInCache(): F[Unit] = {
       for {
         uriStrings <- Monad[F].pure {
@@ -150,7 +152,7 @@ final class DatapackAnalyzer[F[_]: Async] private (
     } yield ()
   }
 
-  private def gc(force: true): StateT[F, AnalyzedCount, Unit] = {
+  private def gc[F[_]: Async](force: true): StateT[F, AnalyzedCount, Unit] = {
     for {
       _ <- StateT.liftF(Async[F].delay {
         dls.caches.asInstanceOf[js.Map[String, ClientCache]].clear()
@@ -159,7 +161,9 @@ final class DatapackAnalyzer[F[_]: Async] private (
     } yield ()
   }
 
-  private def gc(addAnalyzedNodeCount: AnalyzedCount = 17): StateT[F, AnalyzedCount, Unit] = {
+  private def gc[F[_]: Async](
+    addAnalyzedNodeCount: AnalyzedCount = 17
+  ): StateT[F, AnalyzedCount, Unit] = {
     StateT.modifyF { analyzedNodeCount =>
       if (DatapackAnalyzer.GC_THRESHOLD <= analyzedNodeCount + addAnalyzedNodeCount) {
         Async[F].delay(dls.caches.asInstanceOf[js.Map[String, ClientCache]].clear()).as(0)
@@ -173,11 +177,11 @@ final class DatapackAnalyzer[F[_]: Async] private (
 object DatapackAnalyzer {
   private val GC_THRESHOLD = 500
 
-  def apply[F[_]: Async](
+  def apply(
     analyzerConfig: AnalyzerConfig,
     dls: DatapackLanguageService,
     dlsConfig: DLSConfig
-  )(using ciInteraction: CIPlatformInteractionInstr[F]): DatapackAnalyzer[F] = {
+  ): DatapackAnalyzer = {
     new DatapackAnalyzer(analyzerConfig, dls, dlsConfig)
   }
 }
