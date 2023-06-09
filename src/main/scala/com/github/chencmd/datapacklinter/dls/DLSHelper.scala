@@ -7,6 +7,7 @@ import com.github.chencmd.datapacklinter.utils.Datapack
 import com.github.chencmd.datapacklinter.utils.Jsonc
 
 import cats.Monad
+import cats.data.OptionT
 import cats.effect.Async
 import cats.implicits.*
 
@@ -17,16 +18,24 @@ import scala.scalajs.js.Dynamic.literal as JSObject
 import scala.scalajs.js.JSON
 
 import typings.node.pathMod as path
+import typings.vscodeLanguageserverTextdocument.mod.TextDocument
 
 import typings.spgodingDatapackLanguageServer.libTypesClientCapabilitiesMod as ClientCapabilities
 import typings.spgodingDatapackLanguageServer.mod as DLS
 import typings.spgodingDatapackLanguageServer.libPluginsPluginLoaderMod.PluginLoader
 import typings.spgodingDatapackLanguageServer.libServicesDatapackLanguageServiceMod.DatapackLanguageServiceOptions
 import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
+import typings.spgodingDatapackLanguageServer.libTypesDatapackDocumentMod.DatapackDocument
 import typings.spgodingDatapackLanguageServer.libTypesVersionInformationMod.VersionInformation
 import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
 
 object DLSHelper {
+  def parseDoc[F[_]: Async](
+    dls: DatapackLanguageService
+  )(doc: TextDocument): OptionT[F, DatapackDocument] = OptionT {
+    AsyncExtra.fromPromise[F](dls.parseDocument(doc)).map(_.toOption)
+  }
+
   def createDLS[F[_]: Async](
     dir: String,
     dlsConfig: DLSConfig

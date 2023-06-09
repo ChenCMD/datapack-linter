@@ -1,6 +1,7 @@
 package com.github.chencmd.datapacklinter.analyzer
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
+import com.github.chencmd.datapacklinter.dls.DLSHelper
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
 import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
 import com.github.chencmd.datapacklinter.generic.EitherTExtra
@@ -93,7 +94,7 @@ final class DatapackAnalyzer private (
           )
         )
       }
-      parsedDoc <- OptionT(AsyncExtra.fromPromise[F](dls.parseDocument(doc)).map(_.toOption))
+      parsedDoc <- DLSHelper.parseDoc(dls)(doc)
 
       res <- AnalyzeResult[OptionT[F, _]](root, file, id, parsedDoc, doc)
     } yield res
