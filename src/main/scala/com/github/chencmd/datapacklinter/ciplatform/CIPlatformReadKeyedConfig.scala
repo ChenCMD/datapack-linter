@@ -1,6 +1,5 @@
 package com.github.chencmd.datapacklinter.ciplatform
 
-import cats.Monad
 import cats.data.EitherT
 import cats.data.ValidatedNec
 import cats.effect.Sync

@@ -12,8 +12,6 @@ import cats.implicits.*
 import scala.scalajs.js.JSON
 
 object FileInputReader {
-  import CIPlatformReadKeyedConfigInstr.ConfigValueType
-
   def createInstr[F[_]: Async](
     configPath: String
   )(using R: RaiseNec[F, String]): F[CIPlatformReadKeyedConfigInstr[F]] = for {

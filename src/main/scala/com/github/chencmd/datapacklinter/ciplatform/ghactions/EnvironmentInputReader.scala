@@ -3,15 +3,10 @@ package com.github.chencmd.datapacklinter.ciplatform.ghactions
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
 
 import cats.effect.Async
-import cats.implicits.*
-
-import scala.util.chaining.*
 
 import typings.node.processMod as process
 
 object EnvironmentInputReader {
-  import CIPlatformReadKeyedConfigInstr.ConfigValueType
-
   def createInstr[F[_]: Async](
     keyConverter: String => String
   ): CIPlatformReadKeyedConfigInstr[F] = new CIPlatformReadKeyedConfigInstr[F] {

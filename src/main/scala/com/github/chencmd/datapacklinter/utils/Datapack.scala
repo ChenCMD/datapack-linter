@@ -1,7 +1,5 @@
 package com.github.chencmd.datapacklinter.utils
 
-import com.github.chencmd.datapacklinter.utils.FSAsync
-
 import cats.Monad
 import cats.effect.Async
 import cats.implicits.*

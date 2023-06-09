@@ -57,7 +57,7 @@ object DLSConfig {
           ).some
         }
         .toStringDictionary
-    case splittedKey :: tails                   => obj.addOne(splittedKey, value).toStringDictionary
+    case splittedKey :: _                       => obj.addOne(splittedKey, value).toStringDictionary
     case Nil                                    => StringDictionary.empty
   }
 }
