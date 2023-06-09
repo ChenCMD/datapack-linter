@@ -2,7 +2,7 @@ package com.github.chencmd.datapacklinter.dls
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
-import com.github.chencmd.datapacklinter.generic.RaiseNec.*
+import com.github.chencmd.datapacklinter.generic.RaiseNec
 import com.github.chencmd.datapacklinter.utils.Datapack
 import com.github.chencmd.datapacklinter.utils.Jsonc
 
