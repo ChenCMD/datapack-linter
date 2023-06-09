@@ -27,9 +27,6 @@ scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
 
 scalaJSUseMainModuleInitializer := true
 
-ThisBuild / scalafixDependencies ++= Seq(
-  "com.github.liancheng" %% "organize-imports" % "0.5.0"
-)
 semanticdbEnabled := true
 semanticdbVersion := scalafixSemanticdb.revision
 
