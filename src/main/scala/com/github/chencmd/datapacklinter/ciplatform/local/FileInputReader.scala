@@ -1,7 +1,7 @@
 package com.github.chencmd.datapacklinter.ciplatform.local
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
-import com.github.chencmd.datapacklinter.generic.RaiseNec.*
+import com.github.chencmd.datapacklinter.generic.RaiseNec
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.JSObject
 

@@ -2,11 +2,15 @@ package com.github.chencmd.datapacklinter.generic
 
 import cats.data.NonEmptyChain
 import cats.mtl.Raise
+import cats.Functor
 
-package object RaiseNec {
-  type RaiseNec[F[_], E] = Raise[F, NonEmptyChain[E]]
+trait RaiseNec[F[_], -E] extends Raise[F, NonEmptyChain[E]] {
+  def raiseOne[A](a: E): F[A] = raise(NonEmptyChain.one(a))
+}
 
-  extension [F[_], E](R: Raise[F, NonEmptyChain[E]]) {
-    def raiseOne[A](a: E): F[A] = R.raise(NonEmptyChain.one(a))
+object RaiseNec {
+  given [F[_]: Functor, E](using F: Raise[F, NonEmptyChain[E]]): RaiseNec[F, E] with {
+    def functor = Functor[F]
+    def raise[E2 <: NonEmptyChain[E], A](e: E2): F[A] = F.raise(e)
   }
 }

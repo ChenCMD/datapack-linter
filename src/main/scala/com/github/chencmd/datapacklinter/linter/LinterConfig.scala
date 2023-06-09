@@ -2,7 +2,7 @@ package com.github.chencmd.datapacklinter.linter
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
-import com.github.chencmd.datapacklinter.generic.RaiseNec.*
+import com.github.chencmd.datapacklinter.generic.RaiseNec
 
 import cats.Monad
 import cats.effect.Async
