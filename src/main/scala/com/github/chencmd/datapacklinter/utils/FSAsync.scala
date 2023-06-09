@@ -7,7 +7,6 @@ import com.github.chencmd.datapacklinter.generic.EitherTExtra
 import cats.Monad
 import cats.data.EitherT
 import cats.effect.Async
-import cats.effect.implicits.*
 import cats.implicits.*
 
 import typings.node.pathMod as path
