@@ -29,17 +29,19 @@ import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.ClientCache
 import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
 import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
+import cats.Applicative
 
 final class DatapackAnalyzer private (
   private val analyzerConfig: AnalyzerConfig,
   private val dls: DatapackLanguageService,
   private val dlsConfig: DLSConfig
 ) {
-  private type AnalyzedCount = Int
+  private type AnalyzedCount         = Int
+  private type AnalyzeState[F[_], A] = StateT[F, AnalyzedCount, A]
 
   def analyzeAll[F[_]: Async](analyzeCallback: AnalyzeResult => F[Unit])(using
     ciInteraction: CIPlatformInteractionInstr[F]
-  ): StateT[F, AnalyzedCount, List[AnalyzeResult]] = {
+  ): AnalyzeState[F, List[AnalyzeResult]] = {
     val program = dls.roots.toList
       .flatTraverse { root =>
         val dir = path.join(root.fsPath, "data")
@@ -68,7 +70,7 @@ final class DatapackAnalyzer private (
     root: String,
     file: String,
     rel: String
-  ): StateT[F, AnalyzedCount, Option[AnalyzeResult]] = {
+  ): AnalyzeState[F, Option[AnalyzeResult]] = {
     val program = for {
       languageID <- OptionT.fromOption {
         val dotIdx   = file.lastIndexOf(".")
@@ -107,7 +109,7 @@ final class DatapackAnalyzer private (
 
   def updateCache[F[_]: Async]()(using
     ciInteraction: CIPlatformInteractionInstr[F]
-  ): StateT[F, AnalyzedCount, Unit] = {
+  ): AnalyzeState[F, Unit] = {
     def checkFilesInCache(): F[Unit] = {
       for {
         uriStrings <- Monad[F].pure {
@@ -116,28 +118,28 @@ final class DatapackAnalyzer private (
       } yield ()
     }
 
-    def addNewFileToCache(): StateT[F, AnalyzedCount, Unit] = for {
+    def addNewFileToCache(): AnalyzeState[F, Unit] = for {
       filePaths <- StateT.liftF {
-        dls.roots.toList.traverse { root =>
+        dls.roots.toList.flatTraverse { root =>
           val dir = path.join(root.fsPath, "data")
           FSAsync.foreachFileRec(root.fsPath, dir, p => dlsConfig.isRelIncluded(p.rel)) {
             _.abs.pure[F]
           }
         }
       }
-      _         <- filePaths.flatten.traverse_ { filePath =>
-        val uri           = dls.parseUri(Uri.file(filePath).toString())
-        val alreadyCached = dls.cacheFile.files.contains(uri.toString())
 
+      _ <- filePaths.traverse_ { filePath =>
         val program = for {
-          _ <- EitherTExtra.exitWhenA(alreadyCached)(Monad[F].unit)
-          _ <- EitherT.liftF {
+          uri           <- EitherT.pure(dls.parseUri(Uri.file(filePath).toString()))
+          alreadyCached <- EitherT.pure(dls.cacheFile.files.contains(uri.toString()))
+          _             <- EitherTExtra.exitWhenA(alreadyCached)(Monad[F].unit)
+          _             <- EitherT.liftF {
             ciInteraction.printDebug(s"[updateCacheFile] file add detected: ${uri.fsPath}")
           }
-          _ <- EitherT.liftF(AsyncExtra.fromPromise[F](dls.onAddedFile(uri)))
+          _             <- EitherT.liftF(AsyncExtra.fromPromise[F](dls.onAddedFile(uri)))
         } yield ()
 
-        StateT.liftF(program.merge).flatMap(_ => gc())
+        StateT.liftF(program.merge) *> gc()
       }
     } yield ()
 
@@ -153,26 +155,23 @@ final class DatapackAnalyzer private (
     } yield ()
   }
 
-  private def gc[F[_]: Async](force: true): StateT[F, AnalyzedCount, Unit] = {
-    for {
-      _ <- StateT.liftF(Async[F].delay {
-        dls.caches.asInstanceOf[js.Map[String, ClientCache]].clear()
-      })
-      _ <- StateT.set(0)
-    } yield ()
-  }
+  @annotation.nowarn("msg=unused explicit parameter")
+  private def gc[F[_]: Async](force: true): AnalyzeState[F, Unit] = for {
+    _ <- StateT.liftF(Async[F].delay {
+      dls.caches.asInstanceOf[js.Map[String, ClientCache]].clear()
+    })
+    _ <- StateT.set(0)
+  } yield ()
 
   private def gc[F[_]: Async](
     addAnalyzedNodeCount: AnalyzedCount = 17
-  ): StateT[F, AnalyzedCount, Unit] = {
-    StateT.modifyF { analyzedNodeCount =>
-      if (DatapackAnalyzer.GC_THRESHOLD <= analyzedNodeCount + addAnalyzedNodeCount) {
-        Async[F].delay(dls.caches.asInstanceOf[js.Map[String, ClientCache]].clear()).as(0)
-      } else {
-        Monad[F].pure(analyzedNodeCount + addAnalyzedNodeCount)
-      }
+  ): AnalyzeState[F, Unit] = for {
+    _     <- StateT.modify((_: AnalyzedCount) + addAnalyzedNodeCount)
+    added <- StateT.get
+    _     <- Applicative[AnalyzeState[F, _]].whenA(DatapackAnalyzer.GC_THRESHOLD <= added) {
+      gc(true)
     }
-  }
+  } yield ()
 }
 
 object DatapackAnalyzer {
