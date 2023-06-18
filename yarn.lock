@@ -261,10 +261,10 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
-"@mcschema/core@^0.12.37", "@mcschema/core@^0.12.38":
-  version "0.12.38"
-  resolved "https://registry.yarnpkg.com/@mcschema/core/-/core-0.12.38.tgz#9fe80e61375eab9b9e782eb42dc18962365a02ac"
-  integrity sha512-B3xgyc5GgVW1RXFNSkb4DMqBT27l8B2U8sXIV3bpEGCW29PkPKmH5HTw9Zo8+Bw0pqrT7cB2mkrXepsTY6B1gQ==
+"@mcschema/core@^0.12.37", "@mcschema/core@^0.12.38", "@mcschema/core@^0.12.39", "@mcschema/core@^0.12.40":
+  version "0.12.40"
+  resolved "https://registry.yarnpkg.com/@mcschema/core/-/core-0.12.40.tgz#4de1941be5d16a6eb4a7a8c9d19c9f36dbf3bd51"
+  integrity sha512-XrC0mJxrTNhwcKDZ3rQnHAwWbH9zr0NEikb7jiMdrLygtjvxJB9vqLFvA6CAg6xJO2rAsLNx2j4rGg99llqBLw==
 
 "@mcschema/java-1.16@^0.6.13":
   version "0.6.13"
@@ -294,31 +294,38 @@
   dependencies:
     "@mcschema/core" "^0.12.37"
 
-"@mcschema/java-1.19.3@^0.0.4":
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/@mcschema/java-1.19.3/-/java-1.19.3-0.0.4.tgz#77ead07e9910ae83d2dd21bc189863c0fc56109c"
-  integrity sha512-nvjoFp4ien3yqJbHG3BL/+w8Gt8vNdJeg9HdD1nbPoHM7HE4AHyHxBpBIj/etRasgCZUZglPAUT4fcHzHnToEA==
+"@mcschema/java-1.19.3@^0.0.7":
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/@mcschema/java-1.19.3/-/java-1.19.3-0.0.7.tgz#8f2b2da268e54688f23e176c718370baa051416b"
+  integrity sha512-8cBFe82W24OYJJ36ah2xGOBxeZU9tvXEAlzwl08i1J5Oc2wfycGYCohJnltAS6RS6fRyT4Qrz3ZcH9fTD4WuqA==
   dependencies:
     "@mcschema/core" "^0.12.37"
 
-"@mcschema/java-1.19.4@^0.1.3":
-  version "0.1.3"
-  resolved "https://registry.yarnpkg.com/@mcschema/java-1.19.4/-/java-1.19.4-0.1.3.tgz#52ceacfd0503dbdeea0d3e245d1367c8fcf0b2c4"
-  integrity sha512-e/NEw4YzPdXgN6o4AlHCoptF6XpdtAkhfQeYBG6SL94B6LdRdHAdTrQWcXr+/Y+xRrO2EqIxCQKvTpWxa8kMHA==
+"@mcschema/java-1.19.4@^0.1.10":
+  version "0.1.10"
+  resolved "https://registry.yarnpkg.com/@mcschema/java-1.19.4/-/java-1.19.4-0.1.10.tgz#fc1b54248cc0f2f61d48f74dcd3b252064c75332"
+  integrity sha512-VSJJvVNSlDoSPAvqJKy1DTKkopE2TSZL2dCw7y6+gLVyQnEwrNYw6OxOwh7muZqEqx08LgJ8zl8JcVvXMr0chw==
   dependencies:
     "@mcschema/core" "^0.12.38"
 
-"@mcschema/java-1.19@^0.1.42":
-  version "0.1.42"
-  resolved "https://registry.yarnpkg.com/@mcschema/java-1.19/-/java-1.19-0.1.42.tgz#b321bd3f2e0935d508c0d53ebbe0fdc4775fb54e"
-  integrity sha512-xar58H982xdaw4eDwy7EsiC2XFSxW3K8/1iQqMCBhPtT0Vq9Y0OJA9gi03L6OyceH6RBuTgydlvcQ2g8+NCKmQ==
+"@mcschema/java-1.19@^0.1.44":
+  version "0.1.44"
+  resolved "https://registry.yarnpkg.com/@mcschema/java-1.19/-/java-1.19-0.1.44.tgz#da9d5c7e959b58d634d86a4e94303bf10a1df21a"
+  integrity sha512-VIH4YCKa8WGvW/U9bvKnxmhB7EBBtNUIbI3t0eo0i/r5lN7JLbdEC8BHY+d7Uu5jXxYRgOhh5S1oADRNSOClzg==
   dependencies:
     "@mcschema/core" "^0.12.37"
 
-"@mcschema/locales@^0.1.76":
-  version "0.1.76"
-  resolved "https://registry.yarnpkg.com/@mcschema/locales/-/locales-0.1.76.tgz#9633493e5ea68903b445cc2df38e3e0b2660e73c"
-  integrity sha512-CIZG1l5udsqK9M3iYBVRtk0/mMeHZt4CGQrWu0bXutTIlnXMOJxSxRTwUTo5WVEqiiYSgMzgYzthuWwB7yMy5w==
+"@mcschema/java-1.20@^0.0.10":
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/@mcschema/java-1.20/-/java-1.20-0.0.10.tgz#fb782b51589278a7c49d1cac1cdb54453a02634e"
+  integrity sha512-7WZQLNeUflg3xvm5cdr5r9N4w5zMIphd3HcQ7kgu2ZwURZR1OH0vxmTIFETgcyG4Cg25ppTTivy6uvqujobHeQ==
+  dependencies:
+    "@mcschema/core" "^0.12.39"
+
+"@mcschema/locales@^0.1.85":
+  version "0.1.85"
+  resolved "https://registry.yarnpkg.com/@mcschema/locales/-/locales-0.1.85.tgz#7dd65186d72bc6d549eafcb72cb2bdcbdd5f49f9"
+  integrity sha512-D/WUSoRhWkn1KP1SwT/cKrA89e0UvkGDzSSomXsVx0ntPUrcOTn/5u7FIaMQsZat+k32hTiwkZA5l6zg6+BteA==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
@@ -432,20 +439,21 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.4.0.tgz#2c91791a9ba6ca0a0f4aaac5e45d58df13639ac8"
   integrity sha512-IgMK9i3sFGNUqPMbjABm0G26g0QCKCUBfglhQ7rQq6WcxbKfEHRcmwsoER4hZcuYqJgkYn2OeuoJIv7Jsftp7g==
 
-"@spgoding/datapack-language-server@^3.4.7":
-  version "3.4.7"
-  resolved "https://registry.yarnpkg.com/@spgoding/datapack-language-server/-/datapack-language-server-3.4.7.tgz#514b707d840942d52137ac3d60051bd00e250477"
-  integrity sha512-rIs6R4slejvSFK72vVaTDS7uq2U5L8bFxO2DUxzQncaxqMGO7Vh9+2L7WTdZMii4tcOB73fYfVIIRlSPHT9+ew==
+"@spgoding/datapack-language-server@^3.4.14":
+  version "3.4.14"
+  resolved "https://registry.yarnpkg.com/@spgoding/datapack-language-server/-/datapack-language-server-3.4.14.tgz#d1ec08e336c844dc3daa2a3eccbfad71c87aa588"
+  integrity sha512-5gyjPq4u7xIUPl5UbGPGURTvoOetlvT9Kh44mWziM8zaCB2xTBfPJH+SU/HvZFVtMG4AExcj9YhYvCXur5OaPw==
   dependencies:
-    "@mcschema/core" "^0.12.38"
+    "@mcschema/core" "^0.12.40"
     "@mcschema/java-1.16" "^0.6.13"
     "@mcschema/java-1.17" "^0.2.33"
     "@mcschema/java-1.18" "^0.3.9"
     "@mcschema/java-1.18.2" "^0.1.18"
-    "@mcschema/java-1.19" "^0.1.42"
-    "@mcschema/java-1.19.3" "^0.0.4"
-    "@mcschema/java-1.19.4" "^0.1.3"
-    "@mcschema/locales" "^0.1.76"
+    "@mcschema/java-1.19" "^0.1.44"
+    "@mcschema/java-1.19.3" "^0.0.7"
+    "@mcschema/java-1.19.4" "^0.1.10"
+    "@mcschema/java-1.20" "^0.0.10"
+    "@mcschema/locales" "^0.1.85"
     appdata-path "^1.0.0"
     clone "^2.1.2"
     fast-deep-equal "^3.1.3"
@@ -514,10 +522,10 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-14.18.37.tgz#0bfcd173e8e1e328337473a8317e37b3b14fd30d"
   integrity sha512-7GgtHCs/QZrBrDzgIJnQtuSvhFSwhyYSI2uafSwZoNt1iOGhEN5fwNrQMjtONyHm9+/LoA4453jH0CMYcr06Pg==
 
-"@types/object-hash@^2.2.1":
-  version "2.2.1"
-  resolved "https://registry.yarnpkg.com/@types/object-hash/-/object-hash-2.2.1.tgz#67c169f8f033e0b62abbf81df2d00f4598d540b9"
-  integrity sha512-i/rtaJFCsPljrZvP/akBqEwUP2y5cZLOmvO+JaYnz01aPknrQ+hB5MRcO7iqCUsFaYfTG8kGfKUyboA07xeDHQ==
+"@types/object-hash@^3.0.2":
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/@types/object-hash/-/object-hash-3.0.2.tgz#f3656433e6c6049571fc3fb3fb42f389af96c0eb"
+  integrity sha512-tfyXl1JPCf2hzIDK29gO7qGqJjThKBzg/Cn3bA68R9NmWdOx+f7k5mm4to/n43BHspCwcoUC6FU4NpUoK/h9bQ==
 
 "@types/tunnel@^0.0.3":
   version "0.0.3"
@@ -1429,10 +1437,15 @@ globby@^11.0.3:
     merge2 "^1.4.1"
     slash "^3.0.0"
 
-graceful-fs@^4.1.2, graceful-fs@^4.1.6, graceful-fs@^4.2.0, graceful-fs@^4.2.4, graceful-fs@^4.2.9:
+graceful-fs@^4.1.2, graceful-fs@^4.2.4, graceful-fs@^4.2.9:
   version "4.2.10"
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.2.10.tgz#147d3a006da4ca3ce14728c7aefc287c367d7a6c"
   integrity sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA==
+
+graceful-fs@^4.1.6, graceful-fs@^4.2.0:
+  version "4.2.11"
+  resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.2.11.tgz#4183e4e8bf08bb6e05bbb2f7d2e0c8f712ca40e3"
+  integrity sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==
 
 has-flag@^3.0.0:
   version "3.0.0"

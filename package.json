@@ -17,8 +17,7 @@
     "@actions/cache": "^3.1.2",
     "@actions/core": "^1.10.0",
     "@actions/github": "^5.1.1",
-    "@spgoding/datapack-language-server": "^3.4.7",
-    "@types/object-hash": "^2.2.1",
+    "@spgoding/datapack-language-server": "^3.4.14",
     "jsonc-parser": "^3.2.0",
     "minimatch": "^3.0.4",
     "object-hash": "^2.2.0",
@@ -31,6 +30,7 @@
   "devDependencies": {
     "@types/minimatch": "^3.0.4",
     "@types/node": "^14.14.44",
+    "@types/object-hash": "^3.0.2",
     "@typescript-eslint/eslint-plugin": "^4.22.1",
     "@typescript-eslint/parser": "^4.22.1",
     "eslint": "^7.26.0",
