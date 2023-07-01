@@ -30,14 +30,10 @@ export function getActionInput(type: 'string' | 'string[]' | 'number' | 'boolean
 
 export async function tryRestoreCache(cacheVersion: number): Promise<boolean> {
     try {
-        const keys: string[] = [];
-        if (!context.payload.created)
-            keys.push(getCacheKey(cacheVersion, context.ref));
-        else if (context.payload.base_ref)
-            keys.push(getCacheKey(cacheVersion, context.payload.base_ref));
-
-        keys.push(getCacheKey(cacheVersion));
-        return !!await cache.restoreCache(cachedFiles, '', keys);
+        const fbKey = getCacheKey(cacheVersion);
+        if (context.payload.created && context.payload.base_ref)
+            return !!await cache.restoreCache(cachedFiles, getCacheKey(cacheVersion, context.payload.base_ref), [fbKey]);
+        return !!await cache.restoreCache(cachedFiles, getCacheKey(cacheVersion, context.ref), [fbKey]);
     } catch (e) {
         core.warning('Failed to load the cache. The following errors may be resolved by reporting them in the datapack-linter repository.');
         core.warning(e);
