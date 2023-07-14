@@ -54,7 +54,6 @@ object Main extends IOApp {
             .as(ExitCode.Error)
       }
     }
-
     handleError(run())
   }
 
@@ -83,11 +82,12 @@ object Main extends IOApp {
       }
 
       inputReader <- Resource.eval {
-        configFilePath
-          .map(FileInputReader.createInstr)
-          .getOrElse(Monad[F].pure {
-            EnvironmentInputReader.createInstr(k => s"INPUT_${k.replace(" ", "_").toUpperCase()}")
-          })
+        configFilePath match {
+          case Some(path) => FileInputReader.createInstr(path)
+          case None       => Monad[F].pure {
+              EnvironmentInputReader.createInstr(k => s"INPUT_${k.replace(" ", "_").toUpperCase()}")
+            }
+        }
       }
     } yield CIPlatformContext(interaction, inputReader)
   }
