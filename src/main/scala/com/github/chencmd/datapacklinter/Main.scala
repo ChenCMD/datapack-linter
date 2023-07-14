@@ -116,7 +116,7 @@ object Main extends IOApp {
       }
     } yield {
       val errors = DatapackLinter.extractErrorCount(result)
-      if config.forcePass || errors.values.sum == 0 then {
+      if (config.forcePass || errors.values.sum == 0) {
         ExitCode.Success
       } else {
         ExitCode.Error
