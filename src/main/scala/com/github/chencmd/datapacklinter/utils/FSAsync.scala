@@ -1,6 +1,6 @@
 package com.github.chencmd.datapacklinter.utils
 
-import com.github.chencmd.datapacklinter.generic.ApplicativeExtra.*
+import com.github.chencmd.datapacklinter.generic.ApplicativeExtra
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
 import com.github.chencmd.datapacklinter.generic.EitherTExtra
 
@@ -69,9 +69,9 @@ object FSAsync {
             }
             fApplied <- EitherT.liftF(f(childPath))
           } yield List(fApplied)
-          program.merge
-            .whenOrPureNoneA(pathFilter(childPath))
-            .map(_.getOrElse(List.empty))
+          ApplicativeExtra
+            .whenOrPureNoneA(pathFilter(childPath))(program.merge)
+            .map(_.orEmpty)
         }
     } yield result
     walk(targetDir, 0)
@@ -101,9 +101,9 @@ object FSAsync {
           }
           fApplied <- f(childPath)
         } yield List(fApplied) ::: childDir
-        program
-          .whenOrPureNoneA(pathFilter(childPath))
-          .map(_.getOrElse(List.empty))
+        ApplicativeExtra
+          .whenOrPureNoneA(pathFilter(childPath))(program)
+          .map(_.orEmpty)
       }
     } yield result
     walk(targetDir, 0)

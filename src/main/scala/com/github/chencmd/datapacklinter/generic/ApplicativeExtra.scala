@@ -2,18 +2,19 @@ package com.github.chencmd.datapacklinter.generic
 
 import cats.Applicative
 import cats.Functor
+import cats.MonoidK
 import cats.implicits.*
 
 object ApplicativeExtra {
-  extension [F[_]: Applicative, A](action: => F[A]) {
-    def whenOrPureNoneA(cond: Boolean): F[Option[A]] = {
-      if cond then Functor[F].map(action)(_.some)
-      else Applicative[F].pure(None)
-    }
+  def whenOrPureNoneA[F[_]: Applicative, A](cond: Boolean)(action: => F[A]): F[Option[A]] = {
+    whenAOrPureEmpty(cond)(Functor[F].map(action)(_.some))
+  }
 
-    def unlessOrPureNoneA(cond: Boolean): F[Option[A]] = {
-      if cond then Applicative[F].pure(None)
-      else Functor[F].map(action)(_.some)
-    }
+  def unlessOrPureNoneA[F[_]: Applicative, A](cond: Boolean)(action: => F[A]): F[Option[A]] = {
+    whenAOrPureEmpty(!cond)(Functor[F].map(action)(_.some))
+  }
+
+  def whenAOrPureEmpty[F[_]: Applicative, M[_]: MonoidK, A](cond: Boolean)(action: => F[M[A]]): F[M[A]] = {
+    if cond then action else Applicative[F].pure(MonoidK[M].empty)
   }
 }
