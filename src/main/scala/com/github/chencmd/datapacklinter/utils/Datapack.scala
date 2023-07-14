@@ -4,6 +4,10 @@ import cats.Monad
 import cats.effect.Async
 import cats.implicits.*
 
+import scala.util.chaining.*
+
+import scala.scalajs.js.JSConverters.*
+
 import typings.node.pathMod as path
 
 import typings.spgodingDatapackLanguageServer.libServicesCommonMod as DLSCommon
@@ -26,4 +30,20 @@ object Datapack {
         .map(DLSCommon.getRootUri(_))
     }
   } yield rootUris
+
+  def getRoot(uri: Uri, roots: List[Uri]): Option[String] = {
+    val res = Option(DLSCommon.getRelAndRootIndex(uri, roots.toJSArray))
+    res
+      .map(_.rel)
+      .orElse {
+        uri.path
+          .split("/")
+          .reverse
+          .dropWhile(seg => seg == "asset" && seg == "data")
+          .reverse
+          .mkString("/")
+          .pipe(Option.apply)
+          .filter(_.nonEmpty)
+      }
+  }
 }
