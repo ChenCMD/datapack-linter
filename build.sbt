@@ -10,11 +10,13 @@ enablePlugins(ScalablyTypedConverterPlugin)
 Compile / fastOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.config-fast.js")
 Compile / fullOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.config-full.js")
 Compile / npmDependencies ++= Seq(
+  "@actions/cache"                     -> "^3.2.1",
   "@actions/core"                      -> "^1.10.0",
   "@actions/github"                    -> "^5.1.1",
   "@spgoding/datapack-language-server" -> "3.4.7",
   "jsonc-parser"                       -> "^3.2.0",
   "minimatch"                          -> "^3.0.4",
+  "@octokit/webhooks-types"            -> "^7.0.3"
 )
 Compile / npmDevDependencies ++= Seq(
   "@types/node" -> "13.13.4"
@@ -36,12 +38,7 @@ scalacOptions ++= Seq(
   "-feature",
   "-Ykind-projector:underscores",
   "-no-indent",
-  "-Wunused:imports",
-  "-Wunused:locals",
-  "-Wunused:privates",
-  "-Wunused:params",
-  "-Wunused:unsafe-warn-patvars",
-  "-Wunused:linted"
+  "-Wunused:all"
 )
 
 javaOptions ++= Seq(
