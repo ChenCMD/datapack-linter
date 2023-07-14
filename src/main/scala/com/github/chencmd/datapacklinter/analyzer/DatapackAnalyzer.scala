@@ -7,6 +7,7 @@ import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
 import com.github.chencmd.datapacklinter.generic.EitherTExtra
 import com.github.chencmd.datapacklinter.utils.FSAsync
 
+import cats.Applicative
 import cats.Monad
 import cats.data.EitherT
 import cats.data.OptionT
@@ -29,7 +30,6 @@ import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.ClientCache
 import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
 import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
-import cats.Applicative
 
 final class DatapackAnalyzer private (
   private val analyzerConfig: AnalyzerConfig,

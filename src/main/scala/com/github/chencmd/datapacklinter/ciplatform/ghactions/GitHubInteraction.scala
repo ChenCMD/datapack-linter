@@ -2,6 +2,7 @@ package com.github.chencmd.datapacklinter.ciplatform.ghactions
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.utils.FSAsync
+import com.github.chencmd.datapacklinter.utils.JSObject
 
 import cats.Monad
 import cats.effect.Async
@@ -9,7 +10,6 @@ import cats.effect.Resource
 import cats.implicits.*
 
 import scala.scalajs.js
-import scala.scalajs.js.Dynamic.literal as JSObject
 import scala.scalajs.js.JSON
 
 import typings.actionsCore.mod as core

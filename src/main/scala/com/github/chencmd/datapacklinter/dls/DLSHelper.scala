@@ -4,6 +4,7 @@ import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
 import com.github.chencmd.datapacklinter.generic.RaiseNec
 import com.github.chencmd.datapacklinter.utils.Datapack
+import com.github.chencmd.datapacklinter.utils.JSObject
 import com.github.chencmd.datapacklinter.utils.Jsonc
 
 import cats.Monad
@@ -14,7 +15,6 @@ import cats.implicits.*
 import scala.concurrent.duration.*
 
 import scala.scalajs.js
-import scala.scalajs.js.Dynamic.literal as JSObject
 import scala.scalajs.js.JSON
 
 import typings.node.pathMod as path
