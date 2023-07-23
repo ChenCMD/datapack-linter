@@ -9,12 +9,12 @@ import scala.scalajs.js.WrappedDictionary
 import org.scalablytyped.runtime.StringDictionary
 
 object JSObject extends scala.Dynamic {
-  def applyDynamicNamed(name: String)(fields: (String, js.Any)*): js.Object with js.Dynamic = {
-    Dynamic.literal(fields: _*)
+  def applyDynamicNamed(name: String)(fields: (String, js.Any)*): js.Object & js.Dynamic = {
+    Dynamic.literal(fields*)
   }
 
-  def applyDynamic(name: String)(fields: (String, js.Any)*): js.Object with js.Dynamic = {
-    Dynamic.literal(fields: _*)
+  def applyDynamic(name: String)(fields: (String, js.Any)*): js.Object & js.Dynamic = {
+    Dynamic.literal(fields*)
   }
 
   def isObject(value: js.Any): Boolean = {
