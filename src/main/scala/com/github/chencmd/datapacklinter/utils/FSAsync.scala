@@ -42,12 +42,12 @@ object FSAsync {
 
   def readFileOpt[F[_]: Async](targetPath: String): F[Option[String]] = for {
     existsFile <- pathAccessible(targetPath)
-    contents   <- ApplicativeExtra.whenOrPureNoneA(existsFile)(readFile(targetPath))
+    contents   <- ApplicativeExtra.whenAOrPureNone(existsFile)(readFile(targetPath))
   } yield contents
 
   def readDirOpt[F[_]: Async](targetPath: String): F[Option[List[String]]] = for {
     existsFile <- pathAccessible(targetPath)
-    contents   <- ApplicativeExtra.whenOrPureNoneA(existsFile)(readDir(targetPath))
+    contents   <- ApplicativeExtra.whenAOrPureNone(existsFile)(readDir(targetPath))
   } yield contents
 
   def isDirectory[F[_]: Async](targetPath: String): F[Boolean] = {
@@ -81,7 +81,7 @@ object FSAsync {
             fApplied <- EitherT.liftF(f(childPath))
           } yield List(fApplied)
           ApplicativeExtra
-            .whenOrPureNoneA(pathFilter(childPath))(program.merge)
+            .whenAOrPureNone(pathFilter(childPath))(program.merge)
             .map(_.orEmpty)
         }
     } yield result
@@ -113,7 +113,7 @@ object FSAsync {
           fApplied <- f(childPath)
         } yield List(fApplied) ::: childDir
         ApplicativeExtra
-          .whenOrPureNoneA(pathFilter(childPath))(program)
+          .whenAOrPureNone(pathFilter(childPath))(program)
           .map(_.orEmpty)
       }
     } yield result

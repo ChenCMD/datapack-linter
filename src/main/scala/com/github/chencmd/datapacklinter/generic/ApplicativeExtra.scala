@@ -6,11 +6,11 @@ import cats.MonoidK
 import cats.implicits.*
 
 object ApplicativeExtra {
-  def whenOrPureNoneA[F[_]: Applicative, A](cond: Boolean)(action: => F[A]): F[Option[A]] = {
+  def whenAOrPureNone[F[_]: Applicative, A](cond: Boolean)(action: => F[A]): F[Option[A]] = {
     whenAOrPureEmpty(cond)(Functor[F].map(action)(_.some))
   }
 
-  def unlessOrPureNoneA[F[_]: Applicative, A](cond: Boolean)(action: => F[A]): F[Option[A]] = {
+  def unlessAOrPureNone[F[_]: Applicative, A](cond: Boolean)(action: => F[A]): F[Option[A]] = {
     whenAOrPureEmpty(!cond)(Functor[F].map(action)(_.some))
   }
 
