@@ -11,6 +11,7 @@ import cats.implicits.*
 
 import typings.node.pathMod as path
 import typings.node.BufferEncoding
+import typings.node.anon.Mode
 import typings.node.fsMod.promises as fsp
 
 object FSAsync {
@@ -22,7 +23,7 @@ object FSAsync {
   }
 
   def writeFile[F[_]: Async](targetPath: String, contents: String): F[Unit] = {
-    AsyncExtra.fromPromise(fsp.writeFile(targetPath, contents))
+    AsyncExtra.fromPromise(fsp.writeFile(targetPath, contents, Mode().setEncoding("utf8")))
   }
 
   def removeFile[F[_]: Async](targetPath: String): F[Unit] = {
@@ -38,6 +39,16 @@ object FSAsync {
       .fromPromise(fsp.readdir(dir))
       .map(_.toList.map(path.join(dir, _)))
   }
+
+  def readFileOpt[F[_]: Async](targetPath: String): F[Option[String]] = for {
+    existsFile <- pathAccessible(targetPath)
+    contents   <- ApplicativeExtra.whenOrPureNoneA(existsFile)(readFile(targetPath))
+  } yield contents
+
+  def readDirOpt[F[_]: Async](targetPath: String): F[Option[List[String]]] = for {
+    existsFile <- pathAccessible(targetPath)
+    contents   <- ApplicativeExtra.whenOrPureNoneA(existsFile)(readDir(targetPath))
+  } yield contents
 
   def isDirectory[F[_]: Async](targetPath: String): F[Boolean] = {
     AsyncExtra.fromPromise(fsp.stat(targetPath)).map(_.isDirectory())
