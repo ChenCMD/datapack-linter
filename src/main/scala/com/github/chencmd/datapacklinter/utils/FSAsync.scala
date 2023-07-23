@@ -22,8 +22,8 @@ object FSAsync {
       .handleError(_ => false)
   }
 
-  def writeFile[F[_]: Async](targetPath: String, contents: String): F[Unit] = {
-    AsyncExtra.fromPromise(fsp.writeFile(targetPath, contents, Mode().setEncoding("utf8")))
+  def writeFile[F[_]: Async](targetPath: String, contents: String, encoding: String = "utf8"): F[Unit] = {
+    AsyncExtra.fromPromise(fsp.writeFile(targetPath, contents, Mode().setEncoding(encoding)))
   }
 
   def removeFile[F[_]: Async](targetPath: String): F[Unit] = {
