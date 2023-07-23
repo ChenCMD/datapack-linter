@@ -67,11 +67,7 @@ object Main extends IOApp {
     }
     for {
       context <- Resource.eval(Async[F].delay {
-        if (process.env.contains("GITHUB_ACTIONS")) {
-          Platform.GitHubActions
-        } else {
-          Platform.Local
-        }
+        if process.env.contains("GITHUB_ACTIONS") then Platform.GitHubActions else Platform.Local
       })
 
       interaction <- {
@@ -116,11 +112,7 @@ object Main extends IOApp {
       }
     } yield {
       val errors = DatapackLinter.extractErrorCount(result)
-      if (config.forcePass || errors.values.sum == 0) {
-        ExitCode.Success
-      } else {
-        ExitCode.Error
-      }
+      if config.forcePass || errors.values.sum == 0 then ExitCode.Success else ExitCode.Error
     }
 
     program.runEmptyA
