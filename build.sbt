@@ -37,7 +37,8 @@ scalacOptions ++= Seq(
   "-unchecked",
   "-Ykind-projector:underscores",
   "-no-indent",
-  "-Wunused:all"
+  "-Wunused:all",
+  "-source:future"
 )
 
 javaOptions ++= Seq(
