@@ -4,12 +4,10 @@ import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.dls.DLSHelper
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
 import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
-import com.github.chencmd.datapacklinter.generic.EitherTExtra
 import com.github.chencmd.datapacklinter.utils.FSAsync
 
 import cats.Applicative
 import cats.Monad
-import cats.data.EitherT
 import cats.data.OptionT
 import cats.data.StateT
 import cats.effect.Async
@@ -107,41 +105,49 @@ final class DatapackAnalyzer private (
     } yield res
   }
 
-  def updateCache[F[_]: Async]()(using
+  def fetchChecksums[F[_]: Async](files: List[String]): F[Map[String, String]] = for {
+    data <- files.traverseFilter { uriString =>
+      val program = for {
+        uri              <- OptionT.pure(dls.parseUri(uriString))
+        existsFile       <- OptionT.liftF(FSAsync.pathAccessible(uri.fsPath))
+        checksum: String <- OptionT.whenF(existsFile)(Async[F].delay( /* generateChecksum */ ???))
+      } yield (uri.toString, checksum)
+      program.value
+    }
+  } yield Map(data*)
+
+  def updateCache[F[_]: Async](fileStates: Map[String, FileState])(using
     ciInteraction: CIPlatformInteractionInstr[F]
   ): AnalyzeState[F, Unit] = {
-    def checkFilesInCache(): F[Unit] = {
-      for {
-        uriStrings <- Monad[F].pure {
-          dls.cacheFile.files.keys
+    import FileState.*
+
+    def checkFilesInCache[F[_]: Async]()(using
+      ciInteraction: CIPlatformInteractionInstr[F]
+    ): F[Unit] = fileStates.toList.traverse_ {
+      case (uriString, state) =>
+        val uri = dls.parseUri(uriString)
+        state match {
+          case Updated | RefsUpdated => for {
+              _ <- AsyncExtra.fromPromise(dls.onModifiedFile(uri))
+              _ <- Async[F].delay(dls.cacheFile.files(uriString) = 0)
+            } yield ()
+          case Deleted               => Async[F].delay {
+              dls.onDeletedFile(uri)
+            }
+          case _                     => Monad[F].unit
         }
-      } yield ()
     }
 
-    def addNewFileToCache(): AnalyzeState[F, Unit] = for {
-      filePaths <- StateT.liftF {
-        dls.roots.toList.flatTraverse { root =>
-          val dir = path.join(root.fsPath, "data")
-          FSAsync.foreachFileRec(root.fsPath, dir, p => dlsConfig.isRelIncluded(p.rel)) {
-            _.abs.pure[F]
-          }
-        }
+    def addNewFileToCache(): AnalyzeState[F, Unit] = {
+      fileStates.toList.traverse_ {
+        case (uriString, Created) => for {
+            uri <- Monad[AnalyzeState[F, _]].pure(dls.parseUri(uriString))
+            _ <- StateT.liftF(AsyncExtra.fromPromise(dls.onAddedFile(uri)))
+            _ <- gc()
+          } yield ()
+        case _                    => Monad[AnalyzeState[F, _]].unit
       }
-
-      _ <- filePaths.traverse_ { filePath =>
-        val program = for {
-          uri           <- EitherT.pure(dls.parseUri(Uri.file(filePath).toString()))
-          alreadyCached <- EitherT.pure(dls.cacheFile.files.contains(uri.toString()))
-          _             <- EitherTExtra.exitWhenA(alreadyCached)(Monad[F].unit)
-          _             <- EitherT.liftF {
-            ciInteraction.printDebug(s"[updateCacheFile] file add detected: ${uri.fsPath}")
-          }
-          _             <- EitherT.liftF(AsyncExtra.fromPromise[F](dls.onAddedFile(uri)))
-        } yield ()
-
-        StateT.liftF(program.merge) *> gc()
-      }
-    } yield ()
+    }
 
     for {
       time1 <- StateT.liftF(Async[F].delay(Date.now()))

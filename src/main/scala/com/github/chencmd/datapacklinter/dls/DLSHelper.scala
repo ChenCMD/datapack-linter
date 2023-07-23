@@ -2,8 +2,12 @@ package com.github.chencmd.datapacklinter.dls
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
+import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
+import com.github.chencmd.datapacklinter.generic.Instances.given
 import com.github.chencmd.datapacklinter.generic.RaiseNec
+import com.github.chencmd.datapacklinter.generic.UndefOrExtra.*
 import com.github.chencmd.datapacklinter.utils.Datapack
+import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.JSObject
 import com.github.chencmd.datapacklinter.utils.Jsonc
 
@@ -13,6 +17,7 @@ import cats.effect.Async
 import cats.implicits.*
 
 import scala.concurrent.duration.*
+import scala.util.chaining.*
 
 import scala.scalajs.js
 import scala.scalajs.js.JSON
@@ -24,8 +29,10 @@ import typings.spgodingDatapackLanguageServer.libTypesClientCapabilitiesMod as C
 import typings.spgodingDatapackLanguageServer.mod as DLS
 import typings.spgodingDatapackLanguageServer.libPluginsPluginLoaderMod.PluginLoader
 import typings.spgodingDatapackLanguageServer.libServicesDatapackLanguageServiceMod.DatapackLanguageServiceOptions
+import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.CacheFile
 import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
 import typings.spgodingDatapackLanguageServer.libTypesDatapackDocumentMod.DatapackDocument
+import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 import typings.spgodingDatapackLanguageServer.libTypesVersionInformationMod.VersionInformation
 import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
 
@@ -36,9 +43,33 @@ object DLSHelper {
     AsyncExtra.fromPromise[F](dls.parseDocument(doc)).map(_.toOption)
   }
 
+  def getAllFiles[F[_]: Async](dls: DatapackLanguageService, dlsConfig: DLSConfig) = {
+    dls.roots.toList.flatTraverse { r =>
+      val dir = path.join(r.fsPath, "data")
+      FSAsync.foreachFileRec(r.fsPath, dir, p => dlsConfig.isRelIncluded(p.rel))(_.abs.pure[F])
+    }
+  }
+
+  def genReferenceMap(dls: DatapackLanguageService): Map[String, List[String]] = Map.from {
+    for {
+      (_, cacheWithCategory) <- JSObject.entries(dls.cacheFile.cache)
+      (_, cacheWithId)       <- JSObject.entries(cacheWithCategory)
+      cacheUnit              <- cacheWithId.toList
+      declare                <- cacheUnit.dcl.orEmpty.toList ++ cacheUnit.`def`.orEmpty.toList
+
+      declareUri <- declare.uri.toList
+      referenceUris = cacheUnit.ref.orEmpty.toList
+        .flatMap(_.uri.toList)
+        .map(Uri.parse(_))
+        .map(_.fsPath)
+    } yield (declareUri, referenceUris)
+  }
+
   def createDLS[F[_]: Async](
     dir: String,
-    dlsConfig: DLSConfig
+    cacheDir: String,
+    dlsConfig: DLSConfig,
+    cache: Option[CacheFile]
   )(using
     R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F]
@@ -61,8 +92,8 @@ object DLSHelper {
       new DatapackLanguageService(
         DatapackLanguageServiceOptions()
           .setCapabilities(capabilities)
-          .setCacheFileUndefined
-          .setGlobalStoragePath(path.join(dir, ".cache"))
+          .pipe(opt => cache.map(opt.setCacheFile(_)).getOrElse(opt))
+          .setGlobalStoragePath(cacheDir)
           .setFetchConfig(_ => js.Promise.resolve(dlsConfig))
           .setPlugins(plugins)
           .setVersionInformation(versionInfo)

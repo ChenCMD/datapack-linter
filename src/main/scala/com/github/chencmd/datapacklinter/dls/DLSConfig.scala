@@ -13,7 +13,9 @@ import scala.scalajs.js
 
 import org.scalablytyped.runtime.StringDictionary
 import typings.spgodingDatapackLanguageServer.libTypesConfigMod as Cfg
-import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
+import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as OriginDLSConfig
+
+type DLSConfig = OriginDLSConfig
 
 object DLSConfig {
   def readConfig[F[_]: Async](
