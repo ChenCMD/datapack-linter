@@ -36,6 +36,7 @@ import typings.node.global.console
 
 import org.scalablytyped.runtime.StringDictionary
 import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.CacheFile
+import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
 
 object Main extends IOApp {
@@ -177,7 +178,7 @@ object Main extends IOApp {
     fileStates  <- Monad[F].pure(FileState.diff(prevChecksums.orEmpty, checksums, refs))
 
     _ <- fileStates
-      .groupMap(_._2)(t => dls.parseUri(t._1).fsPath)
+      .groupMap(_._2)(t => Uri.file(t._1).fsPath)
       .map { case (k, v) => k -> v.toList }
       .pipe { fm =>
         def log(state: FileState, stateMes: String) = fm.get(state).orEmpty.traverse_ { file =>

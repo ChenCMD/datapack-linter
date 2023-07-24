@@ -5,6 +5,7 @@ import com.github.chencmd.datapacklinter.dls.DLSHelper
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
 import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
 import com.github.chencmd.datapacklinter.utils.FSAsync
+import com.github.chencmd.datapacklinter.utils.Hash
 
 import cats.Applicative
 import cats.Monad
@@ -20,11 +21,11 @@ import typings.node.pathMod as path
 import typings.vscodeUri.mod.URI
 
 import typings.spgodingDatapackLanguageServer.libServicesCommonMod as DLSCommon
+import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod as ClientCache
 import typings.spgodingDatapackLanguageServer.mod as DLS
 import typings.spgodingDatapackLanguageServer.spgodingDatapackLanguageServerStrings as DLSStr
 import typings.spgodingDatapackLanguageServer.anon.GetText
 import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNode
-import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.ClientCache
 import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
 import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
@@ -108,10 +109,10 @@ final class DatapackAnalyzer private (
   def fetchChecksums[F[_]: Async](files: List[String]): F[Map[String, String]] = for {
     data <- files.traverseFilter { uriString =>
       val program = for {
-        uri              <- OptionT.pure(dls.parseUri(uriString))
-        existsFile       <- OptionT.liftF(FSAsync.pathAccessible(uri.fsPath))
-        checksum: String <- OptionT.whenF(existsFile)(Async[F].delay( /* generateChecksum */ ???))
-      } yield (uri.toString, checksum)
+        uri      <- OptionT.pure(dls.parseUri(uriString))
+        contents <- OptionT(FSAsync.readFileOpt(uri.fsPath))
+        checksum <- OptionT.pure(Hash.stringToHash(contents))
+      } yield uriString -> checksum
       program.value
     }
   } yield Map(data*)
@@ -125,11 +126,10 @@ final class DatapackAnalyzer private (
       ciInteraction: CIPlatformInteractionInstr[F]
     ): F[Unit] = fileStates.toList.traverse_ {
       case (uriString, state) =>
-        val uri = dls.parseUri(uriString)
+        val uri = dls.parseUri(Uri.file(uriString).toString)
         state match {
           case Updated | RefsUpdated => for {
               _ <- AsyncExtra.fromPromise(dls.onModifiedFile(uri))
-              _ <- Async[F].delay(dls.cacheFile.files(uriString) = 0)
             } yield ()
           case Deleted               => Async[F].delay {
               dls.onDeletedFile(uri)
@@ -141,9 +141,9 @@ final class DatapackAnalyzer private (
     def addNewFileToCache(): AnalyzeState[F, Unit] = {
       fileStates.toList.traverse_ {
         case (uriString, Created) => for {
-            uri <- Monad[AnalyzeState[F, _]].pure(dls.parseUri(uriString))
-            _ <- StateT.liftF(AsyncExtra.fromPromise(dls.onAddedFile(uri)))
-            _ <- gc()
+            uri <- Monad[AnalyzeState[F, _]].pure(dls.parseUri(Uri.file(uriString).toString))
+            _   <- StateT.liftF(AsyncExtra.fromPromise(dls.onAddedFile(uri)))
+            _   <- gc()
           } yield ()
         case _                    => Monad[AnalyzeState[F, _]].unit
       }
@@ -155,16 +155,18 @@ final class DatapackAnalyzer private (
       time2 <- StateT.liftF(Async[F].delay(Date.now()))
       _     <- StateT.liftF(ciInteraction.printInfo(s"[updateCacheFile] [1] ${time2 - time1} ms"))
       _     <- addNewFileToCache()
+      _     <- StateT.liftF(Async[F].delay(ClientCache.trimCache(dls.cacheFile.cache)))
       time3 <- StateT.liftF(Async[F].delay(Date.now()))
       _     <- StateT.liftF(ciInteraction.printInfo(s"[updateCacheFile] [2] ${time3 - time2} ms"))
       _     <- StateT.liftF(ciInteraction.printInfo(s"[updateCacheFile] [T] ${time3 - time1} ms"))
+      _     <- gc(true)
     } yield ()
   }
 
   @annotation.nowarn("msg=unused explicit parameter")
   private def gc[F[_]: Async](force: true): AnalyzeState[F, Unit] = for {
     _ <- StateT.liftF(Async[F].delay {
-      dls.caches.asInstanceOf[js.Map[String, ClientCache]].clear()
+      dls.caches.asInstanceOf[js.Map[String, Any]].clear()
     })
     _ <- StateT.set(0)
   } yield ()
