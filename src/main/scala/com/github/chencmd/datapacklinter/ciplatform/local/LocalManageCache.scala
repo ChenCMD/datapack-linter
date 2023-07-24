@@ -14,7 +14,7 @@ object LocalManageCache {
   ): CIPlatformManageCacheInstr[F] = {
     new CIPlatformManageCacheInstr[F] {
       override def store(paths: List[String]): F[Unit] = {
-        ciInteraction.printDebug("")
+        ciInteraction.printDebug("cache stored.")
       }
 
       override def restore(paths: List[String])(using
