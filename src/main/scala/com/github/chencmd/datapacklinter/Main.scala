@@ -93,7 +93,7 @@ object Main extends IOApp {
           analyzer <- Monad[F].pure(DatapackAnalyzer(analyzerConfig, dls, dlsConfig))
 
           (checksums, fileStates) <- genFileStates(analyzer, dls, dlsConfig, prevChecksums)
-          exitCode <- lint(analyzer, fileStates, linterConfig)
+          exitCode                <- lint(analyzer, fileStates, linterConfig)
 
           _ <- FSAsync.writeFile(dlsCachePath, JSON.stringify(dls.cacheFile))
           _ <- FSAsync.writeFile(checksumsPath, JSON.stringify(checksums.toJSDictionary))
@@ -199,9 +199,23 @@ object Main extends IOApp {
     val program = for {
       _      <- analyzer.updateCache(fileStates)
       result <- analyzer.analyzeAll(DatapackLinter.printResult(_, config.muteSuccessResult))
+      errors <- StateT.pure(DatapackLinter.extractErrorCount(result))
+      _      <- StateT.liftF {
+        def s(n: Int): String = if n > 1 then "s" else ""
+
+        val e = errors.get(4).orEmpty
+        val w = errors.get(3).orEmpty
+        if (e + w == 0) {
+          ciInteraction.printInfo("Check successful")
+        } else for {
+          _ <- ciInteraction.printInfo(s"Check failed ($e error${s(e)}, $w warning${s(w)})")
+          _ <- Monad[F].whenA(config.forcePass) {
+            ciInteraction.printInfo("The test has been forced to pass because forcePass is true")
+          }
+        } yield ()
+      }
     } yield {
-      val errors = DatapackLinter.extractErrorCount(result)
-      if config.forcePass || errors.values.sum == 0 then ExitCode.Success else ExitCode.Error
+      if (config.forcePass || errors(3) + errors(4) == 0) ExitCode.Success else ExitCode.Error
     }
 
     program.runEmptyA
