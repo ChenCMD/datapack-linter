@@ -10,6 +10,7 @@ import com.github.chencmd.datapacklinter.ciplatform.ghactions.*
 import com.github.chencmd.datapacklinter.ciplatform.local.*
 import com.github.chencmd.datapacklinter.dls.DLSConfig
 import com.github.chencmd.datapacklinter.dls.DLSHelper
+import com.github.chencmd.datapacklinter.generic.MapExtra.*
 import com.github.chencmd.datapacklinter.generic.RaiseNec
 import com.github.chencmd.datapacklinter.linter.DatapackLinter
 import com.github.chencmd.datapacklinter.linter.LinterConfig
@@ -181,7 +182,7 @@ object Main extends IOApp {
       .groupMap(_._2)(t => Uri.file(t._1).fsPath)
       .map { case (k, v) => k -> v.toList }
       .pipe { fm =>
-        def log(state: FileState, stateMes: String) = fm.get(state).orEmpty.traverse_ { file =>
+        def log(state: FileState, stateMes: String) = fm.getOrEmpty(state).traverse_ { file =>
           ciInteraction.printDebug(s"file $stateMes detected: $file")
         }
         log(FileState.Created, "add")
@@ -203,8 +204,8 @@ object Main extends IOApp {
       _      <- StateT.liftF {
         def s(n: Int): String = if n > 1 then "s" else ""
 
-        val e = errors.get(4).orEmpty
-        val w = errors.get(3).orEmpty
+        val e = errors.getOrEmpty(4)
+        val w = errors.getOrEmpty(3)
         if (e + w == 0) {
           ciInteraction.printInfo("Check successful")
         } else for {

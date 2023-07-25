@@ -1,5 +1,7 @@
 package com.github.chencmd.datapacklinter.analyzer
 
+import com.github.chencmd.datapacklinter.generic.MapExtra.*
+
 import cats.Align
 import cats.data.Ior
 import cats.implicits.*
@@ -30,7 +32,7 @@ object FileState {
     val fileState = Align[Map[String, _]].alignWith(prevChecksums, nextCheckSums)(FileState.apply)
     val overrideFileStateForRefs = fileState.flatMap {
       case (k, Updated | Deleted) =>
-        refs.get(k).orEmpty.filter(fileState.get(_).contains(NoChanged)).map(_ -> RefsUpdated)
+        refs.getOrEmpty(k).filter(fileState.get(_).contains(NoChanged)).map(_ -> RefsUpdated)
       case _                      => List.empty
     }
 
