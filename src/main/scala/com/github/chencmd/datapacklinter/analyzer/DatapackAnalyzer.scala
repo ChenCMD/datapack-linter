@@ -3,7 +3,6 @@ package com.github.chencmd.datapacklinter.analyzer
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.dls.DLSHelper
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
-import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.Hash
 
@@ -17,7 +16,6 @@ import cats.implicits.*
 import scala.scalajs.js
 import scala.scalajs.js.Date
 
-import typings.node.pathMod as path
 import typings.vscodeUri.mod.URI
 
 import typings.spgodingDatapackLanguageServer.libServicesCommonMod as DLSCommon
@@ -26,43 +24,37 @@ import typings.spgodingDatapackLanguageServer.mod as DLS
 import typings.spgodingDatapackLanguageServer.spgodingDatapackLanguageServerStrings as DLSStr
 import typings.spgodingDatapackLanguageServer.anon.GetText
 import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNode
-import typings.spgodingDatapackLanguageServer.libTypesConfigMod.Config as DLSConfig
 import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
 
 final class DatapackAnalyzer private (
-  private val analyzerConfig: AnalyzerConfig,
   private val dls: DatapackLanguageService,
-  private val dlsConfig: DLSConfig
+  private val analyzeCache: Map[String, AnalyzeResult]
 ) {
-  private type AnalyzedCount         = Int
-  private type AnalyzeState[F[_], A] = StateT[F, AnalyzedCount, A]
+  import DatapackAnalyzer.*
 
-  def analyzeAll[F[_]: Async](analyzeCallback: AnalyzeResult => F[Unit])(using
+  def analyzeAll[F[_]: Async](fileStates: Map[String, FileState])(
+    analyzeCallback: AnalyzeResult => F[Unit]
+  )(using
     ciInteraction: CIPlatformInteractionInstr[F]
   ): AnalyzeState[F, List[AnalyzeResult]] = {
-    val program = dls.roots.toList
-      .flatTraverse { root =>
-        val dir = path.join(root.fsPath, "data")
-        FSAsync.foreachFileRec(root.fsPath, dir, p => dlsConfig.isRelIncluded(p.rel)) { p =>
-          // リソースパスが存在して かつ ignorePathsに含まれていない
-          val isPathValid = IdentityNode
-            .fromRel(p.rel)
-            .map(_.id.toString)
-            .exists(!analyzerConfig.ignorePathsIncludes(_))
-
-          Option.when(isPathValid)(AnalyzeState.Waiting(root.fsPath, p.abs, p.rel)).pure[F]
-        }
+    import FileState.*
+    fileStates.toList
+      .sortBy(_._1)
+      .map { case (k, v) => DLSHelper.getFileInfoFromAbs(dls)(k) -> v }
+      .collect {
+        case (Some(k), Created | Updated | RefsUpdated)           =>
+          AnalyzeState.Waiting(k.root, k.abs, k.rel)
+        case (Some(k), NoChanged) if analyzeCache.contains(k.abs) =>
+          AnalyzeState.Cached(analyzeCache(k.abs))
       }
-      .map(_.flatten)
-    for {
-      parseFiles <- StateT.liftF(program)
-      results    <- parseFiles.sorted.flatTraverse {
-        case AnalyzeState.Waiting(root, abs, rel) => parseDoc(root, abs, rel)
-            .flatMapF(res => res.traverse_(analyzeCallback).as(res.toList))
-        case AnalyzeState.Cached(_, _, res) => StateT.liftF(analyzeCallback(res).as(List(res)))
+      .flatTraverse {
+        case AnalyzeState.Waiting(root, abs, rel) => for {
+            res <- parseDoc(root, abs, rel)
+            _   <- StateT.liftF(res.traverse_(analyzeCallback))
+          } yield res.toList
+        case AnalyzeState.Cached(res) => StateT.liftF(analyzeCallback(res).as(List(res)))
       }
-    } yield results
   }
 
   def parseDoc[F[_]: Async](
@@ -98,12 +90,12 @@ final class DatapackAnalyzer private (
       parsedDoc <- DLSHelper.parseDoc(dls)(doc)
 
       res <- AnalyzeResult[OptionT[F, _]](root, file, id, parsedDoc, doc)
-    } yield res
+    } yield (res, parsedDoc.nodes.length)
 
     for {
       res <- StateT.liftF(program.value)
-      _   <- res.traverse_(r => gc(r.analyzedLength))
-    } yield res
+      _   <- res.traverse_(r => gc(r._2))
+    } yield res.map(_._1)
   }
 
   def fetchChecksums[F[_]: Async](files: List[String]): F[Map[String, String]] = for {
@@ -176,7 +168,7 @@ final class DatapackAnalyzer private (
   ): AnalyzeState[F, Unit] = for {
     _     <- StateT.modify((_: AnalyzedCount) + addAnalyzedNodeCount)
     added <- StateT.get
-    _     <- Applicative[AnalyzeState[F, _]].whenA(DatapackAnalyzer.GC_THRESHOLD <= added) {
+    _     <- Applicative[AnalyzeState[F, _]].whenA(GC_THRESHOLD <= added) {
       gc(true)
     }
   } yield ()
@@ -184,12 +176,10 @@ final class DatapackAnalyzer private (
 
 object DatapackAnalyzer {
   private val GC_THRESHOLD = 500
+  private type AnalyzedCount         = Int
+  private type AnalyzeState[F[_], A] = StateT[F, AnalyzedCount, A]
 
-  def apply(
-    analyzerConfig: AnalyzerConfig,
-    dls: DatapackLanguageService,
-    dlsConfig: DLSConfig
-  ): DatapackAnalyzer = {
-    new DatapackAnalyzer(analyzerConfig, dls, dlsConfig)
+  def apply(dls: DatapackLanguageService, analyzeCache: List[AnalyzeResult]): DatapackAnalyzer = {
+    new DatapackAnalyzer(dls, analyzeCache.map(c => c.absolutePath -> c).toMap)
   }
 }

@@ -1,8 +1,8 @@
 package com.github.chencmd.datapacklinter.dls
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
-import com.github.chencmd.datapacklinter.generic.WrappedDictionaryExtra.*
 import com.github.chencmd.datapacklinter.generic.OptionTExtra
+import com.github.chencmd.datapacklinter.generic.WrappedDictionaryExtra.*
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.Jsonc
 

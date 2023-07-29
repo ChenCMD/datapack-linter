@@ -1,8 +1,10 @@
 package com.github.chencmd.datapacklinter
 
+import com.github.chencmd.datapacklinter.analyzer.AnalyzeResult
 import com.github.chencmd.datapacklinter.analyzer.AnalyzerConfig
 import com.github.chencmd.datapacklinter.analyzer.DatapackAnalyzer
 import com.github.chencmd.datapacklinter.analyzer.FileState
+import com.github.chencmd.datapacklinter.analyzer.JSAnalyzeResult
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformManageCacheInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
@@ -20,6 +22,7 @@ import cats.Monad
 import cats.data.EitherT
 import cats.data.NonEmptyChain
 import cats.data.OptionT
+import cats.data.StateT
 import cats.effect.Async
 import cats.effect.ExitCode
 import cats.effect.IOApp
@@ -28,6 +31,7 @@ import cats.implicits.*
 
 import scala.util.chaining.*
 
+import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 import scala.scalajs.js.JSON
 
@@ -59,13 +63,14 @@ object Main extends IOApp {
 
         val ciCache: CIPlatformManageCacheInstr[F] = ctx.manageCache
 
-        val cacheDir      = path.join(dir, CACHE_DIRECTORY)
-        val dlsCachePath  = path.join(cacheDir, "dlsCache.json")
-        val checksumsPath = path.join(cacheDir, "checksum.json")
+        val cacheDir               = path.join(dir, CACHE_DIRECTORY)
+        val dlsCachePath           = path.join(cacheDir, "dls.json")
+        val checksumCachePath      = path.join(cacheDir, "checksums.json")
+        val analyzeResultCachePath = path.join(cacheDir, "analyze-results.json")
 
         for {
-          restoreSucceed            <- ciCache.restore(List(CACHE_DIRECTORY))
-          (dlsCache, prevChecksums) <- {
+          restoreSucceed                                <- ciCache.restore(List(CACHE_DIRECTORY))
+          (dlsCache, checksumCache, analyzeResultCache) <- {
             val program = for {
               _ <- OptionT.when(restoreSucceed)(())
 
@@ -75,29 +80,43 @@ object Main extends IOApp {
                 JSON.parse(rawDlsCache).asInstanceOf[CacheFile]
               }
 
-              rawChecksums <- OptionT(FSAsync.readFileOpt(checksumsPath))
-              checksums    <- OptionT.pure {
+              rawChecksums  <- OptionT(FSAsync.readFileOpt(checksumCachePath))
+              checksumCache <- OptionT.pure {
                 // TODO safe cast にする
                 JSON.parse(rawChecksums).asInstanceOf[StringDictionary[String]].toMap
               }
-            } yield (dlsCache, checksums)
+
+              rawAnalyzeResultCache <- OptionT(FSAsync.readFileOpt(analyzeResultCachePath))
+              analyzeResultsCache   <- OptionT.pure {
+                // TODO safe cast にする
+                JSON
+                  .parse(rawAnalyzeResultCache)
+                  .asInstanceOf[js.Array[JSAnalyzeResult]]
+                  .toList
+                  .map(AnalyzeResult.fromJSObject)
+              }
+            } yield (dlsCache, checksumCache, analyzeResultsCache)
             for {
               caches <- program.value
               _      <- Async[F].whenA(caches.isEmpty) {
                 ciInteraction.printInfo("Failed to restore the cache")
               }
-            } yield caches.unzip
+            } yield caches.unzip3
           }
 
           (dlsConfig, linterConfig, analyzerConfig) <- genConfigs(dir)
           dls      <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
-          analyzer <- Monad[F].pure(DatapackAnalyzer(analyzerConfig, dls, dlsConfig))
+          analyzer <- Monad[F].pure(DatapackAnalyzer(dls, analyzeResultCache.orEmpty))
 
-          (checksums, fileStates) <- genFileStates(analyzer, dls, dlsConfig, prevChecksums)
-          exitCode                <- lint(analyzer, fileStates, linterConfig)
+          (checksums, fileStates)   <- genFileStates(analyzer, dls, dlsConfig, checksumCache)
+          (exitCode, analyzeResult) <- lint(analyzer, fileStates, linterConfig)
 
           _ <- FSAsync.writeFile(dlsCachePath, JSON.stringify(dls.cacheFile))
-          _ <- FSAsync.writeFile(checksumsPath, JSON.stringify(checksums.toJSDictionary))
+          _ <- FSAsync.writeFile(checksumCachePath, JSON.stringify(checksums.toJSDictionary))
+          _ <- FSAsync.writeFile(
+            analyzeResultCachePath,
+            JSON.stringify(analyzeResult.map(_.toJSObject).toJSArray)
+          )
           _ <- ciCache.store(List(CACHE_DIRECTORY))
         } yield exitCode
       }
@@ -189,6 +208,7 @@ object Main extends IOApp {
           >> log(FileState.Updated, "change")
           >> log(FileState.RefsUpdated, "ref change")
           >> log(FileState.Deleted, "delete")
+          >> log(FileState.NoChanged, "no change")
       }
   } yield (checksums, fileStates)
 
@@ -196,10 +216,11 @@ object Main extends IOApp {
     analyzer: DatapackAnalyzer,
     fileStates: Map[String, FileState],
     config: LinterConfig
-  )(using ciInteraction: CIPlatformInteractionInstr[F]): F[ExitCode] = {
+  )(using ciInteraction: CIPlatformInteractionInstr[F]): F[(ExitCode, List[AnalyzeResult])] = {
     val program = for {
       _      <- analyzer.updateCache(fileStates)
-      result <- analyzer.analyzeAll(DatapackLinter.printResult(_, config.muteSuccessResult))
+      result <-
+        analyzer.analyzeAll(fileStates)(DatapackLinter.printResult(_, config.muteSuccessResult))
       errors <- StateT.pure(DatapackLinter.extractErrorCount(result))
       _      <- StateT.liftF {
         def s(n: Int): String = if n > 1 then "s" else ""
@@ -216,7 +237,11 @@ object Main extends IOApp {
         } yield ()
       }
     } yield {
-      if (config.forcePass || errors(3) + errors(4) == 0) ExitCode.Success else ExitCode.Error
+      if (config.forcePass || errors(3) + errors(4) == 0) {
+        (ExitCode.Success, result)
+      } else {
+        (ExitCode.Error, result)
+      }
     }
 
     program.runEmptyA

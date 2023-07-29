@@ -27,6 +27,7 @@ import typings.vscodeLanguageserverTextdocument.mod.TextDocument
 
 import typings.spgodingDatapackLanguageServer.libTypesClientCapabilitiesMod as ClientCapabilities
 import typings.spgodingDatapackLanguageServer.mod as DLS
+import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNode
 import typings.spgodingDatapackLanguageServer.libPluginsPluginLoaderMod.PluginLoader
 import typings.spgodingDatapackLanguageServer.libServicesDatapackLanguageServiceMod.DatapackLanguageServiceOptions
 import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.CacheFile
@@ -43,11 +44,28 @@ object DLSHelper {
     AsyncExtra.fromPromise[F](dls.parseDocument(doc)).map(_.toOption)
   }
 
-  def getAllFiles[F[_]: Async](dls: DatapackLanguageService, dlsConfig: DLSConfig) = {
+  def getAllFiles[F[_]: Async](
+    dls: DatapackLanguageService,
+    dlsConfig: DLSConfig
+  ): F[List[String]] = {
     dls.roots.toList.flatTraverse { r =>
       val dir = path.join(r.fsPath, "data")
-      FSAsync.foreachFileRec(r.fsPath, dir, p => dlsConfig.isRelIncluded(p.rel))(_.abs.pure[F])
+      FSAsync
+        .foreachFileRec(r.fsPath, dir, p => dlsConfig.isRelIncluded(p.rel)) { p =>
+          val isValidDocument = IdentityNode.fromRel(p.rel).isDefined
+          Option.when(isValidDocument)(p.abs).pure[F]
+        }
+        .map(_.flatten)
     }
+  }
+
+  case class FileInfo(root: String, abs: String, rel: String)
+
+  def getFileInfoFromAbs(dls: DatapackLanguageService)(abs: String): Option[FileInfo] = {
+    dls.roots.toList
+      .map(_.fsPath)
+      .find(abs.startsWith)
+      .map(root => FileInfo(root, abs, path.relative(root, abs)))
   }
 
   def genReferenceMap(dls: DatapackLanguageService): Map[String, List[String]] = Map.from {
