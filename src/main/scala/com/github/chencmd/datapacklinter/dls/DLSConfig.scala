@@ -2,6 +2,7 @@ package com.github.chencmd.datapacklinter.dls
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.generic.WrappedDictionaryExtra.*
+import com.github.chencmd.datapacklinter.generic.OptionTExtra
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.Jsonc
 
@@ -23,7 +24,7 @@ object DLSConfig {
   )(using ciInteraction: CIPlatformInteractionInstr[F]): F[DLSConfig] = {
     val program = for {
       isAccessible <- FSAsync.pathAccessible[OptionT[F, _]](configFilePath)
-      _            <- OptionT.unlessF(isAccessible) {
+      _            <- OptionTExtra.exitUnlessF(isAccessible) {
         ciInteraction.printInfo("Could not access the .vscode config. Use the default config file.")
       }
       rawJson      <- FSAsync.readFile[OptionT[F, _]](configFilePath)
