@@ -225,8 +225,8 @@ object Main extends IOApp {
       _      <- StateT.liftF {
         def s(n: Int): String = if n > 1 then "s" else ""
 
-        val e = errors.getOrEmpty(4)
-        val w = errors.getOrEmpty(3)
+        val e = errors.getOrEmpty(1)
+        val w = errors.getOrEmpty(2)
         if (e + w == 0) {
           ciInteraction.printInfo("Check successful")
         } else for {
@@ -237,7 +237,7 @@ object Main extends IOApp {
         } yield ()
       }
     } yield {
-      if (config.forcePass || errors(3) + errors(4) == 0) {
+      if (config.forcePass || errors(1) + errors(2) == 0) {
         (ExitCode.Success, result)
       } else {
         (ExitCode.Error, result)
