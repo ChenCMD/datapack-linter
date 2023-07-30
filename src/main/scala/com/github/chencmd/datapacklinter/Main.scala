@@ -12,16 +12,17 @@ import com.github.chencmd.datapacklinter.ciplatform.ghactions.*
 import com.github.chencmd.datapacklinter.ciplatform.local.*
 import com.github.chencmd.datapacklinter.dls.DLSConfig
 import com.github.chencmd.datapacklinter.dls.DLSHelper
+import com.github.chencmd.datapacklinter.generic.EitherTExtra
 import com.github.chencmd.datapacklinter.generic.MapExtra.*
 import com.github.chencmd.datapacklinter.generic.RaiseNec
 import com.github.chencmd.datapacklinter.linter.DatapackLinter
 import com.github.chencmd.datapacklinter.linter.LinterConfig
 import com.github.chencmd.datapacklinter.utils.FSAsync
+import com.github.chencmd.datapacklinter.utils.Hash
 
 import cats.Monad
 import cats.data.EitherT
 import cats.data.NonEmptyChain
-import cats.data.OptionT
 import cats.data.StateT
 import cats.effect.Async
 import cats.effect.ExitCode
@@ -68,22 +69,34 @@ object Main extends IOApp {
         val analyzeResultCachePath = path.join(cacheDir, "analyze-results.json")
 
         for {
+          (dlsConfig, linterConfig, analyzerConfig)     <- genConfigs(dir)
+          (dlsConfigChecksum, linterConfigChecksum)     <- Monad[F].pure {
+            (Hash.objectToHash(dlsConfig), Hash.objectToHash(linterConfig.toJSObject))
+          }
           (dlsCache, checksumCache, analyzeResultCache) <- restoreCaches(
             CACHE_DIRECTORY,
             dlsCachePath,
             checksumCachePath,
-            analyzeResultCachePath
+            analyzeResultCachePath,
+            dlsConfigChecksum,
+            linterConfigChecksum
           )
 
-          (dlsConfig, linterConfig, analyzerConfig) <- genConfigs(dir)
           dls      <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
           analyzer <- Monad[F].pure(DatapackAnalyzer(dls, analyzeResultCache.orEmpty))
 
           (checksums, fileStates)      <- genFileStates(analyzer, dls, dlsConfig, checksumCache)
           (analyzeResult, lintSucceed) <- lint(analyzer, fileStates, linterConfig)
 
+          additionalChecksum <- Monad[F].pure(
+            Map("$dls-config" -> dlsConfigChecksum, "$linter-config" -> linterConfigChecksum)
+          )
+
           _ <- FSAsync.writeFile(dlsCachePath, JSON.stringify(dls.cacheFile))
-          _ <- FSAsync.writeFile(checksumCachePath, JSON.stringify(checksums.toJSDictionary))
+          _ <- FSAsync.writeFile(
+            checksumCachePath,
+            JSON.stringify((checksums ++ additionalChecksum).toJSDictionary)
+          )
           _ <- FSAsync.writeFile(
             analyzeResultCachePath,
             JSON.stringify(analyzeResult.map(_.toJSObject).toJSArray)
@@ -153,30 +166,32 @@ object Main extends IOApp {
     cacheDir: String,
     dlsCachePath: String,
     checksumCachePath: String,
-    analyzeResultCachePath: String
+    analyzeResultCachePath: String,
+    dlsConfigChecksum: String,
+    linterConfigChecksum: String
   )(using
     R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     ciCache: CIPlatformManageCacheInstr[F]
   ): F[(Option[CacheFile], Option[Map[String, String]], Option[List[AnalyzeResult]])] = {
     val program = for {
-      restoreSucceed <- OptionT.liftF(ciCache.restore(List(cacheDir)))
-      _              <- OptionT.when(restoreSucceed)(())
+      restoreSucceed <- EitherT.liftF(ciCache.restore(List(cacheDir)))
+      _              <- EitherTExtra.exitWhenA(restoreSucceed)("Failed to restore the cache")
 
-      rawDlsCache <- OptionT(FSAsync.readFileOpt(dlsCachePath))
-      dlsCache    <- OptionT.pure {
+      rawDlsCache <- EitherT.fromOptionF(FSAsync.readFileOpt(dlsCachePath), "")
+      dlsCache    <- EitherT.pure {
         // TODO safe cast にする
         JSON.parse(rawDlsCache).asInstanceOf[CacheFile]
       }
 
-      rawChecksums  <- OptionT(FSAsync.readFileOpt(checksumCachePath))
-      checksumCache <- OptionT.pure {
+      rawChecksums  <- EitherT.fromOptionF(FSAsync.readFileOpt(checksumCachePath), "")
+      checksumCache <- EitherT.pure {
         // TODO safe cast にする
         JSON.parse(rawChecksums).asInstanceOf[StringDictionary[String]].toMap
       }
 
-      rawAnalyzeResultCache <- OptionT(FSAsync.readFileOpt(analyzeResultCachePath))
-      analyzeResultsCache   <- OptionT.pure {
+      rawAnalyzeResultCache <- EitherT.fromOptionF(FSAsync.readFileOpt(analyzeResultCachePath), "")
+      analyzeResultsCache   <- EitherT.pure {
         // TODO safe cast にする
         JSON
           .parse(rawAnalyzeResultCache)
@@ -184,13 +199,16 @@ object Main extends IOApp {
           .toList
           .map(AnalyzeResult.fromJSObject)
       }
+
+      _ <- EitherTExtra.exitWhenA(checksumCache.get("$dls-config").contains(dlsConfigChecksum))("")
+      _ <- EitherTExtra.exitWhenA(
+        checksumCache.get("$linter-config").contains(linterConfigChecksum)
+      )("")
     } yield (dlsCache, checksumCache, analyzeResultsCache)
     for {
       caches <- program.value
-      _      <- Async[F].whenA(caches.isEmpty) {
-        ciInteraction.printInfo("Failed to restore the cache")
-      }
-    } yield caches.unzip3
+      _      <- caches.swap.traverse(ciInteraction.printInfo)
+    } yield caches.toOption.unzip3
   }
 
   private def genConfigs[F[_]: Async](dir: String)(using

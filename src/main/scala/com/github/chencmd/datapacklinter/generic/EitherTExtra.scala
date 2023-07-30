@@ -9,7 +9,8 @@ object EitherTExtra {
     else EitherT.pure(())
   }
 
-  // extension [F[_]: Applicative, A](exitValue: => F[A]) {
-  //   def exitWhenA(cond: Boolean): EitherT[F, A, Unit] = EitherTExtra.exitWhenA(cond)(exitValue)
-  // }
+  def exitWhenA[F[_]: Applicative, A](cond: Boolean)(exitValue: => A): EitherT[F, A, Unit] = {
+    if cond then EitherT.left(Applicative[F].pure(exitValue))
+    else EitherT.pure(())
+  }
 }
