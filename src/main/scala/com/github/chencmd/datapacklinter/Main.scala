@@ -70,16 +70,18 @@ object Main extends IOApp {
 
         for {
           (dlsConfig, linterConfig, analyzerConfig)     <- genConfigs(dir)
-          (dlsConfigChecksum, linterConfigChecksum)     <- Monad[F].pure {
-            (Hash.objectToHash(dlsConfig), Hash.objectToHash(linterConfig.toJSObject))
+          additionalChecksums                           <- Monad[F].pure {
+            Map(
+              "$config file"   -> Hash.objectToHash(dlsConfig),
+              "$linter config" -> Hash.objectToHash(linterConfig.toJSObject)
+            )
           }
           (dlsCache, checksumCache, analyzeResultCache) <- restoreCaches(
             CACHE_DIRECTORY,
             dlsCachePath,
             checksumCachePath,
             analyzeResultCachePath,
-            dlsConfigChecksum,
-            linterConfigChecksum
+            additionalChecksums.toList
           )
 
           dls      <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
@@ -90,14 +92,10 @@ object Main extends IOApp {
           (checksums, fileStates)      <- genFileStates(analyzer, dls, dlsConfig, checksumCache)
           (analyzeResult, lintSucceed) <- lint(analyzer, fileStates, linterConfig)
 
-          additionalChecksum <- Monad[F].pure(
-            Map("$dls-config" -> dlsConfigChecksum, "$linter-config" -> linterConfigChecksum)
-          )
-
           _ <- FSAsync.writeFile(dlsCachePath, JSON.stringify(dls.cacheFile))
           _ <- FSAsync.writeFile(
             checksumCachePath,
-            JSON.stringify((checksums ++ additionalChecksum).toJSDictionary)
+            JSON.stringify((checksums ++ additionalChecksums).toJSDictionary)
           )
           _ <- FSAsync.writeFile(
             analyzeResultCachePath,
@@ -169,30 +167,32 @@ object Main extends IOApp {
     dlsCachePath: String,
     checksumCachePath: String,
     analyzeResultCachePath: String,
-    dlsConfigChecksum: String,
-    linterConfigChecksum: String
+    sameRequiredAdditions: List[(String, String)]
   )(using
     R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     ciCache: CIPlatformManageCacheInstr[F]
   ): F[(Option[CacheFile], Option[Map[String, String]], Option[List[AnalyzeResult]])] = {
-    val program = for {
+    def readFileOrExit(path: String, exitMessage: String): EitherT[F, String, String] = {
+      EitherT.fromOptionF(FSAsync.readFileOpt(path), exitMessage)
+    }
+    val program                                                                       = for {
       restoreSucceed <- EitherT.liftF(ciCache.restore(List(cacheDir)))
-      _              <- EitherTExtra.exitWhenA(restoreSucceed)("Failed to restore the cache")
+      _              <- EitherTExtra.exitWhenA(!restoreSucceed)("Failed to restore the cache")
 
-      rawDlsCache <- EitherT.fromOptionF(FSAsync.readFileOpt(dlsCachePath), "")
+      rawDlsCache <- readFileOrExit(dlsCachePath, "Failed to read cache file")
       dlsCache    <- EitherT.pure {
         // TODO safe cast にする
         JSON.parse(rawDlsCache).asInstanceOf[CacheFile]
       }
 
-      rawChecksums  <- EitherT.fromOptionF(FSAsync.readFileOpt(checksumCachePath), "")
+      rawChecksums  <- readFileOrExit(checksumCachePath, "Failed to read cache file")
       checksumCache <- EitherT.pure {
         // TODO safe cast にする
         JSON.parse(rawChecksums).asInstanceOf[StringDictionary[String]].toMap
       }
 
-      rawAnalyzeResultCache <- EitherT.fromOptionF(FSAsync.readFileOpt(analyzeResultCachePath), "")
+      rawAnalyzeResultCache <- readFileOrExit(analyzeResultCachePath, "Failed to read cache file")
       analyzeResultsCache   <- EitherT.pure {
         // TODO safe cast にする
         JSON
@@ -202,11 +202,15 @@ object Main extends IOApp {
           .map(AnalyzeResult.fromJSObject)
       }
 
-      _ <- EitherTExtra.exitWhenA(checksumCache.get("$dls-config").contains(dlsConfigChecksum))("")
-      _ <- EitherTExtra.exitWhenA(
-        checksumCache.get("$linter-config").contains(linterConfigChecksum)
-      )("")
-    } yield (dlsCache, checksumCache, analyzeResultsCache)
+      _ <- sameRequiredAdditions.traverse {
+        case (name, checksum) =>
+          EitherTExtra.exitWhenA(!checksumCache.get(name).contains(checksum)) {
+            s"The cache is not used because the ${name.replace("$", "")} has been changed"
+          }
+      }
+      additionKeys = sameRequiredAdditions.map(_._1)
+      _ <- EitherT.liftF(ciInteraction.printInfo(additionKeys.mkString(", ")))
+    } yield (dlsCache, checksumCache.removedAll(additionKeys), analyzeResultsCache)
     for {
       caches <- program.value
       _      <- caches.swap.traverse(ciInteraction.printInfo)
