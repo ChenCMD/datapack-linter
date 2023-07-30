@@ -58,10 +58,9 @@ object Main extends IOApp {
       dir <- Async[F].delay(process.cwd())
 
       exitCode <- getApplicationContext(dir, args.get(0)).use { ctx =>
-        given ciInteraction: CIPlatformInteractionInstr[F] = ctx.interaction
-        given CIPlatformReadKeyedConfigInstr[F]            = ctx.inputReader
-
-        val ciCache: CIPlatformManageCacheInstr[F] = ctx.manageCache
+        given CIPlatformInteractionInstr[F]          = ctx.interaction
+        given CIPlatformReadKeyedConfigInstr[F]      = ctx.inputReader
+        given ciCache: CIPlatformManageCacheInstr[F] = ctx.manageCache
 
         val cacheDir               = path.join(dir, CACHE_DIRECTORY)
         val dlsCachePath           = path.join(cacheDir, "dls.json")
@@ -69,40 +68,12 @@ object Main extends IOApp {
         val analyzeResultCachePath = path.join(cacheDir, "analyze-results.json")
 
         for {
-          restoreSucceed                                <- ciCache.restore(List(CACHE_DIRECTORY))
-          (dlsCache, checksumCache, analyzeResultCache) <- {
-            val program = for {
-              _ <- OptionT.when(restoreSucceed)(())
-
-              rawDlsCache <- OptionT(FSAsync.readFileOpt(dlsCachePath))
-              dlsCache    <- OptionT.pure {
-                // TODO safe cast にする
-                JSON.parse(rawDlsCache).asInstanceOf[CacheFile]
-              }
-
-              rawChecksums  <- OptionT(FSAsync.readFileOpt(checksumCachePath))
-              checksumCache <- OptionT.pure {
-                // TODO safe cast にする
-                JSON.parse(rawChecksums).asInstanceOf[StringDictionary[String]].toMap
-              }
-
-              rawAnalyzeResultCache <- OptionT(FSAsync.readFileOpt(analyzeResultCachePath))
-              analyzeResultsCache   <- OptionT.pure {
-                // TODO safe cast にする
-                JSON
-                  .parse(rawAnalyzeResultCache)
-                  .asInstanceOf[js.Array[JSAnalyzeResult]]
-                  .toList
-                  .map(AnalyzeResult.fromJSObject)
-              }
-            } yield (dlsCache, checksumCache, analyzeResultsCache)
-            for {
-              caches <- program.value
-              _      <- Async[F].whenA(caches.isEmpty) {
-                ciInteraction.printInfo("Failed to restore the cache")
-              }
-            } yield caches.unzip3
-          }
+          (dlsCache, checksumCache, analyzeResultCache) <- restoreCaches(
+            CACHE_DIRECTORY,
+            dlsCachePath,
+            checksumCachePath,
+            analyzeResultCachePath
+          )
 
           (dlsConfig, linterConfig, analyzerConfig) <- genConfigs(dir)
           dls      <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
@@ -172,6 +143,50 @@ object Main extends IOApp {
         }
       }
     } yield CIPlatformContext(interaction, inputReader, manageCache)
+  }
+
+  private def restoreCaches[F[_]: Async](
+    cacheDir: String,
+    dlsCachePath: String,
+    checksumCachePath: String,
+    analyzeResultCachePath: String
+  )(using
+    R: RaiseNec[F, String],
+    ciInteraction: CIPlatformInteractionInstr[F],
+    ciCache: CIPlatformManageCacheInstr[F]
+  ): F[(Option[CacheFile], Option[Map[String, String]], Option[List[AnalyzeResult]])] = {
+    val program = for {
+      restoreSucceed <- OptionT.liftF(ciCache.restore(List(cacheDir)))
+      _              <- OptionT.when(restoreSucceed)(())
+
+      rawDlsCache <- OptionT(FSAsync.readFileOpt(dlsCachePath))
+      dlsCache    <- OptionT.pure {
+        // TODO safe cast にする
+        JSON.parse(rawDlsCache).asInstanceOf[CacheFile]
+      }
+
+      rawChecksums  <- OptionT(FSAsync.readFileOpt(checksumCachePath))
+      checksumCache <- OptionT.pure {
+        // TODO safe cast にする
+        JSON.parse(rawChecksums).asInstanceOf[StringDictionary[String]].toMap
+      }
+
+      rawAnalyzeResultCache <- OptionT(FSAsync.readFileOpt(analyzeResultCachePath))
+      analyzeResultsCache   <- OptionT.pure {
+        // TODO safe cast にする
+        JSON
+          .parse(rawAnalyzeResultCache)
+          .asInstanceOf[js.Array[JSAnalyzeResult]]
+          .toList
+          .map(AnalyzeResult.fromJSObject)
+      }
+    } yield (dlsCache, checksumCache, analyzeResultsCache)
+    for {
+      caches <- program.value
+      _      <- Async[F].whenA(caches.isEmpty) {
+        ciInteraction.printInfo("Failed to restore the cache")
+      }
+    } yield caches.unzip3
   }
 
   private def genConfigs[F[_]: Async](dir: String)(using
