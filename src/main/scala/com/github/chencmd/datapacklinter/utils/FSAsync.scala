@@ -71,7 +71,7 @@ object FSAsync {
         .flatTraverse { childPath =>
           val program = for {
             isDir    <- EitherT.liftF(isDirectory(childPath.abs))
-            _        <- EitherTExtra.exitWhenA(isDir) {
+            _        <- EitherTExtra.exitWhenF(isDir) {
               if (currentDepth < maxDepth) {
                 walk(childPath.abs, currentDepth + 1)
               } else {
