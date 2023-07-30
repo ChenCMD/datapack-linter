@@ -58,9 +58,9 @@ object Main extends IOApp {
       dir <- Async[F].delay(process.cwd())
 
       exitCode <- getApplicationContext(dir, args.get(0)).use { ctx =>
-        given CIPlatformInteractionInstr[F]          = ctx.interaction
-        given CIPlatformReadKeyedConfigInstr[F]      = ctx.inputReader
-        given ciCache: CIPlatformManageCacheInstr[F] = ctx.manageCache
+        given ciInteraction: CIPlatformInteractionInstr[F] = ctx.interaction
+        given CIPlatformReadKeyedConfigInstr[F]            = ctx.inputReader
+        given ciCache: CIPlatformManageCacheInstr[F]       = ctx.manageCache
 
         val cacheDir               = path.join(dir, CACHE_DIRECTORY)
         val dlsCachePath           = path.join(cacheDir, "dls.json")
@@ -79,8 +79,8 @@ object Main extends IOApp {
           dls      <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
           analyzer <- Monad[F].pure(DatapackAnalyzer(dls, analyzeResultCache.orEmpty))
 
-          (checksums, fileStates)   <- genFileStates(analyzer, dls, dlsConfig, checksumCache)
-          (exitCode, analyzeResult) <- lint(analyzer, fileStates, linterConfig)
+          (checksums, fileStates)      <- genFileStates(analyzer, dls, dlsConfig, checksumCache)
+          (analyzeResult, lintSucceed) <- lint(analyzer, fileStates, linterConfig)
 
           _ <- FSAsync.writeFile(dlsCachePath, JSON.stringify(dls.cacheFile))
           _ <- FSAsync.writeFile(checksumCachePath, JSON.stringify(checksums.toJSDictionary))
@@ -89,7 +89,11 @@ object Main extends IOApp {
             JSON.stringify(analyzeResult.map(_.toJSObject).toJSArray)
           )
           _ <- ciCache.store(List(CACHE_DIRECTORY))
-        } yield exitCode
+
+          _ <- Monad[F].whenA(!lintSucceed && linterConfig.forcePass) {
+            ciInteraction.printInfo("The test has been forced to pass because forcePass is true")
+          }
+        } yield if lintSucceed || linterConfig.forcePass then ExitCode.Success else ExitCode.Error
       }
     } yield exitCode
 
@@ -231,33 +235,28 @@ object Main extends IOApp {
     analyzer: DatapackAnalyzer,
     fileStates: Map[String, FileState],
     config: LinterConfig
-  )(using ciInteraction: CIPlatformInteractionInstr[F]): F[(ExitCode, List[AnalyzeResult])] = {
+  )(using ciInteraction: CIPlatformInteractionInstr[F]): F[(List[AnalyzeResult], Boolean)] = {
     val program = for {
-      _      <- analyzer.updateCache(fileStates)
-      result <-
-        analyzer.analyzeAll(fileStates)(DatapackLinter.printResult(_, config.muteSuccessResult))
-      errors <- StateT.pure(DatapackLinter.extractErrorCount(result))
-      _      <- StateT.liftF {
-        def s(n: Int): String = if n > 1 then "s" else ""
+      _                        <- analyzer.updateCache(fileStates)
+      result                   <- analyzer.analyzeAll(fileStates)(
+        DatapackLinter.printResult(_, config.muteSuccessResult)
+      )
+      (lintSucceed, err, warn) <- StateT.pure {
+        val errors = DatapackLinter.extractErrorCount(result)
+        val e      = errors.getOrEmpty(1)
+        val w      = errors.getOrEmpty(2)
+        (e + w == 0, e, w)
+      }
 
-        val e = errors.getOrEmpty(1)
-        val w = errors.getOrEmpty(2)
-        if (e + w == 0) {
+      _ <- StateT.liftF {
+        def s(n: Int): String = if n > 1 then "s" else ""
+        if (err + warn == 0) {
           ciInteraction.printInfo("Check successful")
-        } else for {
-          _ <- ciInteraction.printInfo(s"Check failed ($e error${s(e)}, $w warning${s(w)})")
-          _ <- Monad[F].whenA(config.forcePass) {
-            ciInteraction.printInfo("The test has been forced to pass because forcePass is true")
-          }
-        } yield ()
+        } else {
+          ciInteraction.printInfo(s"Check failed ($err error${s(err)}, $warn warning${s(warn)})")
+        }
       }
-    } yield {
-      if (config.forcePass || errors(1) + errors(2) == 0) {
-        (ExitCode.Success, result)
-      } else {
-        (ExitCode.Error, result)
-      }
-    }
+    } yield (result, lintSucceed)
 
     program.runEmptyA
   }
