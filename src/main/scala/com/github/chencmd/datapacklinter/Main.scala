@@ -83,7 +83,9 @@ object Main extends IOApp {
           )
 
           dls      <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
-          analyzer <- Monad[F].pure(DatapackAnalyzer(dls, analyzeResultCache.orEmpty))
+          analyzer <- Monad[F].pure {
+            DatapackAnalyzer(dls, analyzerConfig, analyzeResultCache.orEmpty)
+          }
 
           (checksums, fileStates)      <- genFileStates(analyzer, dls, dlsConfig, checksumCache)
           (analyzeResult, lintSucceed) <- lint(analyzer, fileStates, linterConfig)

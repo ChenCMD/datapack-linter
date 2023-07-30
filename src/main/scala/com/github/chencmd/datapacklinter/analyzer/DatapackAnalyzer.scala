@@ -29,6 +29,7 @@ import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
 
 final class DatapackAnalyzer private (
   private val dls: DatapackLanguageService,
+  private val analyzerConfig: AnalyzerConfig,
   private val analyzeCache: Map[String, AnalyzeResult]
 ) {
   import DatapackAnalyzer.*
@@ -42,6 +43,12 @@ final class DatapackAnalyzer private (
     fileStates.toList
       .sortBy(_._1)
       .map { case (k, v) => DLSHelper.getFileInfoFromAbs(dls)(k) -> v }
+      .filter {
+        case (k, _) => k
+            .flatMap(a => IdentityNode.fromRel(a.rel).toOption)
+            .map(_.id.toString)
+            .exists(!analyzerConfig.ignorePathsIncludes(_))
+      }
       .collect {
         case (Some(k), Created | Updated | RefsUpdated)           =>
           AnalyzeState.Waiting(k.root, k.abs, k.rel)
@@ -179,7 +186,11 @@ object DatapackAnalyzer {
   private type AnalyzedCount         = Int
   private type AnalyzeState[F[_], A] = StateT[F, AnalyzedCount, A]
 
-  def apply(dls: DatapackLanguageService, analyzeCache: List[AnalyzeResult]): DatapackAnalyzer = {
-    new DatapackAnalyzer(dls, analyzeCache.map(c => c.absolutePath -> c).toMap)
+  def apply(
+    dls: DatapackLanguageService,
+    analyzerConfig: AnalyzerConfig,
+    analyzeCache: List[AnalyzeResult]
+  ): DatapackAnalyzer = {
+    new DatapackAnalyzer(dls, analyzerConfig, analyzeCache.map(c => c.absolutePath -> c).toMap)
   }
 }
