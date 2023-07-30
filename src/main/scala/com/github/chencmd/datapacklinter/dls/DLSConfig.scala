@@ -34,11 +34,14 @@ object DLSConfig {
           .filter(v => js.typeOf(v) == "object" && v != null)
           .map(_.asInstanceOf[StringDictionary[js.Any]])
       }
-      customConfig <- OptionT.pure {
-        json.iterator
+      customConfig <- OptionT.fromOption {
+        json.toList
           .foldLeft(StringDictionary.empty[js.Any]) {
-            case (obj, (key, value)) => walk(obj, key.split(".").toList, value)
+            case (obj, (key, value)) => walk(obj, key.split("\\.").toList, value)
           }
+          .get("datapack")
+          .filter(v => js.typeOf(v) == "object" && v != null)
+          .map(_.asInstanceOf[StringDictionary[js.Any]])
       }
     } yield Cfg.constructConfig(customConfig)
 
