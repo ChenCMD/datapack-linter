@@ -5,7 +5,6 @@ import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigIns
 import com.github.chencmd.datapacklinter.generic.RaiseNec
 import com.github.chencmd.datapacklinter.utils.JSObject
 
-import cats.Monad
 import cats.effect.Async
 import cats.implicits.*
 
@@ -42,7 +41,7 @@ object LinterConfig {
       config             <- {
         (forcePass, muteSuccessResult, ignorePaths, checkAlwaysAllFile)
           .mapN(LinterConfig.apply)
-          .fold(R.raise, Monad[F].pure)
+          .fold(R.raise, _.pure[F])
       }
     } yield config
   }

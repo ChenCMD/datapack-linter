@@ -15,43 +15,43 @@ import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNo
 import typings.spgodingDatapackLanguageServer.libTypesDatapackDocumentMod.DatapackDocument
 import typings.spgodingDatapackLanguageServer.libTypesParsingErrorMod.ParsingError
 
-trait JSAnalyzeResult extends js.Object {
+trait JSAnalysisResult extends js.Object {
   val absolutePath: String
   val dpFilePath: String
   val resourcePath: String
   val errors: js.Array[JSDocumentError]
 }
 
-final case class AnalyzeResult(
+final case class AnalysisResult(
   absolutePath: String,
   dpFilePath: String,
   resourcePath: String,
   errors: List[DocumentError]
 ) {
-  def toJSObject: JSAnalyzeResult = {
-    new JSAnalyzeResult {
-      val absolutePath = AnalyzeResult.this.absolutePath
-      val dpFilePath   = AnalyzeResult.this.dpFilePath
-      val resourcePath = AnalyzeResult.this.resourcePath
-      val errors       = AnalyzeResult.this.errors.map(_.toJSObject).toJSArray
+  def toJSObject: JSAnalysisResult = {
+    new JSAnalysisResult {
+      val absolutePath = AnalysisResult.this.absolutePath
+      val dpFilePath   = AnalysisResult.this.dpFilePath
+      val resourcePath = AnalysisResult.this.resourcePath
+      val errors       = AnalysisResult.this.errors.map(_.toJSObject).toJSArray
     }
   }
 }
 
-object AnalyzeResult {
+object AnalysisResult {
   def apply[F[_]: Async](
     root: String,
     filePath: String,
     id: IdentityNode,
     parsedDoc: DatapackDocument,
     doc: TextDocument
-  ): F[AnalyzeResult] = {
+  ): F[AnalysisResult] = {
     parsedDoc.nodes
       .flatMap(_.errors)
       .toList
       .traverse(DocumentError(_, doc))
       .map { a =>
-        AnalyzeResult(
+        AnalysisResult(
           filePath,
           path.relative(path.dirname(root), filePath),
           id.toString(),
@@ -60,8 +60,8 @@ object AnalyzeResult {
       }
   }
 
-  def fromJSObject(obj: JSAnalyzeResult): AnalyzeResult = {
-    AnalyzeResult(
+  def fromJSObject(obj: JSAnalysisResult): AnalysisResult = {
+    AnalysisResult(
       obj.absolutePath,
       obj.dpFilePath,
       obj.resourcePath,

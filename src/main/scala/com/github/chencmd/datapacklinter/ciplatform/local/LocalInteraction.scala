@@ -2,7 +2,6 @@ package com.github.chencmd.datapacklinter.ciplatform.local
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 
-import cats.Monad
 import cats.effect.Async
 import cats.effect.Ref
 import cats.effect.Resource
@@ -51,11 +50,11 @@ object LocalInteraction {
       }
     }
 
-    Resource.make(Monad[F].pure(instr)) { _ =>
+    Resource.make(instr.pure[F]) { _ =>
       for {
-        outputs   <- outputs.get
-        maxKeyLen <- Monad[F].pure(outputs.map(_._1.length()).foldLeft(0)(Math.max))
-        _         <- outputs.toList.traverse_ {
+        outputs <- outputs.get
+        maxKeyLen = outputs.map(_._1.length()).foldLeft(0)(Math.max)
+        _ <- outputs.toList.traverse_ {
           case (k, v) => Async[F].delay(println(s"%${maxKeyLen}s = %s".format(k, v)))
         }
       } yield ()

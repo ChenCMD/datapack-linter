@@ -30,16 +30,16 @@ import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
 final class DatapackAnalyzer private (
   private val dls: DatapackLanguageService,
   private val analyzerConfig: AnalyzerConfig,
-  private val analyzeCache: Map[String, AnalyzeResult]
+  private val analyzeCache: Map[String, AnalysisResult]
 ) {
   import DatapackAnalyzer.*
 
-  def analyzeAll[F[_]: Async](fileStates: Map[String, FileState])(
-    analyzeCallback: AnalyzeResult => F[Unit]
+  def analyzeAll[F[_]: Async](fileStates: Map[String, FileUpdate])(
+    analyzeCallback: AnalysisResult => F[Unit]
   )(using
     ciInteraction: CIPlatformInteractionInstr[F]
-  ): AnalyzeState[F, List[AnalyzeResult]] = {
-    import FileState.*
+  ): AnalysisState[F, List[AnalysisResult]] = {
+    import FileUpdate.*
     fileStates.toList
       .sortBy(_._1)
       .map { case (k, v) => DLSHelper.getFileInfoFromAbs(dls)(k) -> v }
@@ -50,17 +50,17 @@ final class DatapackAnalyzer private (
             .exists(!analyzerConfig.ignorePathsIncludes(_))
       }
       .collect {
-        case (Some(k), Created | Updated | RefsUpdated)           =>
-          AnalyzeState.Waiting(k.root, k.abs, k.rel)
-        case (Some(k), NoChanged) if analyzeCache.contains(k.abs) =>
-          AnalyzeState.Cached(analyzeCache(k.abs))
+        case (Some(k), Created | ContentUpdated | RefsUpdated)           =>
+          AnalysisState.Waiting(k.root, k.abs, k.rel)
+        case (Some(k), NotChanged) if analyzeCache.contains(k.abs) =>
+          AnalysisState.Cached(analyzeCache(k.abs))
       }
       .flatTraverse {
-        case AnalyzeState.Waiting(root, abs, rel) => for {
+        case AnalysisState.Waiting(root, abs, rel) => for {
             res <- parseDoc(root, abs, rel)
             _   <- StateT.liftF(res.traverse_(analyzeCallback))
           } yield res.toList
-        case AnalyzeState.Cached(res) => StateT.liftF(analyzeCallback(res).as(List(res)))
+        case AnalysisState.Cached(res) => StateT.liftF(analyzeCallback(res).as(List(res)))
       }
   }
 
@@ -68,7 +68,7 @@ final class DatapackAnalyzer private (
     root: String,
     file: String,
     rel: String
-  ): AnalyzeState[F, Option[AnalyzeResult]] = {
+  ): AnalysisState[F, Option[AnalysisResult]] = {
     val program = for {
       languageID <- OptionT.fromOption {
         val dotIdx   = file.lastIndexOf(".")
@@ -96,7 +96,7 @@ final class DatapackAnalyzer private (
       }
       parsedDoc <- DLSHelper.parseDoc(dls)(doc)
 
-      res <- AnalyzeResult[OptionT[F, _]](root, file, id, parsedDoc, doc)
+      res <- AnalysisResult[OptionT[F, _]](root, file, id, parsedDoc, doc)
     } yield (res, parsedDoc.nodes.length)
 
     for {
@@ -107,19 +107,19 @@ final class DatapackAnalyzer private (
 
   def fetchChecksums[F[_]: Async](files: List[String]): F[Map[String, String]] = for {
     data <- files.traverseFilter { uriString =>
+      val uri     = dls.parseUri(uriString)
       val program = for {
-        uri      <- OptionT.pure(dls.parseUri(uriString))
         contents <- OptionT(FSAsync.readFileOpt(uri.fsPath))
-        checksum <- OptionT.pure(Hash.stringToHash(contents))
+        checksum = Hash.stringToHash(contents)
       } yield uriString -> checksum
       program.value
     }
   } yield Map(data*)
 
-  def updateCache[F[_]: Async](fileStates: Map[String, FileState])(using
+  def updateCache[F[_]: Async](fileStates: Map[String, FileUpdate])(using
     ciInteraction: CIPlatformInteractionInstr[F]
-  ): AnalyzeState[F, Unit] = {
-    import FileState.*
+  ): AnalysisState[F, Unit] = {
+    import FileUpdate.*
 
     def checkFilesInCache[F[_]: Async]()(using
       ciInteraction: CIPlatformInteractionInstr[F]
@@ -127,7 +127,7 @@ final class DatapackAnalyzer private (
       case (uriString, state) =>
         val uri = dls.parseUri(Uri.file(uriString).toString)
         state match {
-          case Updated | RefsUpdated => for {
+          case ContentUpdated | RefsUpdated => for {
               _ <- AsyncExtra.fromPromise(dls.onModifiedFile(uri))
             } yield ()
           case Deleted               => Async[F].delay {
@@ -137,14 +137,14 @@ final class DatapackAnalyzer private (
         }
     }
 
-    def addNewFileToCache(): AnalyzeState[F, Unit] = {
+    def addNewFileToCache(): AnalysisState[F, Unit] = {
       fileStates.toList.traverse_ {
         case (uriString, Created) => for {
-            uri <- Monad[AnalyzeState[F, _]].pure(dls.parseUri(Uri.file(uriString).toString))
+            uri <- Monad[AnalysisState[F, _]].pure(dls.parseUri(Uri.file(uriString).toString))
             _   <- StateT.liftF(AsyncExtra.fromPromise(dls.onAddedFile(uri)))
             _   <- gc()
           } yield ()
-        case _                    => Monad[AnalyzeState[F, _]].unit
+        case _                    => Monad[AnalysisState[F, _]].unit
       }
     }
 
@@ -163,7 +163,7 @@ final class DatapackAnalyzer private (
   }
 
   @annotation.nowarn("msg=unused explicit parameter")
-  private def gc[F[_]: Async](force: true): AnalyzeState[F, Unit] = for {
+  private def gc[F[_]: Async](force: true): AnalysisState[F, Unit] = for {
     _ <- StateT.liftF(Async[F].delay {
       dls.caches.asInstanceOf[js.Map[String, Any]].clear()
     })
@@ -172,10 +172,10 @@ final class DatapackAnalyzer private (
 
   private def gc[F[_]: Async](
     addAnalyzedNodeCount: AnalyzedCount = 17
-  ): AnalyzeState[F, Unit] = for {
+  ): AnalysisState[F, Unit] = for {
     _     <- StateT.modify((_: AnalyzedCount) + addAnalyzedNodeCount)
     added <- StateT.get
-    _     <- Applicative[AnalyzeState[F, _]].whenA(GC_THRESHOLD <= added) {
+    _     <- Applicative[AnalysisState[F, _]].whenA(GC_THRESHOLD <= added) {
       gc(true)
     }
   } yield ()
@@ -184,12 +184,12 @@ final class DatapackAnalyzer private (
 object DatapackAnalyzer {
   private val GC_THRESHOLD = 500
   private type AnalyzedCount         = Int
-  private type AnalyzeState[F[_], A] = StateT[F, AnalyzedCount, A]
+  private type AnalysisState[F[_], A] = StateT[F, AnalyzedCount, A]
 
   def apply(
     dls: DatapackLanguageService,
     analyzerConfig: AnalyzerConfig,
-    analyzeCache: List[AnalyzeResult]
+    analyzeCache: List[AnalysisResult]
   ): DatapackAnalyzer = {
     new DatapackAnalyzer(dls, analyzerConfig, analyzeCache.map(c => c.absolutePath -> c).toMap)
   }

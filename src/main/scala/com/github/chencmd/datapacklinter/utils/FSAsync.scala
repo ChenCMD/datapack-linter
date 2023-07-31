@@ -4,7 +4,6 @@ import com.github.chencmd.datapacklinter.generic.ApplicativeExtra
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
 import com.github.chencmd.datapacklinter.generic.EitherTExtra
 
-import cats.Monad
 import cats.data.EitherT
 import cats.effect.Async
 import cats.implicits.*
@@ -75,7 +74,7 @@ object FSAsync {
               if (currentDepth < maxDepth) {
                 walk(childPath.abs, currentDepth + 1)
               } else {
-                Monad[F].pure(List.empty)
+                List.empty.pure[F]
               }
             }
             fApplied <- EitherT.liftF(f(childPath))
@@ -107,7 +106,7 @@ object FSAsync {
             if (currentDepth < maxDepth) {
               walk(childPath.abs, currentDepth + 1)
             } else {
-              Monad[F].pure(List.empty)
+              List.empty.pure[F]
             }
           }
           fApplied <- f(childPath)

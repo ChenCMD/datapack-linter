@@ -1,10 +1,10 @@
 package com.github.chencmd.datapacklinter
 
-import com.github.chencmd.datapacklinter.analyzer.AnalyzeResult
+import com.github.chencmd.datapacklinter.analyzer.AnalysisResult
 import com.github.chencmd.datapacklinter.analyzer.AnalyzerConfig
 import com.github.chencmd.datapacklinter.analyzer.DatapackAnalyzer
-import com.github.chencmd.datapacklinter.analyzer.FileState
-import com.github.chencmd.datapacklinter.analyzer.JSAnalyzeResult
+import com.github.chencmd.datapacklinter.analyzer.FileUpdate
+import com.github.chencmd.datapacklinter.analyzer.JSAnalysisResult
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformManageCacheInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
@@ -19,6 +19,7 @@ import com.github.chencmd.datapacklinter.linter.DatapackLinter
 import com.github.chencmd.datapacklinter.linter.LinterConfig
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.Hash
+import com.github.chencmd.datapacklinter.terms.*
 
 import cats.Monad
 import cats.data.EitherT
@@ -63,44 +64,45 @@ object Main extends IOApp {
         given CIPlatformReadKeyedConfigInstr[F]            = ctx.inputReader
         given ciCache: CIPlatformManageCacheInstr[F]       = ctx.manageCache
 
-        val cacheDir               = path.join(dir, CACHE_DIRECTORY)
-        val dlsCachePath           = path.join(cacheDir, "dls.json")
-        val checksumCachePath      = path.join(cacheDir, "checksums.json")
-        val analyzeResultCachePath = path.join(cacheDir, "analyze-results.json")
+        val cacheDir                    = path.join(dir, CACHE_DIRECTORY)
+        val dlsCachePath                = path.join(cacheDir, "dls.json")
+        val fileChecksumCachePath       = path.join(cacheDir, "file-checksums.json")
+        val validationChecksumCachePath = path.join(cacheDir, "validation-checksums.json")
+        val analysisResultCachePath     = path.join(cacheDir, "analysis-results.json")
 
         for {
-          (dlsConfig, linterConfig, analyzerConfig)     <- genConfigs(dir)
-          additionalChecksums                           <- Monad[F].pure {
-            Map(
-              "$config file"   -> Hash.objectToHash(dlsConfig),
-              "$linter config" -> Hash.objectToHash(linterConfig.toJSObject)
-            )
-          }
+          (dlsConfig, linterConfig, analyzerConfig) <- readConfigs(dir)
+          requireChecksums = Map(
+            "config-file"   -> Hash.objectToHash(dlsConfig),
+            "linter-config" -> Hash.objectToHash(linterConfig.toJSObject)
+          )
           (dlsCache, checksumCache, analyzeResultCache) <- restoreCaches(
             CACHE_DIRECTORY,
             dlsCachePath,
-            checksumCachePath,
-            analyzeResultCachePath,
-            additionalChecksums.toList
+            fileChecksumCachePath,
+            analysisResultCachePath,
+            validationChecksumCachePath,
+            requireChecksums
           )
 
-          dls      <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
-          analyzer <- Monad[F].pure {
-            DatapackAnalyzer(dls, analyzerConfig, analyzeResultCache.orEmpty)
-          }
+          dls <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
+          analyzer = DatapackAnalyzer(dls, analyzerConfig, analyzeResultCache.orEmpty)
 
-          (checksums, fileStates)      <- genFileStates(analyzer, dls, dlsConfig, checksumCache)
+          (checksums, fileStates)      <- generateFileChecksumAndUpdates(
+            analyzer,
+            dls,
+            dlsConfig,
+            checksumCache
+          )
           (analyzeResult, lintSucceed) <- lint(analyzer, fileStates, linterConfig)
 
-          _ <- FSAsync.writeFile(dlsCachePath, JSON.stringify(dls.cacheFile))
-          _ <- FSAsync.writeFile(
-            checksumCachePath,
-            JSON.stringify((checksums ++ additionalChecksums).toJSDictionary)
+          cacheMap = List(
+            dlsCachePath            -> JSON.stringify(dls.cacheFile),
+            fileChecksumCachePath   -> JSON.stringify(checksums.toJSDictionary),
+            analysisResultCachePath -> JSON.stringify(analyzeResult.map(_.toJSObject).toJSArray),
+            validationChecksumCachePath -> JSON.stringify(requireChecksums.toJSDictionary)
           )
-          _ <- FSAsync.writeFile(
-            analyzeResultCachePath,
-            JSON.stringify(analyzeResult.map(_.toJSObject).toJSArray)
-          )
+          _ <- cacheMap.traverse_(FSAsync.writeFile(_, _))
           _ <- ciCache.store(List(CACHE_DIRECTORY))
 
           _ <- Monad[F].whenA(!lintSucceed && linterConfig.forcePass) {
@@ -114,7 +116,7 @@ object Main extends IOApp {
       program: EitherT[F, NonEmptyChain[String], ExitCode]
     ): F[ExitCode] = {
       program.value.flatMap {
-        case Right(exitCode) => Async[F].pure(exitCode)
+        case Right(exitCode) => exitCode.pure[F]
         case Left(messages)  => messages
             .traverse_(mes => Async[F].delay(console.error(mes)))
             .as(ExitCode.Error)
@@ -124,8 +126,8 @@ object Main extends IOApp {
   }
 
   private def getApplicationContext[F[_]: Async](
-    dir: String,
-    configFilePath: Option[String]
+    dir: FilePath,
+    configFilePath: Option[FilePath]
   )(using R: RaiseNec[F, String]): Resource[F, CIPlatformContext[F]] = {
     enum Platform {
       case GitHubActions
@@ -146,9 +148,9 @@ object Main extends IOApp {
       inputReader <- Resource.eval {
         configFilePath match {
           case Some(path) => FileInputReader.createInstr(path)
-          case None       => Monad[F].pure {
-              EnvironmentInputReader.createInstr(k => s"INPUT_${k.replace(" ", "_").toUpperCase()}")
-            }
+          case None       => EnvironmentInputReader
+              .createInstr(k => s"INPUT_${k.replace(" ", "_").toUpperCase()}")
+              .pure[F]
         }
       }
 
@@ -156,23 +158,24 @@ object Main extends IOApp {
         given CIPlatformInteractionInstr[F] = interaction
         context match {
           case Platform.GitHubActions => GitHubManageCache.createInstr(1)
-          case Platform.Local         => Monad[F].pure(LocalManageCache.createInstr())
+          case Platform.Local         => LocalManageCache.createInstr().pure[F]
         }
       }
     } yield CIPlatformContext(interaction, inputReader, manageCache)
   }
 
   private def restoreCaches[F[_]: Async](
-    cacheDir: String,
-    dlsCachePath: String,
-    checksumCachePath: String,
-    analyzeResultCachePath: String,
-    sameRequiredAdditions: List[(String, String)]
+    cacheDir: FilePath,
+    dlsCachePath: FilePath,
+    fileChecksumCachePath: FilePath,
+    analyzeResultCachePath: FilePath,
+    objectChecksumCachePath: FilePath,
+    validationChecksums: Map[String, Checksum]
   )(using
     R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     ciCache: CIPlatformManageCacheInstr[F]
-  ): F[(Option[CacheFile], Option[Map[String, String]], Option[List[AnalyzeResult]])] = {
+  ): F[(Option[CacheFile], Option[FileChecksums], Option[List[AnalysisResult]])] = {
     def readFileOrExit(path: String, exitMessage: String): EitherT[F, String, String] = {
       EitherT.fromOptionF(FSAsync.readFileOpt(path), exitMessage)
     }
@@ -181,91 +184,92 @@ object Main extends IOApp {
       _              <- EitherTExtra.exitWhenA(!restoreSucceed)("Failed to restore the cache")
 
       rawDlsCache <- readFileOrExit(dlsCachePath, "Failed to read cache file")
-      dlsCache    <- EitherT.pure {
-        // TODO safe cast にする
-        JSON.parse(rawDlsCache).asInstanceOf[CacheFile]
-      }
+      // TODO safe cast にする
+      dlsCache = JSON.parse(rawDlsCache).asInstanceOf[CacheFile]
 
-      rawChecksums  <- readFileOrExit(checksumCachePath, "Failed to read cache file")
-      checksumCache <- EitherT.pure {
-        // TODO safe cast にする
-        JSON.parse(rawChecksums).asInstanceOf[StringDictionary[String]].toMap
-      }
+      rawFileChecksums <- readFileOrExit(fileChecksumCachePath, "Failed to read cache file")
+      // TODO safe cast にする
+      fileChecksumCache = JSON.parse(rawFileChecksums).asInstanceOf[StringDictionary[String]].toMap
 
       rawAnalyzeResultCache <- readFileOrExit(analyzeResultCachePath, "Failed to read cache file")
-      analyzeResultsCache   <- EitherT.pure {
-        // TODO safe cast にする
-        JSON
-          .parse(rawAnalyzeResultCache)
-          .asInstanceOf[js.Array[JSAnalyzeResult]]
-          .toList
-          .map(AnalyzeResult.fromJSObject)
-      }
+      // TODO safe cast にする
+      analyzeResultsCache = JSON
+        .parse(rawAnalyzeResultCache)
+        .asInstanceOf[js.Array[JSAnalysisResult]]
+        .toList
+        .map(AnalysisResult.fromJSObject)
 
-      _ <- sameRequiredAdditions.traverse {
+      rawValidationChecksums <- readFileOrExit(
+        objectChecksumCachePath,
+        "Failed to read cache file"
+      )
+      // TODO safe cast にする
+      validationChecksumCache = JSON
+        .parse(rawValidationChecksums)
+        .asInstanceOf[StringDictionary[String]]
+        .toMap
+
+      _ <- validationChecksums.toList.traverse {
         case (name, checksum) =>
-          EitherTExtra.exitWhenA(!checksumCache.get(name).contains(checksum)) {
+          EitherTExtra.exitWhenA(!validationChecksumCache.get(name).contains(checksum)) {
             s"The cache is not used because the ${name.replace("$", "")} has been changed"
           }
       }
-      additionKeys = sameRequiredAdditions.map(_._1)
-      _ <- EitherT.liftF(ciInteraction.printInfo(additionKeys.mkString(", ")))
-    } yield (dlsCache, checksumCache.removedAll(additionKeys), analyzeResultsCache)
+    } yield (dlsCache, fileChecksumCache, analyzeResultsCache)
     for {
       caches <- program.value
       _      <- caches.swap.traverse(ciInteraction.printInfo)
     } yield caches.toOption.unzip3
   }
 
-  private def genConfigs[F[_]: Async](dir: String)(using
+  private def readConfigs[F[_]: Async](dir: FilePath)(using
     R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     readConfig: CIPlatformReadKeyedConfigInstr[F]
   ): F[(DLSConfig, LinterConfig, AnalyzerConfig)] = for {
-    dlsConfig      <- DLSConfig.readConfig(path.join(dir, ".vscode", "settings.json"))
-    linterConfig   <- LinterConfig.withReader()
-    analyzerConfig <- Monad[F].pure(AnalyzerConfig(linterConfig.ignorePaths))
+    dlsConfig    <- DLSConfig.readConfig(path.join(dir, ".vscode", "settings.json"))
+    linterConfig <- LinterConfig.withReader()
+    analyzerConfig = AnalyzerConfig(linterConfig.ignorePaths)
   } yield (dlsConfig, linterConfig, analyzerConfig)
 
-  private def genFileStates[F[_]: Async](
+  private def generateFileChecksumAndUpdates[F[_]: Async](
     analyzer: DatapackAnalyzer,
     dls: DatapackLanguageService,
     dlsConfig: DLSConfig,
-    prevChecksums: Option[Map[String, String]]
+    prevChecksums: Option[FileChecksums]
   )(using
     ciInteraction: CIPlatformInteractionInstr[F]
-  ): F[(Map[String, String], Map[String, FileState])] = for {
+  ): F[(FileChecksums, FileUpdates)] = for {
     targetFiles <- DLSHelper.getAllFiles(dls, dlsConfig)
     checksums   <- analyzer.fetchChecksums(targetFiles)
-    refs        <- Monad[F].pure(DLSHelper.genReferenceMap(dls))
-    fileStates  <- Monad[F].pure(FileState.diff(prevChecksums.orEmpty, checksums, refs))
+    refs       = DLSHelper.genReferenceMap(dls)
+    fileStates = FileUpdate.diff(prevChecksums.orEmpty, checksums, refs)
 
     _ <- fileStates
       .groupMap(_._2)(t => Uri.file(t._1).fsPath)
       .map { case (k, v) => k -> v.toList }
       .pipe { fm =>
-        def log(state: FileState, stateMes: String) = fm.getOrEmpty(state).traverse_ { file =>
+        def log(state: FileUpdate, stateMes: String) = fm.getOrEmpty(state).traverse_ { file =>
           ciInteraction.printDebug(s"file $stateMes detected: $file")
         }
-        log(FileState.Created, "add")
-          >> log(FileState.Updated, "change")
-          >> log(FileState.RefsUpdated, "ref change")
-          >> log(FileState.Deleted, "delete")
-          >> log(FileState.NoChanged, "no change")
+        log(FileUpdate.Created, "add")
+          >> log(FileUpdate.ContentUpdated, "change")
+          >> log(FileUpdate.RefsUpdated, "ref change")
+          >> log(FileUpdate.Deleted, "delete")
       }
   } yield (checksums, fileStates)
 
   private def lint[F[_]: Async](
     analyzer: DatapackAnalyzer,
-    fileStates: Map[String, FileState],
+    fileStates: FileUpdates,
     config: LinterConfig
-  )(using ciInteraction: CIPlatformInteractionInstr[F]): F[(List[AnalyzeResult], Boolean)] = {
+  )(using ciInteraction: CIPlatformInteractionInstr[F]): F[(List[AnalysisResult], Boolean)] = {
     val program = for {
-      _                        <- analyzer.updateCache(fileStates)
-      result                   <- analyzer.analyzeAll(fileStates)(
+      _      <- analyzer.updateCache(fileStates)
+      result <- analyzer.analyzeAll(fileStates)(
         DatapackLinter.printResult(_, config.muteSuccessResult)
       )
-      (lintSucceed, err, warn) <- StateT.pure {
+      (lintSucceed, err, warn) = {
         val errors = DatapackLinter.extractErrorCount(result)
         val e      = errors.getOrEmpty(1)
         val w      = errors.getOrEmpty(2)

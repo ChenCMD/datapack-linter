@@ -1,6 +1,5 @@
 package com.github.chencmd.datapacklinter.utils
 
-import cats.Monad
 import cats.effect.Async
 import cats.implicits.*
 
@@ -24,11 +23,9 @@ object Datapack {
         } yield a && b
       }
     }
-    rootUris           <- Monad[F].pure {
-      rootPaths
-        .map(Uri.file(_).toString())
-        .map(DLSCommon.getRootUri(_))
-    }
+    rootUris = rootPaths
+      .map(Uri.file(_).toString())
+      .map(DLSCommon.getRootUri(_))
   } yield rootUris
 
   def getRoot(uri: Uri, roots: List[Uri]): Option[String] = {

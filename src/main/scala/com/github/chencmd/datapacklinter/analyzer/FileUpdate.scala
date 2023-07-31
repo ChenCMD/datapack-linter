@@ -6,21 +6,21 @@ import cats.Align
 import cats.data.Ior
 import cats.implicits.*
 
-enum FileState private () {
+enum FileUpdate private () {
   case Created
-  case Updated
+  case ContentUpdated
   case RefsUpdated
-  case NoChanged
+  case NotChanged
   case Deleted
 }
 
-object FileState {
-  def apply(checksumConversion: Ior[String, String]): FileState = {
+object FileUpdate {
+  def apply(checksumConversion: Ior[String, String]): FileUpdate = {
     checksumConversion match {
       case Ior.Left(_)              => Deleted
       case Ior.Right(_)             => Created
-      case Ior.Both(a, b) if a != b => Updated
-      case Ior.Both(_, _)           => NoChanged
+      case Ior.Both(a, b) if a != b => ContentUpdated
+      case Ior.Both(_, _)           => NotChanged
     }
   }
 
@@ -28,11 +28,11 @@ object FileState {
     prevChecksums: Map[String, String],
     nextCheckSums: Map[String, String],
     refs: Map[String, List[String]]
-  ): Map[String, FileState] = {
-    val fileState = Align[Map[String, _]].alignWith(prevChecksums, nextCheckSums)(FileState.apply)
+  ): Map[String, FileUpdate] = {
+    val fileState = Align[Map[String, _]].alignWith(prevChecksums, nextCheckSums)(FileUpdate.apply)
     val overrideFileStateForRefs = fileState.flatMap {
-      case (k, Updated | Deleted) =>
-        refs.getOrEmpty(k).filter(fileState.get(_).contains(NoChanged)).map(_ -> RefsUpdated)
+      case (k, ContentUpdated | Deleted) =>
+        refs.getOrEmpty(k).filter(fileState.get(_).contains(NotChanged)).map(_ -> RefsUpdated)
       case _                      => List.empty
     }
 

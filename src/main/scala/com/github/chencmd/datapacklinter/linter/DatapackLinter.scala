@@ -1,6 +1,6 @@
 package com.github.chencmd.datapacklinter.linter
 
-import com.github.chencmd.datapacklinter.analyzer.AnalyzeResult
+import com.github.chencmd.datapacklinter.analyzer.AnalysisResult
 import com.github.chencmd.datapacklinter.analyzer.ErrorSeverity
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 
@@ -9,7 +9,7 @@ import cats.effect.Async
 import cats.implicits.*
 
 object DatapackLinter {
-  def printResult[F[_]: Async](res: AnalyzeResult, muteSuccessResult: Boolean)(using
+  def printResult[F[_]: Async](res: AnalysisResult, muteSuccessResult: Boolean)(using
     ciInteraction: CIPlatformInteractionInstr[F]
   ): F[Unit] = {
     val title = s"${res.resourcePath} (${res.dpFilePath})"
@@ -47,7 +47,7 @@ object DatapackLinter {
     }
   }
 
-  def extractErrorCount(result: List[AnalyzeResult]): Map[ErrorSeverity, Int] = {
+  def extractErrorCount(result: List[AnalysisResult]): Map[ErrorSeverity, Int] = {
     result.foldLeft(Map.empty[ErrorSeverity, Int]) { (map, r) =>
       r.errors.foldLeft(map)((m, e) => m.updatedWith(e.severity)(a => Some(a.getOrElse(0) + 1)))
     }

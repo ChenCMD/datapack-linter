@@ -15,6 +15,6 @@ object ApplicativeExtra {
   }
 
   def whenAOrPureEmpty[F[_]: Applicative, M[_]: MonoidK, A](cond: Boolean)(action: => F[M[A]]): F[M[A]] = {
-    if cond then action else Applicative[F].pure(MonoidK[M].empty)
+    if cond then action else MonoidK[M].empty.pure[F]
   }
 }

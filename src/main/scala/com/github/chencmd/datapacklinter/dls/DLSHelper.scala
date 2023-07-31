@@ -11,7 +11,6 @@ import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.JSObject
 import com.github.chencmd.datapacklinter.utils.Jsonc
 
-import cats.Monad
 import cats.data.OptionT
 import cats.effect.Async
 import cats.implicits.*
@@ -94,29 +93,25 @@ object DLSHelper {
   ): F[DatapackLanguageService] = for {
     roots <- Datapack.findDatapackRoots(dir, dlsConfig.env.detectionDepth.asInstanceOf[Int])
 
-    capabilities <- Monad[F].pure {
-      ClientCapabilities.getClientCapabilities(
-        JSObject(
-          "workspace" -> JSObject(
-            "configuration"          -> true,
-            "didChangeConfiguration" -> JSObject("dynamicRegistration" -> true)
-          )
+    capabilities = ClientCapabilities.getClientCapabilities(
+      JSObject(
+        "workspace" -> JSObject(
+          "configuration"          -> true,
+          "didChangeConfiguration" -> JSObject("dynamicRegistration" -> true)
         )
       )
-    }
-    versionInfo  <- getLatestVersions
-    plugins      <- AsyncExtra.fromPromise(PluginLoader.load())
-    dls          <- Monad[F].pure {
-      new DatapackLanguageService(
-        DatapackLanguageServiceOptions()
-          .setCapabilities(capabilities)
-          .pipe(opt => cache.map(opt.setCacheFile(_)).getOrElse(opt))
-          .setGlobalStoragePath(cacheDir)
-          .setFetchConfig(_ => js.Promise.resolve(dlsConfig))
-          .setPlugins(plugins)
-          .setVersionInformation(versionInfo)
-      )
-    }
+    )
+    versionInfo <- getLatestVersions
+    plugins <- AsyncExtra.fromPromise(PluginLoader.load())
+    dls = new DatapackLanguageService(
+      DatapackLanguageServiceOptions()
+        .setCapabilities(capabilities)
+        .pipe(opt => cache.map(opt.setCacheFile(_)).getOrElse(opt))
+        .setGlobalStoragePath(cacheDir)
+        .setFetchConfig(_ => js.Promise.resolve(dlsConfig))
+        .setPlugins(plugins)
+        .setVersionInformation(versionInfo)
+    )
 
     _ <- AsyncExtra.fromPromise(dls.init())
     _ <- AsyncExtra.fromPromise(dls.getVanillaData(dlsConfig))
@@ -142,17 +137,15 @@ object DLSHelper {
       versionManifest <- Jsonc
         .parse(rawVersionInfo)
         .flatMap(VersionManifest.attemptToVersionManifest)
-        .map(Monad[F].pure)
+        .map(_.pure[F])
         .getOrElse(R.raiseOne("[LatestVersions] Failed to parsing version_manifest.json"))
-      ans             <- Monad[F].pure {
-        VersionInformation(
-          versionManifest.latest.release,
-          versionManifest.latest.snapshot,
-          versionManifest.versions.reverse
-            .dropWhile(_.id == PROCESSABLE_VER)
-            .map(_.id)
-        )
-      }
+      ans = VersionInformation(
+        versionManifest.latest.release,
+        versionManifest.latest.snapshot,
+        versionManifest.versions.reverse
+          .dropWhile(_.id == PROCESSABLE_VER)
+          .map(_.id)
+      )
       _ <- ciInteraction.printInfo(s"[LatestVersions] versionInformation = ${JSON.stringify(ans)}")
     } yield ans
   }

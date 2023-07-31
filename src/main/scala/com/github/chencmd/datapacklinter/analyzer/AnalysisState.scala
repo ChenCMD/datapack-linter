@@ -1,6 +1,6 @@
 package com.github.chencmd.datapacklinter.analyzer
 
-enum AnalyzeState {
+enum AnalysisState {
   case Waiting(root: String, abs: String, rel: String)
-  case Cached(cachedResult: AnalyzeResult)
+  case Cached(cachedResult: AnalysisResult)
 }
