@@ -38,7 +38,11 @@ object DatapackLinter {
   ): F[Unit] = {
     val title = s"${res.resourcePath} (${res.dpFilePath})"
 
-    if (res.errors.exists(_.severity <= 2)) {
+    if (!res.errors.exists(_.severity <= 2)) {
+      Monad[F].unlessA(muteSuccessResult) {
+        ciInteraction.printInfo(s"\u001b[92m✓\u001b[39m  ${title}")
+      }
+    } else {
       for {
         _ <- ciInteraction.printInfo(s"\u001b[91m✗\u001b[39m  ${title}")
         _ <- res.errors
@@ -64,10 +68,6 @@ object DatapackLinter {
             case (_, res) => ciInteraction.printInfo(res)
           }
       } yield ()
-    } else if (!muteSuccessResult) {
-      ciInteraction.printInfo(s"\u001b[92m✓\u001b[39m  ${title}")
-    } else {
-      Monad[F].unit
     }
   }
 
