@@ -2,13 +2,37 @@ package com.github.chencmd.datapacklinter.linter
 
 import com.github.chencmd.datapacklinter.analyzer.AnalysisResult
 import com.github.chencmd.datapacklinter.analyzer.ErrorSeverity
+import com.github.chencmd.datapacklinter.analyzer.FileUpdate
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
+import com.github.chencmd.datapacklinter.generic.MapExtra.*
+import com.github.chencmd.datapacklinter.terms.FileUpdates
 
 import cats.Monad
 import cats.effect.Async
 import cats.implicits.*
 
+import scala.util.chaining.*
+
+import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
+
 object DatapackLinter {
+  def printFileUpdatesLog[F[_]: Async](
+    fileUpdates: FileUpdates
+  )(using ciInteraction: CIPlatformInteractionInstr[F]): F[Unit] = {
+    fileUpdates
+      .groupMap(_._2)(t => Uri.file(t._1).fsPath)
+      .map { case (k, v) => k -> v.toList }
+      .pipe { fm =>
+        def log(state: FileUpdate, stateMes: String) = fm.getOrEmpty(state).traverse_ { file =>
+          ciInteraction.printDebug(s"file $stateMes detected: $file")
+        }
+        log(FileUpdate.Created, "add")
+          >> log(FileUpdate.ContentUpdated, "change")
+          >> log(FileUpdate.RefsUpdated, "ref change")
+          >> log(FileUpdate.Deleted, "delete")
+      }
+  }
+
   def printResult[F[_]: Async](res: AnalysisResult, muteSuccessResult: Boolean)(using
     ciInteraction: CIPlatformInteractionInstr[F]
   ): F[Unit] = {

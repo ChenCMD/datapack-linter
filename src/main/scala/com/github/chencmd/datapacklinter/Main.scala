@@ -31,8 +31,6 @@ import cats.effect.IOApp
 import cats.effect.Resource
 import cats.implicits.*
 
-import scala.util.chaining.*
-
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 import scala.scalajs.js.JSON
@@ -43,8 +41,6 @@ import typings.node.global.console
 
 import org.scalablytyped.runtime.StringDictionary
 import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.CacheFile
-import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
-import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
 
 object Main extends IOApp {
   private case class CIPlatformContext[F[_]](
@@ -88,21 +84,25 @@ object Main extends IOApp {
           dls <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
           analyzer = DatapackAnalyzer(dls, analyzerConfig, analyzeResultCache.orEmpty)
 
-          (checksums, fileStates)      <- generateFileChecksumAndUpdates(
-            analyzer,
-            dls,
-            dlsConfig,
-            checksumCache
-          )
-          (analyzeResult, lintSucceed) <- lint(analyzer, fileStates, linterConfig)
+          targetFiles <- DLSHelper.getAllFiles(dls, dlsConfig)
+          checksums   <- analyzer.fetchChecksums(targetFiles)
+          fileUpdates  <- {
+            val refs = DLSHelper.genReferenceMap(dls)
+            val res  = FileUpdate.diff(checksumCache.orEmpty, checksums, refs)
+            DatapackLinter.printFileUpdatesLog(res).as(res)
+          }
 
-          cacheMap = List(
-            dlsCachePath            -> JSON.stringify(dls.cacheFile),
-            fileChecksumCachePath   -> JSON.stringify(checksums.toJSDictionary),
-            analysisResultCachePath -> JSON.stringify(analyzeResult.map(_.toJSObject).toJSArray),
-            validationChecksumCachePath -> JSON.stringify(requireChecksums.toJSDictionary)
-          )
-          _ <- cacheMap.traverse_(FSAsync.writeFile(_, _))
+          (analyzeResult, lintSucceed) <- lint(analyzer, fileUpdates, linterConfig)
+
+          _ <- {
+            val cacheMap = List(
+              dlsCachePath            -> JSON.stringify(dls.cacheFile),
+              fileChecksumCachePath   -> JSON.stringify(checksums.toJSDictionary),
+              analysisResultCachePath -> JSON.stringify(analyzeResult.map(_.toJSObject).toJSArray),
+              validationChecksumCachePath -> JSON.stringify(requireChecksums.toJSDictionary)
+            )
+            cacheMap.traverse_(FSAsync.writeFile(_, _))
+          }
           _ <- ciCache.store(List(CACHE_DIRECTORY))
 
           _ <- Monad[F].whenA(!lintSucceed && linterConfig.forcePass) {
@@ -232,41 +232,14 @@ object Main extends IOApp {
     analyzerConfig = AnalyzerConfig(linterConfig.ignorePaths)
   } yield (dlsConfig, linterConfig, analyzerConfig)
 
-  private def generateFileChecksumAndUpdates[F[_]: Async](
-    analyzer: DatapackAnalyzer,
-    dls: DatapackLanguageService,
-    dlsConfig: DLSConfig,
-    prevChecksums: Option[FileChecksums]
-  )(using
-    ciInteraction: CIPlatformInteractionInstr[F]
-  ): F[(FileChecksums, FileUpdates)] = for {
-    targetFiles <- DLSHelper.getAllFiles(dls, dlsConfig)
-    checksums   <- analyzer.fetchChecksums(targetFiles)
-    refs       = DLSHelper.genReferenceMap(dls)
-    fileStates = FileUpdate.diff(prevChecksums.orEmpty, checksums, refs)
-
-    _ <- fileStates
-      .groupMap(_._2)(t => Uri.file(t._1).fsPath)
-      .map { case (k, v) => k -> v.toList }
-      .pipe { fm =>
-        def log(state: FileUpdate, stateMes: String) = fm.getOrEmpty(state).traverse_ { file =>
-          ciInteraction.printDebug(s"file $stateMes detected: $file")
-        }
-        log(FileUpdate.Created, "add")
-          >> log(FileUpdate.ContentUpdated, "change")
-          >> log(FileUpdate.RefsUpdated, "ref change")
-          >> log(FileUpdate.Deleted, "delete")
-      }
-  } yield (checksums, fileStates)
-
   private def lint[F[_]: Async](
     analyzer: DatapackAnalyzer,
-    fileStates: FileUpdates,
+    fileUpdates: FileUpdates,
     config: LinterConfig
   )(using ciInteraction: CIPlatformInteractionInstr[F]): F[(List[AnalysisResult], Boolean)] = {
     val program = for {
-      _      <- analyzer.updateCache(fileStates)
-      result <- analyzer.analyzeAll(fileStates)(
+      _      <- analyzer.updateCache(fileUpdates)
+      result <- analyzer.analyzeAll(fileUpdates)(
         DatapackLinter.printResult(_, config.muteSuccessResult)
       )
       (lintSucceed, err, warn) = {

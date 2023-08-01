@@ -34,13 +34,13 @@ final class DatapackAnalyzer private (
 ) {
   import DatapackAnalyzer.*
 
-  def analyzeAll[F[_]: Async](fileStates: Map[String, FileUpdate])(
+  def analyzeAll[F[_]: Async](fileUpdates: Map[String, FileUpdate])(
     analyzeCallback: AnalysisResult => F[Unit]
   )(using
     ciInteraction: CIPlatformInteractionInstr[F]
   ): AnalysisState[F, List[AnalysisResult]] = {
     import FileUpdate.*
-    fileStates.toList
+    fileUpdates.toList
       .sortBy(_._1)
       .map { case (k, v) => DLSHelper.getFileInfoFromAbs(dls)(k) -> v }
       .filter {
@@ -50,7 +50,7 @@ final class DatapackAnalyzer private (
             .exists(!analyzerConfig.ignorePathsIncludes(_))
       }
       .collect {
-        case (Some(k), Created | ContentUpdated | RefsUpdated)           =>
+        case (Some(k), Created | ContentUpdated | RefsUpdated)     =>
           AnalysisState.Waiting(k.root, k.abs, k.rel)
         case (Some(k), NotChanged) if analyzeCache.contains(k.abs) =>
           AnalysisState.Cached(analyzeCache(k.abs))
@@ -116,14 +116,14 @@ final class DatapackAnalyzer private (
     }
   } yield Map(data*)
 
-  def updateCache[F[_]: Async](fileStates: Map[String, FileUpdate])(using
+  def updateCache[F[_]: Async](fileUpdates: Map[String, FileUpdate])(using
     ciInteraction: CIPlatformInteractionInstr[F]
   ): AnalysisState[F, Unit] = {
     import FileUpdate.*
 
     def checkFilesInCache[F[_]: Async]()(using
       ciInteraction: CIPlatformInteractionInstr[F]
-    ): F[Unit] = fileStates.toList.traverse_ {
+    ): F[Unit] = fileUpdates.toList.traverse_ {
       case (uriString, state) =>
         val uri = dls.parseUri(Uri.file(uriString).toString)
         state match {
@@ -138,7 +138,7 @@ final class DatapackAnalyzer private (
     }
 
     def addNewFileToCache(): AnalysisState[F, Unit] = {
-      fileStates.toList.traverse_ {
+      fileUpdates.toList.traverse_ {
         case (uriString, Created) => for {
             uri <- Monad[AnalysisState[F, _]].pure(dls.parseUri(Uri.file(uriString).toString))
             _   <- StateT.liftF(AsyncExtra.fromPromise(dls.onAddedFile(uri)))

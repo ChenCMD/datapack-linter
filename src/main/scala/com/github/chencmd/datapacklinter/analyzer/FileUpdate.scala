@@ -29,13 +29,13 @@ object FileUpdate {
     nextCheckSums: Map[String, String],
     refs: Map[String, List[String]]
   ): Map[String, FileUpdate] = {
-    val fileState = Align[Map[String, _]].alignWith(prevChecksums, nextCheckSums)(FileUpdate.apply)
-    val overrideFileStateForRefs = fileState.flatMap {
+    val fileUpdate = Align[Map[String, _]].alignWith(prevChecksums, nextCheckSums)(FileUpdate.apply)
+    val overrideRefsUpdated = fileUpdate.flatMap {
       case (k, ContentUpdated | Deleted) =>
-        refs.getOrEmpty(k).filter(fileState.get(_).contains(NotChanged)).map(_ -> RefsUpdated)
-      case _                      => List.empty
+        refs.getOrEmpty(k).filter(fileUpdate.get(_).contains(NotChanged)).map(_ -> RefsUpdated)
+      case _                             => List.empty
     }
 
-    fileState ++ overrideFileStateForRefs
+    fileUpdate ++ overrideRefsUpdated
   }
 }
