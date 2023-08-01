@@ -50,17 +50,15 @@ final class DatapackAnalyzer private (
             .exists(!analyzerConfig.ignorePathsIncludes(_))
       }
       .collect {
-        case (Some(k), Created | ContentUpdated | RefsUpdated)     =>
-          AnalysisState.Waiting(k.root, k.abs, k.rel)
-        case (Some(k), NotChanged) if analyzeCache.contains(k.abs) =>
-          AnalysisState.Cached(analyzeCache(k.abs))
+        case (Some(k), Created | ContentUpdated | RefsUpdated)     => AnalysisState.Waiting(k.root, k.abs, k.rel)
+        case (Some(k), NotChanged) if analyzeCache.contains(k.abs) => AnalysisState.Cached(analyzeCache(k.abs))
       }
       .flatTraverse {
         case AnalysisState.Waiting(root, abs, rel) => for {
             res <- parseDoc(root, abs, rel)
             _   <- StateT.liftF(res.traverse_(analyzeCallback))
           } yield res.toList
-        case AnalysisState.Cached(res) => StateT.liftF(analyzeCallback(res).as(List(res)))
+        case AnalysisState.Cached(res)             => StateT.liftF(analyzeCallback(res).as(List(res)))
       }
   }
 
@@ -130,10 +128,10 @@ final class DatapackAnalyzer private (
           case ContentUpdated | RefsUpdated => for {
               _ <- AsyncExtra.fromPromise(dls.onModifiedFile(uri))
             } yield ()
-          case Deleted               => Async[F].delay {
+          case Deleted                      => Async[F].delay {
               dls.onDeletedFile(uri)
             }
-          case _                     => Monad[F].unit
+          case _                            => Monad[F].unit
         }
     }
 
@@ -183,7 +181,7 @@ final class DatapackAnalyzer private (
 
 object DatapackAnalyzer {
   private val GC_THRESHOLD = 500
-  private type AnalyzedCount         = Int
+  private type AnalyzedCount          = Int
   private type AnalysisState[F[_], A] = StateT[F, AnalyzedCount, A]
 
   def apply(

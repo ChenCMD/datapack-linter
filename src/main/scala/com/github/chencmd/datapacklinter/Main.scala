@@ -17,9 +17,9 @@ import com.github.chencmd.datapacklinter.generic.MapExtra.*
 import com.github.chencmd.datapacklinter.generic.RaiseNec
 import com.github.chencmd.datapacklinter.linter.DatapackLinter
 import com.github.chencmd.datapacklinter.linter.LinterConfig
+import com.github.chencmd.datapacklinter.terms.*
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.Hash
-import com.github.chencmd.datapacklinter.terms.*
 
 import cats.Monad
 import cats.data.EitherT
@@ -86,7 +86,7 @@ object Main extends IOApp {
 
           targetFiles <- DLSHelper.getAllFiles(dls, dlsConfig)
           checksums   <- analyzer.fetchChecksums(targetFiles)
-          fileUpdates  <- {
+          fileUpdates <- {
             val refs = DLSHelper.genReferenceMap(dls)
             val res  = FileUpdate.diff(checksumCache.orEmpty, checksums, refs)
             DatapackLinter.printFileUpdatesLog(res).as(res)
@@ -96,9 +96,9 @@ object Main extends IOApp {
 
           _ <- {
             val cacheMap = List(
-              dlsCachePath            -> JSON.stringify(dls.cacheFile),
-              fileChecksumCachePath   -> JSON.stringify(checksums.toJSDictionary),
-              analysisResultCachePath -> JSON.stringify(analyzeResult.map(_.toJSObject).toJSArray),
+              dlsCachePath                -> JSON.stringify(dls.cacheFile),
+              fileChecksumCachePath       -> JSON.stringify(checksums.toJSDictionary),
+              analysisResultCachePath     -> JSON.stringify(analyzeResult.map(_.toJSObject).toJSArray),
               validationChecksumCachePath -> JSON.stringify(requireChecksums.toJSDictionary)
             )
             cacheMap.traverse_(FSAsync.writeFile(_, _))
@@ -210,8 +210,7 @@ object Main extends IOApp {
         .toMap
 
       _ <- validationChecksums.toList.traverse {
-        case (name, checksum) =>
-          EitherTExtra.exitWhenA(!validationChecksumCache.get(name).contains(checksum)) {
+        case (name, checksum) => EitherTExtra.exitWhenA(!validationChecksumCache.get(name).contains(checksum)) {
             s"The cache is not used because the ${name.replace("$", "")} has been changed"
           }
       }

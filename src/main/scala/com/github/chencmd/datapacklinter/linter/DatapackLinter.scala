@@ -49,8 +49,7 @@ object DatapackLinter {
           .filter(_.severity <= 2)
           .map { e =>
             val pos                   = e.range.start
-            val paddedPosition        =
-              f"${pos.line.asInstanceOf[Int]}%5d:${pos.character.asInstanceOf[Int]}%-5d"
+            val paddedPosition        = f"${pos.line.asInstanceOf[Int]}%5d:${pos.character.asInstanceOf[Int]}%-5d"
             val indentAdjuster        = " " * (if (e.severity == 1) then 2 else 0)
             val humanReadableSeverity = {
               val raw = e.severity match {

@@ -20,7 +20,7 @@ object LocalManageCache {
       override def restore(paths: List[String])(using
         R: RaiseNec[F, String]
       ): F[Boolean] = for {
-        _ <- ciInteraction.printDebug("The key is ignored because a local cache manager is used.")
+        _               <- ciInteraction.printDebug("The key is ignored because a local cache manager is used.")
         existsCacheFile <- paths.forallM(FSAsync.pathAccessible)
       } yield existsCacheFile
     }

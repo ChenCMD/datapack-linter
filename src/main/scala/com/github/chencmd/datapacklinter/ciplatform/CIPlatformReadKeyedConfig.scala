@@ -55,8 +55,8 @@ object CIPlatformReadKeyedConfigInstr {
       value.toDoubleOption.toRight(typeMismatchError(key, "Double"))
   }
   given ConfigValueType[Boolean] with      {
-    val trueValue  = List("true", "True", "TRUE")
-    val falseValue = List("false", "False", "FALSE")
+    val trueValue                                                    = List("true", "True", "TRUE")
+    val falseValue                                                   = List("false", "False", "FALSE")
     def tryCast(key: String, value: String): Either[String, Boolean] = {
       if (trueValue.contains(value)) return Right(true)
       if (falseValue.contains(value)) return Right(false)
@@ -64,7 +64,6 @@ object CIPlatformReadKeyedConfigInstr {
     }
   }
   given ConfigValueType[List[String]] with {
-    def tryCast(key: String, value: String): Either[String, List[String]] =
-      Right(value.split("\n").toList)
+    def tryCast(key: String, value: String): Either[String, List[String]] = Right(value.split("\n").toList)
   }
 }

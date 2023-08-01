@@ -29,7 +29,7 @@ object FileUpdate {
     nextCheckSums: Map[String, String],
     refs: Map[String, List[String]]
   ): Map[String, FileUpdate] = {
-    val fileUpdate = Align[Map[String, _]].alignWith(prevChecksums, nextCheckSums)(FileUpdate.apply)
+    val fileUpdate          = Align[Map[String, _]].alignWith(prevChecksums, nextCheckSums)(FileUpdate.apply)
     val overrideRefsUpdated = fileUpdate.flatMap {
       case (k, ContentUpdated | Deleted) =>
         refs.getOrEmpty(k).filter(fileUpdate.get(_).contains(NotChanged)).map(_ -> RefsUpdated)

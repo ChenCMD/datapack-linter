@@ -10,7 +10,7 @@ trait RaiseNec[F[_], -E] extends Raise[F, NonEmptyChain[E]] {
 
 object RaiseNec {
   given [F[_]: Functor, E](using F: Raise[F, NonEmptyChain[E]]): RaiseNec[F, E] with {
-    def functor = Functor[F]
+    def functor                                       = Functor[F]
     def raise[E2 <: NonEmptyChain[E], A](e: E2): F[A] = F.raise(e)
   }
 }
