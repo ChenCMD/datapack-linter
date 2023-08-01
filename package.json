@@ -13,7 +13,8 @@
     "build:dev": "dotenv cross-var sbt fastOptJS/webpack && mv dist/datapack-linter-fastopt-bundle.js dist/index.js",
     "test": "node dist/index.js test/linter-config.json",
     "dev": "yarn build:dev && rm -r .cache/ && yarn test",
-    "sfix": "sbt scalafix"
+    "sfix": "sbt scalafix",
+    "fmt": "sbt scalafmtAll"
   },
   "devDependencies": {
     "cross-var": "^1.1.0",
