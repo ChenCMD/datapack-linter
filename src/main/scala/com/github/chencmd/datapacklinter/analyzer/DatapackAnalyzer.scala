@@ -4,6 +4,7 @@ import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.dls.DLSHelper
 import com.github.chencmd.datapacklinter.facade.DatapackLanguageService
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
+import com.github.chencmd.datapacklinter.generic.MapExtra.*
 import com.github.chencmd.datapacklinter.term.AnalysisCache
 import com.github.chencmd.datapacklinter.term.FileChecksums
 import com.github.chencmd.datapacklinter.term.FileUpdates
@@ -29,7 +30,7 @@ import typings.spgodingDatapackLanguageServer.spgodingDatapackLanguageServerStri
 import typings.spgodingDatapackLanguageServer.anon.GetText
 import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNode
 
-final class DatapackAnalyzer private (
+final class DatapackAnalyzer (
   private val dls: DatapackLanguageService,
   private val analyzerConfig: AnalyzerConfig,
   private val analyzeCache: AnalysisCache
@@ -113,39 +114,31 @@ final class DatapackAnalyzer private (
   ): AnalysisState[F, Unit] = {
     import FileUpdate.*
 
-    def checkFilesInCache[F[_]: Async]()(using
+    def checkFilesInCache[F[_]: Async](uriFileUpdates: Map[URI, FileUpdate])(using
       ciInteraction: CIPlatformInteractionInstr[F]
-    ): F[Unit] = fileUpdates.toList.traverse_ {
-      case (uriString, state) =>
-        val uri = URI.file(uriString)
-        state match {
-          case ContentUpdated | RefsUpdated => for {
-              _ <- AsyncExtra.fromPromise(dls.onModifiedFile(uri))
-            } yield ()
-          case Deleted                      => Async[F].delay {
-              dls.onDeletedFile(uri)
-            }
-          case _                            => Monad[F].unit
+    ): F[Unit] = uriFileUpdates.toList.traverse_ {
+      case (uri, ContentUpdated | RefsUpdated) => for {
+          _ <- AsyncExtra.fromPromise(dls.onModifiedFile(uri))
+        } yield ()
+      case (uri, Deleted)                      => Async[F].delay {
+          dls.onDeletedFile(uri)
         }
+      case _                                   => Monad[F].unit
     }
 
-    def addNewFileToCache(): AnalysisState[F, Unit] = {
-      fileUpdates.toList.traverse_ {
-        case (uriString, Created) => for {
-            uri <- Monad[AnalysisState[F, _]].pure(URI.file(uriString))
-            _   <- StateT.liftF(AsyncExtra.fromPromise(dls.onAddedFile(uri)))
-            _   <- gc()
-          } yield ()
-        case _                    => Monad[AnalysisState[F, _]].unit
+    def addNewFileToCache(uriFileUpdates: Map[URI, FileUpdate]): AnalysisState[F, Unit] = {
+      uriFileUpdates.filter(_._2 == Created).keys.toList.traverse_ { uri =>
+        StateT.liftF(AsyncExtra.fromPromise(dls.onAddedFile(uri))) >> gc()
       }
     }
 
+    val uriFileUpdates = fileUpdates.mapKeys(URI.file(_))
     for {
       time1 <- StateT.liftF(Async[F].delay(Date.now()))
-      _     <- StateT.liftF(checkFilesInCache())
+      _     <- StateT.liftF(checkFilesInCache(uriFileUpdates))
       time2 <- StateT.liftF(Async[F].delay(Date.now()))
       _     <- StateT.liftF(ciInteraction.printInfo(s"[updateCacheFile] [1] ${time2 - time1} ms"))
-      _     <- addNewFileToCache()
+      _     <- addNewFileToCache(uriFileUpdates)
       _     <- StateT.liftF(Async[F].delay(ClientCache.trimCache(dls.cacheFile.cache)))
       time3 <- StateT.liftF(Async[F].delay(Date.now()))
       _     <- StateT.liftF(ciInteraction.printInfo(s"[updateCacheFile] [2] ${time3 - time2} ms"))
@@ -175,12 +168,4 @@ object DatapackAnalyzer {
   private val GC_THRESHOLD = 500
   private type AnalyzedCount          = Int
   private type AnalysisState[F[_], A] = StateT[F, AnalyzedCount, A]
-
-  def apply(
-    dls: DatapackLanguageService,
-    analyzerConfig: AnalyzerConfig,
-    analyzeCache: List[AnalysisResult]
-  ): DatapackAnalyzer = {
-    new DatapackAnalyzer(dls, analyzerConfig, analyzeCache.map(c => c.absolutePath -> c).toMap)
-  }
 }

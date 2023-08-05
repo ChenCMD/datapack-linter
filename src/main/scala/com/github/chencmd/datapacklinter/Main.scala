@@ -43,6 +43,7 @@ import typings.node.global.console
 
 import org.scalablytyped.runtime.StringDictionary
 import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.CacheFile
+import com.github.chencmd.datapacklinter.term.AnalysisCache
 
 object Main extends IOApp {
   private case class CIPlatformContext[F[_]](
@@ -84,7 +85,7 @@ object Main extends IOApp {
           )
 
           dls <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
-          analyzer = DatapackAnalyzer(dls, analyzerConfig, analyzeResultCache.orEmpty)
+          analyzer = DatapackAnalyzer(dls, analyzerConfig, analyzeResultCache.getOrElse(Map.empty))
 
           targetFiles <- DLSHelper.getAllFiles(dls, dlsConfig)
           checksums   <- analyzer.fetchChecksums(targetFiles)
@@ -100,7 +101,7 @@ object Main extends IOApp {
             val cacheMap = List(
               dlsCachePath                -> JSON.stringify(dls.cacheFile),
               fileChecksumCachePath       -> JSON.stringify(
-                checksums.map { case (k, v) => k.toString -> v.toString }.toJSDictionary
+                checksums.map(a => a._1.toString -> a._2.toString).toJSDictionary
               ),
               analysisResultCachePath     -> JSON.stringify(analyzeResult.map(_.toJSObject).toJSArray),
               validationChecksumCachePath -> JSON.stringify(requireChecksums.toJSDictionary)
@@ -179,7 +180,7 @@ object Main extends IOApp {
     R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     ciCache: CIPlatformManageCacheInstr[F]
-  ): F[(Option[CacheFile], Option[FileChecksums], Option[List[AnalysisResult]])] = {
+  ): F[(Option[CacheFile], Option[FileChecksums], Option[AnalysisCache])] = {
     def readFileOrExit(path: Path, exitMessage: String): EitherT[F, String, String] = {
       EitherT.fromOptionF(FSAsync.readFileOpt(path), exitMessage)
     }
@@ -207,6 +208,8 @@ object Main extends IOApp {
         .asInstanceOf[js.Array[JSAnalysisResult]]
         .toList
         .map(AnalysisResult.fromJSObject)
+        .map(c => c.absolutePath -> c)
+        .toMap
 
       rawValidationChecksums <- readFileOrExit(
         objectChecksumCachePath,
