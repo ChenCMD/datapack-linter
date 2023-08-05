@@ -36,6 +36,7 @@ semanticdbVersion := scalafixSemanticdb.revision
 
 scalacOptions ++= Seq(
   "-deprecation",
+  "-feature",
   "-unchecked",
   "-Ykind-projector:underscores",
   "-no-indent",

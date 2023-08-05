@@ -3,6 +3,7 @@ package com.github.chencmd.datapacklinter.ciplatform.ghactions
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.JSObject
+import com.github.chencmd.datapacklinter.utils.Path
 
 import cats.effect.Async
 import cats.effect.Resource
@@ -12,7 +13,6 @@ import scala.scalajs.js
 import scala.scalajs.js.JSON
 
 import typings.actionsCore.mod as core
-import typings.node.pathMod as path
 
 object GitHubInteraction {
   private val matcher = JSObject(
@@ -37,9 +37,7 @@ object GitHubInteraction {
     )
   )
 
-  def createInstr[F[_]: Async](
-    dir: String
-  ): Resource[F, CIPlatformInteractionInstr[F]] = {
+  def createInstr[F[_]: Async](dir: Path): Resource[F, CIPlatformInteractionInstr[F]] = {
     val instr   = new CIPlatformInteractionInstr[F] {
       override def printError(msg: String): F[Unit] = {
         // Error detection is more versatile with matcher, so here we use info for output.
@@ -72,10 +70,10 @@ object GitHubInteraction {
       }
     }
     val program = for {
-      _ <- FSAsync.writeFile(path.join(dir, "matcher.json"), JSON.stringify(matcher))
+      _ <- FSAsync.writeFile(Path.join(dir, "matcher.json"), JSON.stringify(matcher))
       _ <- instr.printInfo(":add-matcher::matcher.json")
     } yield instr
 
-    Resource.make(program)(_ => FSAsync.removeFile(path.join(dir, "matcher.json")))
+    Resource.make(program)(_ => FSAsync.removeFile(Path.join(dir, "matcher.json")))
   }
 }

@@ -8,65 +8,67 @@ import cats.data.EitherT
 import cats.effect.Async
 import cats.implicits.*
 
-import typings.node.pathMod as path
 import typings.node.BufferEncoding
 import typings.node.anon.Mode
 import typings.node.fsMod.promises as fsp
 
 object FSAsync {
-  def pathAccessible[F[_]: Async](path: String): F[Boolean] = {
+  import scala.language.implicitConversions
+  import Path.Converter.given
+
+  def pathAccessible[F[_]: Async](path: Path): F[Boolean] = {
     AsyncExtra
       .fromPromise(fsp.access(path))
       .map(_ => true)
       .handleError(_ => false)
   }
 
-  def writeFile[F[_]: Async](targetPath: String, contents: String, encoding: String = "utf8"): F[Unit] = {
+  def writeFile[F[_]: Async](targetPath: Path, contents: String, encoding: String = "utf8"): F[Unit] = {
     AsyncExtra.fromPromise(fsp.writeFile(targetPath, contents, Mode().setEncoding(encoding)))
   }
 
-  def removeFile[F[_]: Async](targetPath: String): F[Unit] = {
+  def removeFile[F[_]: Async](targetPath: Path): F[Unit] = {
     AsyncExtra.fromPromise(fsp.unlink(targetPath))
   }
 
-  def readFile[F[_]: Async](targetPath: String): F[String] = {
+  def readFile[F[_]: Async](targetPath: Path): F[String] = {
     AsyncExtra.fromPromise(fsp.readFile(targetPath, BufferEncoding.utf8))
   }
 
-  def readDir[F[_]: Async](dir: String): F[List[String]] = {
+  def readDir[F[_]: Async](dir: Path): F[List[Path]] = {
     AsyncExtra
       .fromPromise(fsp.readdir(dir))
-      .map(_.toList.map(path.join(dir, _)))
+      .map(_.toList.map(Path.join(dir, _)))
   }
 
-  def readFileOpt[F[_]: Async](targetPath: String): F[Option[String]] = for {
+  def readFileOpt[F[_]: Async](targetPath: Path): F[Option[String]] = for {
     existsFile <- pathAccessible(targetPath)
     contents   <- ApplicativeExtra.whenAOrPureNone(existsFile)(readFile(targetPath))
   } yield contents
 
-  def readDirOpt[F[_]: Async](targetPath: String): F[Option[List[String]]] = for {
+  def readDirOpt[F[_]: Async](targetPath: Path): F[Option[List[Path]]] = for {
     existsFile <- pathAccessible(targetPath)
     contents   <- ApplicativeExtra.whenAOrPureNone(existsFile)(readDir(targetPath))
   } yield contents
 
-  def isDirectory[F[_]: Async](targetPath: String): F[Boolean] = {
+  def isDirectory[F[_]: Async](targetPath: Path): F[Boolean] = {
     AsyncExtra.fromPromise(fsp.stat(targetPath)).map(_.isDirectory())
   }
 
-  case class Path(abs: String, rel: String)
+  case class PathGroup(abs: Path, rel: String)
 
   def foreachFileRec[F[_]: Async, A](
-    baseDir: String,
-    targetDir: String,
-    pathFilter: Path => Boolean,
+    baseDir: Path,
+    targetDir: Path,
+    pathFilter: PathGroup => Boolean,
     maxDepth: Int = Int.MaxValue
   )(
-    f: Path => F[A]
+    f: PathGroup => F[A]
   ): F[List[A]] = {
-    def walk(dir: String, currentDepth: Int): F[List[A]] = for {
+    def walk(dir: Path, currentDepth: Int): F[List[A]] = for {
       files  <- readDir(dir)
       result <- files
-        .map(p => Path(p, path.relative(baseDir, p)))
+        .map(p => PathGroup(p, Path.relative(baseDir, p)))
         .flatTraverse { childPath =>
           val program = for {
             isDir    <- EitherT.liftF(isDirectory(childPath.abs))
@@ -88,17 +90,17 @@ object FSAsync {
   }
 
   def foreachDirRec[F[_]: Async, A](
-    baseDir: String,
-    targetDir: String,
-    pathFilter: Path => Boolean,
+    baseDir: Path,
+    targetDir: Path,
+    pathFilter: PathGroup => Boolean,
     maxDepth: Int = Int.MaxValue
   )(
-    f: Path => F[A]
+    f: PathGroup => F[A]
   ): F[List[A]] = {
-    def walk(dir: String, currentDepth: Int): F[List[A]] = for {
+    def walk(dir: Path, currentDepth: Int): F[List[A]] = for {
       files  <- readDir(dir)
       dirs   <- files
-        .map(p => Path(p, path.relative(dir, p)))
+        .map(p => PathGroup(p, Path.relative(dir, p)))
         .filterA(p => isDirectory(p.abs))
       result <- dirs.flatTraverse { childPath =>
         val program = for {

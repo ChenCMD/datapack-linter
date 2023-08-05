@@ -5,6 +5,7 @@ import com.github.chencmd.datapacklinter.generic.OptionTExtra
 import com.github.chencmd.datapacklinter.generic.WrappedDictionaryExtra.*
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.Jsonc
+import com.github.chencmd.datapacklinter.utils.Path
 
 import cats.data.OptionT
 import cats.effect.Async
@@ -20,7 +21,7 @@ type DLSConfig = OriginDLSConfig
 
 object DLSConfig {
   def readConfig[F[_]: Async](
-    configFilePath: String
+    configFilePath: Path
   )(using ciInteraction: CIPlatformInteractionInstr[F]): F[DLSConfig] = {
     val program = for {
       isAccessible <- FSAsync.pathAccessible[OptionT[F, _]](configFilePath)

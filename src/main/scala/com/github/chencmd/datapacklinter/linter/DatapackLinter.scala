@@ -5,7 +5,9 @@ import com.github.chencmd.datapacklinter.analyzer.ErrorSeverity
 import com.github.chencmd.datapacklinter.analyzer.FileUpdate
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.generic.MapExtra.*
-import com.github.chencmd.datapacklinter.terms.FileUpdates
+import com.github.chencmd.datapacklinter.term.FileUpdates
+import com.github.chencmd.datapacklinter.utils.Path
+import com.github.chencmd.datapacklinter.utils.URI
 
 import cats.Monad
 import cats.effect.Async
@@ -13,14 +15,13 @@ import cats.implicits.*
 
 import scala.util.chaining.*
 
-import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
 
 object DatapackLinter {
   def printFileUpdatesLog[F[_]: Async](
     fileUpdates: FileUpdates
   )(using ciInteraction: CIPlatformInteractionInstr[F]): F[Unit] = {
     fileUpdates
-      .groupMap(_._2)(t => Uri.file(t._1).fsPath)
+      .groupMap(_._2)(t => URI.file(t._1).fsPath)
       .map { case (k, v) => k -> v.toList }
       .pipe { fm =>
         def log(state: FileUpdate, stateMes: String) = fm.getOrEmpty(state).traverse_ { file =>

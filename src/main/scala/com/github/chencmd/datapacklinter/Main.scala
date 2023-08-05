@@ -17,9 +17,12 @@ import com.github.chencmd.datapacklinter.generic.MapExtra.*
 import com.github.chencmd.datapacklinter.generic.RaiseNec
 import com.github.chencmd.datapacklinter.linter.DatapackLinter
 import com.github.chencmd.datapacklinter.linter.LinterConfig
-import com.github.chencmd.datapacklinter.terms.*
+import com.github.chencmd.datapacklinter.term.Checksum
+import com.github.chencmd.datapacklinter.term.FileChecksums
+import com.github.chencmd.datapacklinter.term.FileUpdates
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.Hash
+import com.github.chencmd.datapacklinter.utils.Path
 
 import cats.Monad
 import cats.data.EitherT
@@ -35,7 +38,6 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 import scala.scalajs.js.JSON
 
-import typings.node.pathMod as path
 import typings.node.processMod as process
 import typings.node.global.console
 
@@ -49,22 +51,22 @@ object Main extends IOApp {
     manageCache: CIPlatformManageCacheInstr[F]
   )
 
-  val CACHE_DIRECTORY = ".cache"
+  val CACHE_DIRECTORY = Path.coerce(".cache")
 
   override def run(args: List[String]) = {
     def run[F[_]: Async]()(using R: RaiseNec[F, String]): F[ExitCode] = for {
-      dir <- Async[F].delay(process.cwd())
+      dir <- Async[F].delay(Path.coerce(process.cwd()))
 
-      exitCode <- getApplicationContext(dir, args.get(0)).use { ctx =>
+      exitCode <- getApplicationContext(dir, args.get(0).map(Path.coerce(_))).use { ctx =>
         given ciInteraction: CIPlatformInteractionInstr[F] = ctx.interaction
         given CIPlatformReadKeyedConfigInstr[F]            = ctx.inputReader
         given ciCache: CIPlatformManageCacheInstr[F]       = ctx.manageCache
 
-        val cacheDir                    = path.join(dir, CACHE_DIRECTORY)
-        val dlsCachePath                = path.join(cacheDir, "dls.json")
-        val fileChecksumCachePath       = path.join(cacheDir, "file-checksums.json")
-        val validationChecksumCachePath = path.join(cacheDir, "validation-checksums.json")
-        val analysisResultCachePath     = path.join(cacheDir, "analysis-results.json")
+        val cacheDir                    = Path.join(dir, CACHE_DIRECTORY)
+        val dlsCachePath                = Path.join(cacheDir, "dls.json")
+        val fileChecksumCachePath       = Path.join(cacheDir, "file-checksums.json")
+        val validationChecksumCachePath = Path.join(cacheDir, "validation-checksums.json")
+        val analysisResultCachePath     = Path.join(cacheDir, "analysis-results.json")
 
         for {
           (dlsConfig, linterConfig, analyzerConfig) <- readConfigs(dir)
@@ -88,7 +90,7 @@ object Main extends IOApp {
           checksums   <- analyzer.fetchChecksums(targetFiles)
           fileUpdates <- {
             val refs = DLSHelper.genReferenceMap(dls)
-            val res  = FileUpdate.diff(checksumCache.orEmpty, checksums, refs)
+            val res  = FileUpdate.diff(checksumCache.getOrElse(Map.empty), checksums, refs)
             DatapackLinter.printFileUpdatesLog(res).as(res)
           }
 
@@ -97,7 +99,9 @@ object Main extends IOApp {
           _ <- {
             val cacheMap = List(
               dlsCachePath                -> JSON.stringify(dls.cacheFile),
-              fileChecksumCachePath       -> JSON.stringify(checksums.toJSDictionary),
+              fileChecksumCachePath       -> JSON.stringify(
+                checksums.map { case (k, v) => k.toString -> v.toString }.toJSDictionary
+              ),
               analysisResultCachePath     -> JSON.stringify(analyzeResult.map(_.toJSObject).toJSArray),
               validationChecksumCachePath -> JSON.stringify(requireChecksums.toJSDictionary)
             )
@@ -126,8 +130,8 @@ object Main extends IOApp {
   }
 
   private def getApplicationContext[F[_]: Async](
-    dir: FilePath,
-    configFilePath: Option[FilePath]
+    dir: Path,
+    configFilePath: Option[Path]
   )(using R: RaiseNec[F, String]): Resource[F, CIPlatformContext[F]] = {
     enum Platform {
       case GitHubActions
@@ -165,21 +169,22 @@ object Main extends IOApp {
   }
 
   private def restoreCaches[F[_]: Async](
-    cacheDir: FilePath,
-    dlsCachePath: FilePath,
-    fileChecksumCachePath: FilePath,
-    analyzeResultCachePath: FilePath,
-    objectChecksumCachePath: FilePath,
+    cacheDir: Path,
+    dlsCachePath: Path,
+    fileChecksumCachePath: Path,
+    analyzeResultCachePath: Path,
+    objectChecksumCachePath: Path,
     validationChecksums: Map[String, Checksum]
   )(using
     R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     ciCache: CIPlatformManageCacheInstr[F]
   ): F[(Option[CacheFile], Option[FileChecksums], Option[List[AnalysisResult]])] = {
-    def readFileOrExit(path: String, exitMessage: String): EitherT[F, String, String] = {
+    def readFileOrExit(path: Path, exitMessage: String): EitherT[F, String, String] = {
       EitherT.fromOptionF(FSAsync.readFileOpt(path), exitMessage)
     }
-    val program                                                                       = for {
+
+    val program = for {
       restoreSucceed <- EitherT.liftF(ciCache.restore(List(cacheDir)))
       _              <- EitherTExtra.exitWhenA(!restoreSucceed)("Failed to restore the cache")
 
@@ -189,7 +194,8 @@ object Main extends IOApp {
 
       rawFileChecksums <- readFileOrExit(fileChecksumCachePath, "Failed to read cache file")
       // TODO safe cast にする
-      fileChecksumCache = JSON.parse(rawFileChecksums).asInstanceOf[StringDictionary[String]].toMap
+      fileChecksumCache =
+        JSON.parse(rawFileChecksums).asInstanceOf[StringDictionary[Checksum]].toMap.asInstanceOf[FileChecksums]
 
       rawAnalyzeResultCache <- readFileOrExit(analyzeResultCachePath, "Failed to read cache file")
       // TODO safe cast にする
@@ -206,7 +212,7 @@ object Main extends IOApp {
       // TODO safe cast にする
       validationChecksumCache = JSON
         .parse(rawValidationChecksums)
-        .asInstanceOf[StringDictionary[String]]
+        .asInstanceOf[StringDictionary[Checksum]]
         .toMap
 
       _ <- validationChecksums.toList.traverse {
@@ -221,12 +227,12 @@ object Main extends IOApp {
     } yield caches.toOption.unzip3
   }
 
-  private def readConfigs[F[_]: Async](dir: FilePath)(using
+  private def readConfigs[F[_]: Async](dir: Path)(using
     R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     readConfig: CIPlatformReadKeyedConfigInstr[F]
   ): F[(DLSConfig, LinterConfig, AnalyzerConfig)] = for {
-    dlsConfig    <- DLSConfig.readConfig(path.join(dir, ".vscode", "settings.json"))
+    dlsConfig    <- DLSConfig.readConfig(Path.join(dir, ".vscode", "settings.json"))
     linterConfig <- LinterConfig.withReader()
     analyzerConfig = AnalyzerConfig(linterConfig.ignorePaths)
   } yield (dlsConfig, linterConfig, analyzerConfig)

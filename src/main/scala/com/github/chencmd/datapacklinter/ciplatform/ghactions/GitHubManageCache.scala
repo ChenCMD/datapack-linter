@@ -3,6 +3,7 @@ package com.github.chencmd.datapacklinter.ciplatform.ghactions
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformManageCacheInstr
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
 import com.github.chencmd.datapacklinter.generic.RaiseNec
+import com.github.chencmd.datapacklinter.utils.Path
 
 import cats.effect.kernel.Async
 import cats.implicits.*
@@ -20,19 +21,19 @@ object GitHubManageCache {
       context
     }
     instr = new CIPlatformManageCacheInstr[F] {
-      override def store(paths: List[String]): F[Unit] = Async[F].delay {
+      override def store(paths: List[Path]): F[Unit] = Async[F].delay {
         cache.saveCache(
-          paths.toJSArray,
+          paths.map(_.toString).toJSArray,
           makeCacheKey(ghCtx.ref, js.Date.now().asInstanceOf[Int])
         )
       }
 
-      override def restore(paths: List[String])(using R: RaiseNec[F, String]): F[Boolean] = {
+      override def restore(paths: List[Path])(using R: RaiseNec[F, String]): F[Boolean] = {
         def _restore(primary: String, fallbacks: List[String] = List.empty): F[Boolean] = {
           try {
             AsyncExtra
               .fromPromise {
-                cache.restoreCache(paths.toJSArray, primary, fallbacks.toJSArray)
+                cache.restoreCache(paths.map(_.toString).toJSArray, primary, fallbacks.toJSArray)
               }
               .map(_.isDefined)
           } catch {

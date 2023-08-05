@@ -1,5 +1,8 @@
 package com.github.chencmd.datapacklinter.utils
 
+import com.github.chencmd.datapacklinter.utils.Path
+import com.github.chencmd.datapacklinter.utils.URI
+
 import cats.effect.Async
 import cats.implicits.*
 
@@ -7,29 +10,25 @@ import scala.util.chaining.*
 
 import scala.scalajs.js.JSConverters.*
 
-import typings.node.pathMod as path
-
 import typings.spgodingDatapackLanguageServer.libServicesCommonMod as DLSCommon
-import typings.spgodingDatapackLanguageServer.libTypesHandlersMod.Uri
 
 object Datapack {
-  def findDatapackRoots[F[_]: Async](dir: String, maxDepth: Int): F[List[Uri]] = for {
+  def findDatapackRoots[F[_]: Async](dir: Path, maxDepth: Int): F[List[URI]] = for {
     rootCandidatePaths <- FSAsync.foreachDirRec(dir, dir, _ => true, maxDepth)(_.abs.pure[F])
-    rootPaths          <- {
-      rootCandidatePaths.filterA { p =>
-        for {
-          a <- FSAsync.pathAccessible(path.join(p, "data"))
-          b <- FSAsync.pathAccessible(path.join(p, "pack.mcmeta"))
-        } yield a && b
-      }
+    rootPaths          <- rootCandidatePaths.filterA { p =>
+      for {
+        a <- FSAsync.pathAccessible(Path.join(p, "data"))
+        b <- FSAsync.pathAccessible(Path.join(p, "pack.mcmeta"))
+      } yield a && b
     }
     rootUris = rootPaths
-      .map(Uri.file(_).toString())
+      .map(URI.file(_).toString)
       .map(DLSCommon.getRootUri(_))
+      .map(URI.coerce(_))
   } yield rootUris
 
-  def getRoot(uri: Uri, roots: List[Uri]): Option[String] = {
-    val res = Option(DLSCommon.getRelAndRootIndex(uri, roots.toJSArray))
+  def getRoot(uri: URI, roots: List[URI]): Option[Path] = {
+    val res = Option(DLSCommon.getRelAndRootIndex(uri.vs, roots.map(_.vs).toJSArray))
     res
       .map(_.rel)
       .orElse {
@@ -42,5 +41,6 @@ object Datapack {
           .pipe(Option.apply)
           .filter(_.nonEmpty)
       }
+      .map(Path.coerce(_))
   }
 }

@@ -2,9 +2,15 @@ package com.github.chencmd.datapacklinter.analyzer
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.dls.DLSHelper
+import com.github.chencmd.datapacklinter.facade.DatapackLanguageService
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
+import com.github.chencmd.datapacklinter.term.AnalysisCache
+import com.github.chencmd.datapacklinter.term.FileChecksums
+import com.github.chencmd.datapacklinter.term.FileUpdates
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.Hash
+import com.github.chencmd.datapacklinter.utils.Path
+import com.github.chencmd.datapacklinter.utils.URI
 
 import cats.Applicative
 import cats.Monad
@@ -16,36 +22,30 @@ import cats.implicits.*
 import scala.scalajs.js
 import scala.scalajs.js.Date
 
-import typings.vscodeUri.mod.URI
-
 import typings.spgodingDatapackLanguageServer.libServicesCommonMod as DLSCommon
 import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod as ClientCache
 import typings.spgodingDatapackLanguageServer.mod as DLS
 import typings.spgodingDatapackLanguageServer.spgodingDatapackLanguageServerStrings as DLSStr
 import typings.spgodingDatapackLanguageServer.anon.GetText
 import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNode
-import typings.spgodingDatapackLanguageServer.libTypesMod.Uri
-import typings.spgodingDatapackLanguageServer.mod.DatapackLanguageService
 
 final class DatapackAnalyzer private (
   private val dls: DatapackLanguageService,
   private val analyzerConfig: AnalyzerConfig,
-  private val analyzeCache: Map[String, AnalysisResult]
+  private val analyzeCache: AnalysisCache
 ) {
   import DatapackAnalyzer.*
 
-  def analyzeAll[F[_]: Async](fileUpdates: Map[String, FileUpdate])(
-    analyzeCallback: AnalysisResult => F[Unit]
-  )(using
+  def analyzeAll[F[_]: Async](fileUpdates: FileUpdates)(analyzeCallback: AnalysisResult => F[Unit])(using
     ciInteraction: CIPlatformInteractionInstr[F]
   ): AnalysisState[F, List[AnalysisResult]] = {
     import FileUpdate.*
     fileUpdates.toList
-      .sortBy(_._1)
+      .sortBy(_._1.toString)
       .map { case (k, v) => DLSHelper.getFileInfoFromAbs(dls)(k) -> v }
       .filter {
         case (k, _) => k
-            .flatMap(a => IdentityNode.fromRel(a.rel).toOption)
+            .flatMap(a => IdentityNode.fromRel(a.rel.toString).toOption)
             .map(_.id.toString)
             .exists(!analyzerConfig.ignorePathsIncludes(_))
       }
@@ -62,17 +62,11 @@ final class DatapackAnalyzer private (
       }
   }
 
-  def parseDoc[F[_]: Async](
-    root: String,
-    file: String,
-    rel: String
-  ): AnalysisState[F, Option[AnalysisResult]] = {
+  def parseDoc[F[_]: Async](root: Path, file: Path, rel: Path): AnalysisState[F, Option[AnalysisResult]] = {
     val program = for {
       languageID <- OptionT.fromOption {
-        val dotIdx   = file.lastIndexOf(".")
-        val slashIdx = file.lastIndexOf("/")
         for {
-          rawLang <- Option.when(dotIdx != -1 && slashIdx < dotIdx)(file.substring(dotIdx + 1))
+          rawLang <- Path.extname(file)
           lang    <- rawLang match {
             case "mcfunction" => Some(DLSStr.mcfunction)
             case "json"       => Some(DLSStr.json)
@@ -81,14 +75,14 @@ final class DatapackAnalyzer private (
         } yield lang: (DLSStr.mcfunction | DLSStr.json)
       }
 
-      id <- OptionT.fromOption(IdentityNode.fromRel(rel).toOption.map(_.id))
+      id <- OptionT.fromOption(IdentityNode.fromRel(rel.toString).toOption.map(_.id))
 
       doc       <- AsyncExtra.fromPromise[OptionT[F, _]] {
         DLSCommon.getTextDocument(
           GetText(
-            getText = () => DLS.readFile(file),
+            getText = () => DLS.readFile(file.toString),
             langID = languageID,
-            uri = Uri.file(file).asInstanceOf[URI]
+            uri = URI.file(file).vs
           )
         )
       }
@@ -103,9 +97,9 @@ final class DatapackAnalyzer private (
     } yield res.map(_._1)
   }
 
-  def fetchChecksums[F[_]: Async](files: List[String]): F[Map[String, String]] = for {
+  def fetchChecksums[F[_]: Async](files: List[Path]): F[FileChecksums] = for {
     data <- files.traverseFilter { uriString =>
-      val uri     = dls.parseUri(uriString)
+      val uri     = URI.fromPath(uriString)
       val program = for {
         contents <- OptionT(FSAsync.readFileOpt(uri.fsPath))
         checksum = Hash.stringToHash(contents)
@@ -114,7 +108,7 @@ final class DatapackAnalyzer private (
     }
   } yield Map(data*)
 
-  def updateCache[F[_]: Async](fileUpdates: Map[String, FileUpdate])(using
+  def updateCache[F[_]: Async](fileUpdates: FileUpdates)(using
     ciInteraction: CIPlatformInteractionInstr[F]
   ): AnalysisState[F, Unit] = {
     import FileUpdate.*
@@ -123,7 +117,7 @@ final class DatapackAnalyzer private (
       ciInteraction: CIPlatformInteractionInstr[F]
     ): F[Unit] = fileUpdates.toList.traverse_ {
       case (uriString, state) =>
-        val uri = dls.parseUri(Uri.file(uriString).toString)
+        val uri = URI.parse(URI.file(uriString).toString)
         state match {
           case ContentUpdated | RefsUpdated => for {
               _ <- AsyncExtra.fromPromise(dls.onModifiedFile(uri))
@@ -138,7 +132,7 @@ final class DatapackAnalyzer private (
     def addNewFileToCache(): AnalysisState[F, Unit] = {
       fileUpdates.toList.traverse_ {
         case (uriString, Created) => for {
-            uri <- Monad[AnalysisState[F, _]].pure(dls.parseUri(Uri.file(uriString).toString))
+            uri <- Monad[AnalysisState[F, _]].pure(URI.parse(URI.file(uriString).toString))
             _   <- StateT.liftF(AsyncExtra.fromPromise(dls.onAddedFile(uri)))
             _   <- gc()
           } yield ()
@@ -162,9 +156,7 @@ final class DatapackAnalyzer private (
 
   @annotation.nowarn("msg=unused explicit parameter")
   private def gc[F[_]: Async](force: true): AnalysisState[F, Unit] = for {
-    _ <- StateT.liftF(Async[F].delay {
-      dls.caches.asInstanceOf[js.Map[String, Any]].clear()
-    })
+    _ <- StateT.liftF(Async[F].delay(dls.clearCaches()))
     _ <- StateT.set(0)
   } yield ()
 

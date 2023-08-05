@@ -1,12 +1,13 @@
 package com.github.chencmd.datapacklinter.analyzer
 
+import com.github.chencmd.datapacklinter.utils.Path
+
 import cats.effect.Async
 import cats.implicits.*
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 
-import typings.node.pathMod as path
 import typings.vscodeLanguageserverTextdocument.mod.TextDocument
 import typings.vscodeLanguageserverTypes.mod.Diagnostic
 import typings.vscodeLanguageserverTypes.mod.Range
@@ -23,15 +24,15 @@ trait JSAnalysisResult extends js.Object {
 }
 
 final case class AnalysisResult(
-  absolutePath: String,
-  dpFilePath: String,
+  absolutePath: Path,
+  dpFilePath: Path,
   resourcePath: String,
   errors: List[DocumentError]
 ) {
   def toJSObject: JSAnalysisResult = {
     new JSAnalysisResult {
-      val absolutePath = AnalysisResult.this.absolutePath
-      val dpFilePath   = AnalysisResult.this.dpFilePath
+      val absolutePath = AnalysisResult.this.absolutePath.toString
+      val dpFilePath   = AnalysisResult.this.dpFilePath.toString
       val resourcePath = AnalysisResult.this.resourcePath
       val errors       = AnalysisResult.this.errors.map(_.toJSObject).toJSArray
     }
@@ -40,8 +41,8 @@ final case class AnalysisResult(
 
 object AnalysisResult {
   def apply[F[_]: Async](
-    root: String,
-    filePath: String,
+    root: Path,
+    filePath: Path,
     id: IdentityNode,
     parsedDoc: DatapackDocument,
     doc: TextDocument
@@ -53,7 +54,7 @@ object AnalysisResult {
       .map { a =>
         AnalysisResult(
           filePath,
-          path.relative(path.dirname(root), filePath),
+          Path.relative(Path.dirname(root), filePath),
           id.toString(),
           a.sortBy(_.range.start.line)
         )
@@ -62,8 +63,8 @@ object AnalysisResult {
 
   def fromJSObject(obj: JSAnalysisResult): AnalysisResult = {
     AnalysisResult(
-      obj.absolutePath,
-      obj.dpFilePath,
+      Path.coerce(obj.absolutePath),
+      Path.coerce(obj.dpFilePath),
       obj.resourcePath,
       obj.errors.toList.map(DocumentError.fromJSObject)
     )

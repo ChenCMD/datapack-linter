@@ -1,6 +1,8 @@
 package com.github.chencmd.datapacklinter.analyzer
 
 import com.github.chencmd.datapacklinter.generic.MapExtra.*
+import com.github.chencmd.datapacklinter.term.FileChecksums
+import com.github.chencmd.datapacklinter.utils.Path
 
 import cats.Align
 import cats.data.Ior
@@ -25,17 +27,17 @@ object FileUpdate {
   }
 
   def diff(
-    prevChecksums: Map[String, String],
-    nextCheckSums: Map[String, String],
-    refs: Map[String, List[String]]
-  ): Map[String, FileUpdate] = {
-    val fileUpdate          = Align[Map[String, _]].alignWith(prevChecksums, nextCheckSums)(FileUpdate.apply)
-    val overrideRefsUpdated = fileUpdate.flatMap {
+    prevChecksums: FileChecksums,
+    nextCheckSums: FileChecksums,
+    refs: Map[Path, List[Path]]
+  ): Map[Path, FileUpdate] = {
+    val fileUpdates          = Align[Map[Path, _]].alignWith(prevChecksums, nextCheckSums)(FileUpdate.apply)
+    val overrideRefsUpdated = fileUpdates.flatMap {
       case (k, ContentUpdated | Deleted) =>
-        refs.getOrEmpty(k).filter(fileUpdate.get(_).contains(NotChanged)).map(_ -> RefsUpdated)
+        refs.getOrEmpty(k).filter(fileUpdates.get(_).contains(NotChanged)).map(_ -> RefsUpdated)
       case _                             => List.empty
     }
 
-    fileUpdate ++ overrideRefsUpdated
+    fileUpdates ++ overrideRefsUpdated
   }
 }
