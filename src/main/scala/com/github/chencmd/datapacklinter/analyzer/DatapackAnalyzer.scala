@@ -117,7 +117,7 @@ final class DatapackAnalyzer private (
       ciInteraction: CIPlatformInteractionInstr[F]
     ): F[Unit] = fileUpdates.toList.traverse_ {
       case (uriString, state) =>
-        val uri = URI.parse(URI.file(uriString).toString)
+        val uri = URI.file(uriString)
         state match {
           case ContentUpdated | RefsUpdated => for {
               _ <- AsyncExtra.fromPromise(dls.onModifiedFile(uri))
@@ -132,7 +132,7 @@ final class DatapackAnalyzer private (
     def addNewFileToCache(): AnalysisState[F, Unit] = {
       fileUpdates.toList.traverse_ {
         case (uriString, Created) => for {
-            uri <- Monad[AnalysisState[F, _]].pure(URI.parse(URI.file(uriString).toString))
+            uri <- Monad[AnalysisState[F, _]].pure(URI.file(uriString))
             _   <- StateT.liftF(AsyncExtra.fromPromise(dls.onAddedFile(uri)))
             _   <- gc()
           } yield ()

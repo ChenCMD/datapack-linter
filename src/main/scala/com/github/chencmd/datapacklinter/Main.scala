@@ -194,8 +194,11 @@ object Main extends IOApp {
 
       rawFileChecksums <- readFileOrExit(fileChecksumCachePath, "Failed to read cache file")
       // TODO safe cast にする
-      fileChecksumCache =
-        JSON.parse(rawFileChecksums).asInstanceOf[StringDictionary[Checksum]].toMap.asInstanceOf[FileChecksums]
+      fileChecksumCache = JSON
+        .parse(rawFileChecksums)
+        .asInstanceOf[StringDictionary[Checksum]]
+        .toMap
+        .asInstanceOf[FileChecksums]
 
       rawAnalyzeResultCache <- readFileOrExit(analyzeResultCachePath, "Failed to read cache file")
       // TODO safe cast にする
