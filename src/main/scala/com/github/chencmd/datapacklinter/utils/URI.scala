@@ -8,7 +8,7 @@ opaque type URI = OriginURI
 object URI {
   import scala.language.implicitConversions
   given Conversion[UmdURI, OriginURI] with {
-    def apply(x: UmdURI): OriginURI = x.asInstanceOf[OriginURI]
+    inline def apply(x: UmdURI): OriginURI = x.asInstanceOf[OriginURI]
   }
 
   extension (uri: URI) {
