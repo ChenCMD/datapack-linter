@@ -25,6 +25,7 @@ import scala.util.chaining.*
 import scala.scalajs.js
 import scala.scalajs.js.JSON
 
+import typings.filterConsole.mod as consoleFilter
 import typings.vscodeLanguageserverTextdocument.mod.TextDocument
 
 import typings.spgodingDatapackLanguageServer.libTypesClientCapabilitiesMod as ClientCapabilities
@@ -138,5 +139,11 @@ object DLSHelper {
       )
       _ <- ciInteraction.printInfo(s"[LatestVersions] versionInformation = ${JSON.stringify(ans)}")
     } yield ans
+  }
+
+  def muteDLSBadLogs[F[_]: Async](): F[Unit] = Async[F].delay {
+    consoleFilter.default(
+      js.Array(s => s.startsWith("Tried to access collection \"") && s.endsWith("\", but that doesn't exist."))
+    )
   }
 }

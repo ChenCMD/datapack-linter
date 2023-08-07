@@ -84,6 +84,7 @@ object Main extends IOApp {
             requireChecksums
           )
 
+          _   <- DLSHelper.muteDLSBadLogs()
           dls <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
           analyzer = DatapackAnalyzer(dls, analyzerConfig, analyzeResultCache.getOrElse(Map.empty))
 

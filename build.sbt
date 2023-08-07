@@ -17,7 +17,8 @@ Compile / npmDependencies ++= Seq(
   "jsonc-parser"                       -> "^3.2.0",
   "minimatch"                          -> "^3.0.4",
   "@octokit/webhooks-types"            -> "^7.0.3",
-  "object-hash"                        -> "^3.0.0"
+  "object-hash"                        -> "^3.0.0",
+  "filter-console"                     -> "^1.0.0"
 )
 Compile / npmDevDependencies ++= Seq(
   "@types/node"        -> "13.13.4",
