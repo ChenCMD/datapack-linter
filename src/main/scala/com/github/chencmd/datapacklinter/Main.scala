@@ -82,7 +82,7 @@ object Main extends IOApp {
             analysisResultCachePath,
             validationChecksumCachePath,
             requireChecksums
-          )
+          ).map(_.unzip3)
 
           _   <- DLSHelper.muteDLSBadLogs()
           dls <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
@@ -181,7 +181,7 @@ object Main extends IOApp {
     R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     ciCache: CIPlatformManageCacheInstr[F]
-  ): F[(Option[CacheFile], Option[FileChecksums], Option[AnalysisCache])] = {
+  ): F[Option[(CacheFile, FileChecksums, AnalysisCache)]] = {
     def readFileOrExit(path: Path, exitMessage: String): EitherT[F, String, String] = {
       EitherT.fromOptionF(FSAsync.readFileOpt(path), exitMessage)
     }
@@ -230,8 +230,8 @@ object Main extends IOApp {
     } yield (dlsCache, fileChecksumCache, analyzeResultsCache)
     for {
       caches <- program.value
-      _      <- caches.swap.traverse(ciInteraction.printInfo)
-    } yield caches.toOption.unzip3
+      _      <- caches.left.toOption.traverse(ciInteraction.printInfo)
+    } yield caches.toOption
   }
 
   private def readConfigs[F[_]: Async](dir: Path)(using
