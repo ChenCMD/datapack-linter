@@ -1553,6 +1553,11 @@ fill-range@^4.0.0:
     repeat-string "^1.6.1"
     to-regex-range "^2.1.0"
 
+filter-console@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/filter-console/-/filter-console-1.0.0.tgz#f55e38f7c9deed0a962a10765dc374bf2c6cc925"
+  integrity sha512-ooKeYe/sb/eGlscph0Z10M75sN6ujAcgTnm/Ingb/SKJukbQ2Upae7bjJFGRCZFqFOjY/cSeBQY5r/y4q6WxEQ==
+
 finalhandler@1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/finalhandler/-/finalhandler-1.2.0.tgz#7d23fe5731b207b4640e4fcd00aec1f9207a7b32"

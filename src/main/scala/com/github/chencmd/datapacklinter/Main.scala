@@ -5,6 +5,7 @@ import com.github.chencmd.datapacklinter.analyzer.AnalyzerConfig
 import com.github.chencmd.datapacklinter.analyzer.DatapackAnalyzer
 import com.github.chencmd.datapacklinter.analyzer.FileUpdate
 import com.github.chencmd.datapacklinter.analyzer.JSAnalysisResult
+import com.github.chencmd.datapacklinter.ciplatform.CIPlatformCacheRestorationInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformManageCacheInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
@@ -12,14 +13,17 @@ import com.github.chencmd.datapacklinter.ciplatform.ghactions.*
 import com.github.chencmd.datapacklinter.ciplatform.local.*
 import com.github.chencmd.datapacklinter.dls.DLSConfig
 import com.github.chencmd.datapacklinter.dls.DLSHelper
+import com.github.chencmd.datapacklinter.generic.ApplicativeExtra
 import com.github.chencmd.datapacklinter.generic.EitherTExtra
 import com.github.chencmd.datapacklinter.generic.MapExtra.*
 import com.github.chencmd.datapacklinter.generic.RaiseNec
 import com.github.chencmd.datapacklinter.linter.DatapackLinter
 import com.github.chencmd.datapacklinter.linter.LinterConfig
+import com.github.chencmd.datapacklinter.term.AnalysisCache
 import com.github.chencmd.datapacklinter.term.Checksum
 import com.github.chencmd.datapacklinter.term.FileChecksums
 import com.github.chencmd.datapacklinter.term.FileUpdates
+import com.github.chencmd.datapacklinter.term.RestoreCacheOrSkip
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.Hash
 import com.github.chencmd.datapacklinter.utils.Path
@@ -43,13 +47,13 @@ import typings.node.global.console
 
 import org.scalablytyped.runtime.StringDictionary
 import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.CacheFile
-import com.github.chencmd.datapacklinter.term.AnalysisCache
 
 object Main extends IOApp {
   private case class CIPlatformContext[F[_]](
     interaction: CIPlatformInteractionInstr[F],
     inputReader: CIPlatformReadKeyedConfigInstr[F],
-    manageCache: CIPlatformManageCacheInstr[F]
+    manageCache: CIPlatformManageCacheInstr[F],
+    cacheRestoration: CIPlatformCacheRestorationInstr[F]
   )
 
   val CACHE_DIRECTORY = Path.coerce(".cache")
@@ -62,6 +66,7 @@ object Main extends IOApp {
         given ciInteraction: CIPlatformInteractionInstr[F] = ctx.interaction
         given CIPlatformReadKeyedConfigInstr[F]            = ctx.inputReader
         given ciCache: CIPlatformManageCacheInstr[F]       = ctx.manageCache
+        given CIPlatformCacheRestorationInstr[F]           = ctx.cacheRestoration
 
         val cacheDir                    = Path.join(dir, CACHE_DIRECTORY)
         val dlsCachePath                = Path.join(cacheDir, "dls.json")
@@ -75,14 +80,19 @@ object Main extends IOApp {
             "config-file"   -> Hash.objectToHash(dlsConfig),
             "linter-config" -> Hash.objectToHash(linterConfig.toJSObject)
           )
-          (dlsCache, checksumCache, analyzeResultCache) <- restoreCaches(
-            CACHE_DIRECTORY,
-            dlsCachePath,
-            fileChecksumCachePath,
-            analysisResultCachePath,
-            validationChecksumCachePath,
-            requireChecksums
-          ).map(_.unzip3)
+          _ <- shouldRestoreCache(linterConfig)
+          (dlsCache, checksumCache, analyzeResultCache) <- ApplicativeExtra
+            .whenAOrPureEmpty(true) {
+              restoreCaches(
+                CACHE_DIRECTORY,
+                dlsCachePath,
+                fileChecksumCachePath,
+                analysisResultCachePath,
+                validationChecksumCachePath,
+                requireChecksums
+              )
+            }
+            .map(_.unzip3)
 
           _   <- DLSHelper.muteDLSBadLogs()
           dls <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
@@ -167,7 +177,26 @@ object Main extends IOApp {
           case Platform.Local         => LocalManageCache.createInstr().pure[F]
         }
       }
-    } yield CIPlatformContext(interaction, inputReader, manageCache)
+
+      cacheRestoration <- Resource.eval {
+        context match {
+          case Platform.GitHubActions => GitHubCacheRestoration.createInstr()
+          case Platform.Local         => LocalCacheRestoration.createInstr().pure[F]
+        }
+      }
+    } yield CIPlatformContext(interaction, inputReader, manageCache, cacheRestoration)
+  }
+
+  private def shouldRestoreCache[F[_]: Async](linterConfig: LinterConfig)(using
+    cacheRestoration: CIPlatformCacheRestorationInstr[F]
+  ): F[RestoreCacheOrSkip] = {
+    val program = for {
+      _   <- EitherTExtra.exitWhenA(linterConfig.checkAlwaysAllFile) {
+        RestoreCacheOrSkip.Skip("The cache is not used because the checkAlwaysAllFile is true.")
+      }
+      res <- EitherT.liftF(cacheRestoration.shouldRestoreCache())
+    } yield res
+    program.merge
   }
 
   private def restoreCaches[F[_]: Async](

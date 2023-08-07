@@ -12,4 +12,9 @@ package term {
   type FileChecksums = Map[Path, Checksum]
 
   type AnalysisCache = Map[Path, AnalysisResult]
+
+  enum RestoreCacheOrSkip {
+    case Restore
+    case Skip(reason: String)
+  }
 }
