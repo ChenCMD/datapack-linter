@@ -94,6 +94,8 @@ object Main extends IOApp {
             }
             .map(_.unzip3)
 
+          _ <- ciInteraction.startGroup("init logs")
+
           _   <- DLSHelper.muteDLSBadLogs()
           dls <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
           analyzer = DatapackAnalyzer(dls, analyzerConfig, analyzeResultCache.getOrElse(Map.empty))
@@ -280,6 +282,7 @@ object Main extends IOApp {
   )(using ciInteraction: CIPlatformInteractionInstr[F]): F[(List[AnalysisResult], Boolean)] = {
     val program = for {
       _      <- analyzer.updateCache(fileUpdates)
+      _      <- StateT.liftF(ciInteraction.endGroup())
       result <- analyzer.analyzeAll(fileUpdates)(
         DatapackLinter.printResult(_, config.muteSuccessResult)
       )
