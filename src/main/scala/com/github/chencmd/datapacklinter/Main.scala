@@ -193,7 +193,7 @@ object Main extends IOApp {
     cacheRestoration: CIPlatformCacheRestorationInstr[F]
   ): F[RestoreCacheOrSkip] = {
     val program = for {
-      _   <- EitherTExtra.exitWhenA(linterConfig.checkAlwaysAllFile) {
+      _   <- EitherTExtra.exitWhenA(linterConfig.alwaysCheckAllFiles) {
         RestoreCacheOrSkip.Skip("The cache is not used because the checkAlwaysAllFile is true.")
       }
       res <- EitherT.liftF(cacheRestoration.shouldRestoreCache())

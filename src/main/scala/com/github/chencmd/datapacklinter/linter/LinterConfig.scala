@@ -15,14 +15,14 @@ final case class LinterConfig private (
   forcePass: Boolean,
   muteSuccessResult: Boolean,
   ignorePaths: List[String],
-  checkAlwaysAllFile: Boolean
+  alwaysCheckAllFiles: Boolean
 ) {
   def toJSObject: js.Object & js.Dynamic = {
     JSObject(
-      "forcePass"          -> forcePass,
-      "muteSuccessResult"  -> muteSuccessResult,
-      "ignorePaths"        -> ignorePaths.toJSArray,
-      "checkAlwaysAllFile" -> checkAlwaysAllFile
+      "forcePass"           -> forcePass,
+      "muteSuccessResult"   -> muteSuccessResult,
+      "ignorePaths"         -> ignorePaths.toJSArray,
+      "alwaysCheckAllFiles" -> alwaysCheckAllFiles
     )
   }
 }
@@ -34,12 +34,12 @@ object LinterConfig {
     reader: CIPlatformReadKeyedConfigInstr[F]
   ): F[LinterConfig] = {
     for {
-      forcePass          <- reader.readKeyOrElse("forcePass", false)
-      muteSuccessResult  <- reader.readKeyOrElse("notOutputSuccess", false)
-      ignorePaths        <- reader.readKeyOrElse("ignoreLintPathPattern", List.empty)
-      checkAlwaysAllFile <- reader.readKeyOrElse("checkAlwaysAllFile", false)
-      config             <- {
-        (forcePass, muteSuccessResult, ignorePaths, checkAlwaysAllFile)
+      forcePass           <- reader.readKeyOrElse("forcePass", false)
+      muteSuccessResult   <- reader.readKeyOrElse("notOutputSuccess", false)
+      ignorePaths         <- reader.readKeyOrElse("ignoreLintPathPattern", List.empty)
+      alwaysCheckAllFiles <- reader.readKeyOrElse("alwaysCheckAllFiles", false)
+      config              <- {
+        (forcePass, muteSuccessResult, ignorePaths, alwaysCheckAllFiles)
           .mapN(LinterConfig.apply)
           .fold(R.raise, _.pure[F])
       }
