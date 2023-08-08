@@ -22,7 +22,8 @@ Compile / npmDependencies ++= Seq(
 )
 Compile / npmDevDependencies ++= Seq(
   "@types/node"        -> "13.13.4",
-  "@types/object-hash" -> "^3.0.2"
+  "@types/object-hash" -> "^3.0.2",
+  "string-replace-loader" -> "3.1.0"
 )
 useYarn                                 := true
 
