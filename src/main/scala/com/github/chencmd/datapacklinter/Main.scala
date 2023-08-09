@@ -42,7 +42,7 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 import scala.scalajs.js.JSON
 
-import typings.node.processMod as process
+import typings.node.processMod.^ as process
 import typings.node.global.console
 
 import org.scalablytyped.runtime.StringDictionary

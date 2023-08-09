@@ -4,7 +4,7 @@ import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigIns
 
 import cats.effect.Async
 
-import typings.node.processMod as process
+import typings.node.processMod.^ as process
 
 object EnvironmentInputReader {
   def createInstr[F[_]: Async](

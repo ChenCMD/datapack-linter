@@ -10,19 +10,19 @@ enablePlugins(ScalablyTypedConverterPlugin)
 Compile / fastOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.config-fast.js")
 Compile / fullOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.config-full.js")
 Compile / npmDependencies ++= Seq(
-  "@actions/cache"                     -> "^3.2.1",
+  "@actions/cache"                     -> "^3.2.2",
   "@actions/core"                      -> "^1.10.0",
   "@actions/github"                    -> "^5.1.1",
-  "@spgoding/datapack-language-server" -> "3.4.7",
+  "@spgoding/datapack-language-server" -> "3.4.16",
   "jsonc-parser"                       -> "^3.2.0",
-  "minimatch"                          -> "^3.0.4",
-  "@octokit/webhooks-types"            -> "^7.0.3",
+  "minimatch"                          -> "^9.0.3",
+  "@octokit/webhooks-types"            -> "^7.1.0",
   "object-hash"                        -> "^3.0.0",
   "filter-console"                     -> "^1.0.0"
 )
 Compile / npmDevDependencies ++= Seq(
-  "@types/node"        -> "13.13.4",
-  "@types/object-hash" -> "^3.0.2",
+  "@types/node"           -> "16.18.40",
+  "@types/object-hash"    -> "^3.0.2",
   "string-replace-loader" -> "3.1.0"
 )
 useYarn                                 := true

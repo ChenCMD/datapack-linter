@@ -8,8 +8,7 @@ import cats.data.EitherT
 import cats.effect.Async
 import cats.implicits.*
 
-import typings.node.BufferEncoding
-import typings.node.anon.Mode
+import typings.node.bufferMod.global.BufferEncoding
 import typings.node.fsMod.promises as fsp
 
 object FSAsync {
@@ -23,8 +22,8 @@ object FSAsync {
       .handleError(_ => false)
   }
 
-  def writeFile[F[_]: Async](targetPath: Path, contents: String, encoding: String = "utf8"): F[Unit] = {
-    AsyncExtra.fromPromise(fsp.writeFile(targetPath, contents, Mode().setEncoding(encoding)))
+  def writeFile[F[_]: Async](targetPath: Path, contents: String, encoding: BufferEncoding = BufferEncoding.utf8): F[Unit] = {
+    AsyncExtra.fromPromise(fsp.writeFile(targetPath, contents, encoding))
   }
 
   def removeFile[F[_]: Async](targetPath: Path): F[Unit] = {
