@@ -9,8 +9,8 @@
     "url": "https://github.com/ChenCMD/datapack-linter"
   },
   "scripts": {
-    "build": "dotenv cross-var sbt fullOptJS/webpack && mv dist/datapack-linter-opt-bundle.js dist/index.js",
-    "build:dev": "dotenv cross-var sbt fastOptJS/webpack && mv dist/datapack-linter-fastopt-bundle.js dist/index.js",
+    "build": "dotenv cross-var sbt fullOptJS/webpack && mv dist/datapack-linter-opt-bundle.js dist/index.js && mv target/scala-3.3.0/scalajs-bundler/main/datapack-linter-opt.js.map dist/index.js.map",
+    "build:dev": "dotenv cross-var sbt fastOptJS/webpack && mv dist/datapack-linter-fastopt-bundle.js dist/index.js && mv target/scala-3.3.0/scalajs-bundler/main/datapack-linter-fastopt.js.map dist/index.js.map",
     "test": "node dist/index.js test/linter-config.json",
     "dev": "yarn build:dev && rm -r .cache/ && yarn test",
     "sfix": "sbt scalafix",
