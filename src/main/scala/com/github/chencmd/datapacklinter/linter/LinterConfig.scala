@@ -10,8 +10,11 @@ import cats.implicits.*
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
+import com.github.chencmd.datapacklinter.utils.Path
 
 final case class LinterConfig private (
+  lintDirectory: Path,
+  configPath: Path,
   forcePass: Boolean,
   muteSuccessResult: Boolean,
   ignorePaths: List[String],
@@ -19,6 +22,8 @@ final case class LinterConfig private (
 ) {
   def toJSObject: js.Object & js.Dynamic = {
     JSObject(
+      "lintDirectory"       -> lintDirectory.toString,
+      "configPath"          -> configPath.toString,
       "forcePass"           -> forcePass,
       "muteSuccessResult"   -> muteSuccessResult,
       "ignorePaths"         -> ignorePaths.toJSArray,
@@ -28,18 +33,27 @@ final case class LinterConfig private (
 }
 
 object LinterConfig {
-  def withReader[F[_]: Async]()(using
+  def withReader[F[_]: Async](dir: Path)(using
     R: RaiseNec[F, String],
     ciInteraction: CIPlatformInteractionInstr[F],
     reader: CIPlatformReadKeyedConfigInstr[F]
   ): F[LinterConfig] = {
     for {
+      lintDirectory       <- reader.readKeyOrElse("lintDirectory", ".")
+      configPath          <- reader.readKeyOrElse("configPath", ".vscode/settings.json")
       forcePass           <- reader.readKeyOrElse("forcePass", false)
       muteSuccessResult   <- reader.readKeyOrElse("notOutputSuccess", false)
       ignorePaths         <- reader.readKeyOrElse("ignoreLintPathPattern", List.empty)
       alwaysCheckAllFiles <- reader.readKeyOrElse("alwaysCheckAllFiles", false)
       config              <- {
-        (forcePass, muteSuccessResult, ignorePaths, alwaysCheckAllFiles)
+        (
+          lintDirectory.map(Path.join(dir, _)),
+          configPath.map(Path.join(dir, _)),
+          forcePass,
+          muteSuccessResult,
+          ignorePaths,
+          alwaysCheckAllFiles
+        )
           .mapN(LinterConfig.apply)
           .fold(R.raise, _.pure[F])
       }

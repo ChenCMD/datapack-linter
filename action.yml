@@ -8,6 +8,12 @@ branding:
   icon: box
   color: green
 inputs:
+  lintDirectory:
+    description: 'Lint base directory. default: "."'
+    required: false
+  configPath:
+    description: 'Path of a configuration file. default: ".vscode/settings.json"'
+    required: false
   outputDefine:
     description: 'Displays the define/declare that match the input resource path.'
     required: false

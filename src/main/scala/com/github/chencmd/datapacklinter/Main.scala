@@ -59,22 +59,22 @@ object Main extends IOApp {
 
   override def run(args: List[String]) = {
     def run[F[_]: Async]()(using R: RaiseNec[F, String]): F[ExitCode] = for {
-      dir <- Async[F].delay(Path.coerce(process.cwd()))
+      cwd <- Async[F].delay(Path.coerce(process.cwd()))
 
-      exitCode <- getApplicationContext(dir, args.get(0).map(Path.coerce(_))).use { ctx =>
+      exitCode <- getApplicationContext(cwd, args.get(0).map(Path.coerce(_))).use { ctx =>
         given ciInteraction: CIPlatformInteractionInstr[F] = ctx.interaction
         given CIPlatformReadKeyedConfigInstr[F]            = ctx.inputReader
         given ciCache: CIPlatformManageCacheInstr[F]       = ctx.manageCache
         given CIPlatformCacheRestorationInstr[F]           = ctx.cacheRestoration
 
-        val cacheDir                    = Path.join(dir, CACHE_DIRECTORY)
+        val cacheDir                    = Path.join(cwd, CACHE_DIRECTORY)
         val dlsCachePath                = Path.join(cacheDir, "dls.json")
         val fileChecksumCachePath       = Path.join(cacheDir, "file-checksums.json")
         val validationChecksumCachePath = Path.join(cacheDir, "validation-checksums.json")
         val analysisResultCachePath     = Path.join(cacheDir, "analysis-results.json")
 
         for {
-          (dlsConfig, linterConfig, analyzerConfig) <- readConfigs(dir)
+          (dlsConfig, linterConfig, analyzerConfig) <- readConfigs(cwd)
           requireChecksums = Map(
             "config-file"   -> Hash.objectToHash(dlsConfig),
             "linter-config" -> Hash.objectToHash(linterConfig.toJSObject)
@@ -97,7 +97,7 @@ object Main extends IOApp {
           _ <- ciInteraction.startGroup("init logs")
 
           _   <- DLSHelper.muteDLSBadLogs()
-          dls <- DLSHelper.createDLS(dir, cacheDir, dlsConfig, dlsCache)
+          dls <- DLSHelper.createDLS(linterConfig.lintDirectory, cacheDir, dlsConfig, dlsCache)
           analyzer = DatapackAnalyzer(dls, analyzerConfig, analyzeResultCache.getOrElse(Map.empty))
 
           targetFiles <- DLSHelper.getAllFiles(dls, dlsConfig)
@@ -270,9 +270,9 @@ object Main extends IOApp {
     ciInteraction: CIPlatformInteractionInstr[F],
     readConfig: CIPlatformReadKeyedConfigInstr[F]
   ): F[(DLSConfig, LinterConfig, AnalyzerConfig)] = for {
-    dlsConfig    <- DLSConfig.readConfig(Path.join(dir, ".vscode", "settings.json"))
-    linterConfig <- LinterConfig.withReader()
+    linterConfig <- LinterConfig.withReader(dir)
     analyzerConfig = AnalyzerConfig(linterConfig.ignorePaths)
+    dlsConfig    <- DLSConfig.readConfig(linterConfig.configPath)
   } yield (dlsConfig, linterConfig, analyzerConfig)
 
   private def lint[F[_]: Async](
