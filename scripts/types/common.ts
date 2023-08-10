@@ -1,1 +1,0 @@
-export type IndexSignature<T> = { [key: string]: T };
