@@ -1,0 +1,25 @@
+name: datapack-linter
+author: chen
+description: Processing to lint datapack
+runs:
+  using: node16
+  main: 'index.js'
+branding:
+  icon: box
+  color: green
+inputs:
+  outputDefine:
+    description: 'Displays the define/declare that match the input resource path.'
+    required: false
+  forcePass:
+    description: 'If set to "true", it will not fail even if there are files that failed to be checked.'
+    required: false
+  notOutputSuccess:
+    description: 'If set to "true", do not output the log of files that have been successfully checked.'
+    required: false
+  ignoreLintPathPattern:
+    description: 'Do not check for files that match the entered globPattern.'
+    required: false
+  checkAlwaysAllFile:
+    description: 'If set to "true", it will always check all files without using the cache.'
+    required: false
