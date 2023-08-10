@@ -13,7 +13,6 @@ import com.github.chencmd.datapacklinter.ciplatform.ghactions.*
 import com.github.chencmd.datapacklinter.ciplatform.local.*
 import com.github.chencmd.datapacklinter.dls.DLSConfig
 import com.github.chencmd.datapacklinter.dls.DLSHelper
-import com.github.chencmd.datapacklinter.generic.ApplicativeExtra
 import com.github.chencmd.datapacklinter.generic.EitherTExtra
 import com.github.chencmd.datapacklinter.generic.MapExtra.*
 import com.github.chencmd.datapacklinter.generic.RaiseNec
@@ -80,19 +79,20 @@ object Main extends IOApp {
             "config-file"   -> Hash.objectToHash(dlsConfig),
             "linter-config" -> Hash.objectToHash(linterConfig.toJSObject)
           )
-          _ <- shouldRestoreCache(linterConfig)
-          (dlsCache, checksumCache, analyzeResultCache) <- ApplicativeExtra
-            .whenAOrPureEmpty(true) {
-              restoreCaches(
-                CACHE_DIRECTORY,
-                dlsCachePath,
-                fileChecksumCachePath,
-                analysisResultCachePath,
-                validationChecksumCachePath,
-                requireChecksums
-              )
+          shouldRestore <- shouldRestoreCache(linterConfig)
+          (dlsCache, checksumCache, analyzeResultCache) <- {
+            shouldRestore match {
+              case RestoreCacheOrSkip.Skip(reason) => ciInteraction.printInfo(reason).as(None)
+              case RestoreCacheOrSkip.Restore      => restoreCaches(
+                  CACHE_DIRECTORY,
+                  dlsCachePath,
+                  fileChecksumCachePath,
+                  analysisResultCachePath,
+                  validationChecksumCachePath,
+                  requireChecksums
+                )
             }
-            .map(_.unzip3)
+          }.map(_.unzip3)
 
           _ <- ciInteraction.startGroup("init logs")
 
