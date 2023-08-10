@@ -24,7 +24,7 @@ object GitHubManageCache {
       override def store(paths: List[Path]): F[Unit] = AsyncExtra.fromPromise {
         cache.saveCache(
           paths.map(_.toString).toJSArray,
-          makeCacheKey(ghCtx.ref, js.Date.now().asInstanceOf[Int])
+          makeCacheKey(ghCtx.ref, js.Date.now())
         ).`then`(_ => ())
       }
 
@@ -60,7 +60,7 @@ object GitHubManageCache {
         s"datapack-linter-$cacheVersion-$branch"
       }
 
-      private def makeCacheKey(branch: String, uniqueID: Int) = {
+      private def makeCacheKey(branch: String, uniqueID: Double) = {
         s"datapack-linter-$cacheVersion-$branch-$uniqueID"
       }
     }
