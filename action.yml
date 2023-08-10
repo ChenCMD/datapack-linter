@@ -3,7 +3,7 @@ author: chen
 description: Processing to lint datapack
 runs:
   using: node16
-  main: 'dist/index.js'
+  main: 'index.js'
 branding:
   icon: box
   color: green
