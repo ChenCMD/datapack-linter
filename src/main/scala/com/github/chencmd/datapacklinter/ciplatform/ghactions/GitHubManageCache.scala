@@ -46,7 +46,7 @@ object GitHubManageCache {
           val created = ghCtx.eventName == "push"
             && ghCtx.payload.asInstanceOf[PushEvent].created
           if (created) {
-            ghCtx.payload.get("base_ref").map(_.toString)
+            ghCtx.payload.get("base_ref").flatMap(_.asInstanceOf[js.UndefOr[js.Any]].toOption).map(_.toString)
           } else {
             Some(ghCtx.ref)
           }
