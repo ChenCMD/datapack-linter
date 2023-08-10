@@ -56,5 +56,5 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: dist
-          directory: dist
+          directory: ./dist
           message: Compiled from ${{ github.SHA }}
