@@ -71,7 +71,7 @@ object GitHubInteraction {
     }
     val program = for {
       _ <- FSAsync.writeFile(Path.join(dir, "matcher.json"), JSON.stringify(matcher))
-      _ <- instr.printInfo(":add-matcher::matcher.json")
+      _ <- instr.printInfo("::add-matcher::matcher.json")
     } yield instr
 
     Resource.make(program)(_ => FSAsync.removeFile(Path.join(dir, "matcher.json")))
