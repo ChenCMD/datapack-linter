@@ -36,11 +36,12 @@ jobs:
       - name: Build for production
         run: yarn build
 
-      - uses: peaceiris/actions-export-envs@v1.1.0
+      - name: Export environments
+        uses: peaceiris/actions-export-envs@v1.1.0
         id: envs
 
-      - name: Test run
-        run: yarn test
+      - name: Run
+        run: yarn test-run
         env:
           ACTIONS_RUNTIME_TOKEN: ${{ steps.envs.outputs.ACTIONS_RUNTIME_TOKEN }}
           ACTIONS_CACHE_URL: ${{ steps.envs.outputs.ACTIONS_CACHE_URL }}
