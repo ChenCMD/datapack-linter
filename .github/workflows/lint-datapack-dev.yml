@@ -47,11 +47,11 @@ jobs:
           ACTIONS_CACHE_URL: ${{ steps.envs.outputs.ACTIONS_CACHE_URL }}
 
       - name: Pre deploy
-        if: ${{ github.ref == 'ref/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: cp action.yml README.md dist/.
 
       - name: Deploy to dist
-        if: ${{ github.ref == 'ref/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         uses: actions-js/push@v1.4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
