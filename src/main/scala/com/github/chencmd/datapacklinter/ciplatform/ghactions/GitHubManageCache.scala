@@ -21,11 +21,11 @@ object GitHubManageCache {
       context
     }
     instr = new CIPlatformManageCacheInstr[F] {
-      override def store(paths: List[Path]): F[Unit] = Async[F].delay {
+      override def store(paths: List[Path]): F[Unit] = AsyncExtra.fromPromise {
         cache.saveCache(
           paths.map(_.toString).toJSArray,
           makeCacheKey(ghCtx.ref, js.Date.now().asInstanceOf[Int])
-        )
+        ).`then`(_ => ())
       }
 
       override def restore(paths: List[Path])(using R: RaiseNec[F, String]): F[Boolean] = {
