@@ -18,11 +18,12 @@ object GitHubCacheRestoration {
     instr = new CIPlatformCacheRestorationInstr[F] {
       override def shouldRestoreCache(): F[RestoreCacheOrSkip] = {
         import RestoreCacheOrSkip.*
-        val commitMessages: List[String] = ghCtx.payload
-          .asInstanceOf[PushEvent]
-          .commits
-          .toList
-          .map(_.message.toLowerCase())
+        val commitMessages: List[String] = {
+            Some(ghCtx).filter(_.eventName == "push")
+              .map(_.payload.asInstanceOf[PushEvent])
+              .map(_.commits.toList.map(_.message.toLowerCase()))
+              .orEmpty
+        }
 
         val program = for {
           _ <- EitherTExtra.exitWhenA(commitMessages.exists(_.contains("[regenerate cache]"))) {
