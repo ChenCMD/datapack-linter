@@ -14,6 +14,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout dist branch
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: actions/checkout@v3
+        with:
+          ref: dist
+          path: ./dist
+
       - name: Cache Node dependencies
         uses: actions/cache@v3
         with:
@@ -46,18 +53,9 @@ jobs:
           ACTIONS_RUNTIME_TOKEN: ${{ steps.envs.outputs.ACTIONS_RUNTIME_TOKEN }}
           ACTIONS_CACHE_URL: ${{ steps.envs.outputs.ACTIONS_CACHE_URL }}
 
-      - name: Checkout dist branch
-        if: ${{ github.ref == 'refs/heads/main' }}
-        uses: actions/checkout@v3
-        with:
-          ref: dist
-          path: ./dist
-
       - name: Pre deploy
         if: ${{ github.ref == 'refs/heads/main' }}
-        run: |
-          rm -rf dist/*
-          cp action.yml README.md dist/.
+        run: cp action.yml LICENSE README.md dist/.
 
       - name: Deploy to dist
         if: ${{ github.ref == 'refs/heads/main' }}
