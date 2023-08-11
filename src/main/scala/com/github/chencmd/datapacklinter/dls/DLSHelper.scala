@@ -39,7 +39,7 @@ import typings.spgodingDatapackLanguageServer.libTypesVersionInformationMod.Vers
 
 object DLSHelper {
   def parseDoc[F[_]: Async](dls: DatapackLanguageService)(doc: TextDocument): OptionT[F, DatapackDocument] = OptionT {
-    AsyncExtra.fromPromise[F](dls.parseDocument(doc)).map(_.toOption)
+    AsyncExtra.coerceOrphansTask(AsyncExtra.fromPromise[F](dls.parseDocument(doc))).map(_.toOption)
   }
 
   def getAllFiles[F[_]: Async](dls: DatapackLanguageService, dlsConfig: DLSConfig): F[List[Path]] = {

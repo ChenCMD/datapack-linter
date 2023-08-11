@@ -1,6 +1,8 @@
 package com.github.chencmd.datapacklinter.generic
 
 import cats.effect.Async
+import cats.implicits.*
+import cats.effect.implicits.*
 
 import scala.scalajs.js
 
@@ -13,5 +15,9 @@ object AsyncExtra {
 
   def fromPromise[F[_]]: PartiallyAppliedFromPromise[F] = {
     new PartiallyAppliedFromPromise[F]
+  }
+
+  def coerceOrphansTask[F[_]: Async, A](expensiveComputation: F[A]): F[A] = {
+    Async[F].cede *> expensiveComputation.guarantee(Async[F].cede)
   }
 }

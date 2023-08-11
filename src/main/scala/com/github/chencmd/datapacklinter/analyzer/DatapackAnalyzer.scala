@@ -118,7 +118,7 @@ final class DatapackAnalyzer (
       ciInteraction: CIPlatformInteractionInstr[F]
     ): F[Unit] = uriFileUpdates.toList.traverse_ {
       case (uri, ContentUpdated | RefsUpdated) => for {
-          _ <- AsyncExtra.fromPromise(dls.onModifiedFile(uri))
+          _ <- AsyncExtra.coerceOrphansTask(AsyncExtra.fromPromise(dls.onModifiedFile(uri)))
         } yield ()
       case (uri, Deleted)                      => Async[F].delay {
           dls.onDeletedFile(uri)
