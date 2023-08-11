@@ -35,7 +35,33 @@ module.exports = {
                         '   if (path.startsWith("1.20.1-gen")) { return "https://gist.githubusercontent.com/ChenCMD/58e317ac04d78eb4dce846867130aa44/raw/6d2ded8fa2ac8a65ca63efe5faea763dedc87cc5/1.20.1-gen.json"; }',
                         '}',
                         'return `https://raw.githubusercontent.com/${maintainer}/${name}/${path}`;'
-                    ].join('\n')
+                    ].join('\n'),
+                    strict: true
+                }
+            },
+            {
+                test: /DocCommentPlugin.js$/g,
+                loader: 'string-replace-loader',
+                options: {
+                    search: '__1.escapeIdentityPattern(anno[index].raw)',
+                    replace: "__1.escapeIdentityPattern(anno[index].raw).replace(/\\?/g,'[^:/]').replace(/\\*\\*\\//g,'.{0,}').replace(/\\*\\*/g,'.{0,}').replace(/\\*/g,'[^:/]{0,}')",
+                    strict: true
+                }
+            },
+            {
+                test: /ClientCache.js$/g,
+                loader: 'string-replace-loader',
+                options: {
+                    multiple: [
+                        { search: ':**', replace: ':.*' },
+                        { search: ':**', replace: ':.*' },
+                        { search: "'**'", replace: "'.*'" },
+                        { search: ".replace(/\\?/g, '[^:/]')", replace: "" },
+                        { search: ".replace(/\\*\\*\\//g, '.{0,}')", replace: "" },
+                        { search: ".replace(/\\*\\*/g, '.{0,}')", replace: "" },
+                        { search: ".replace(/\\*/g, '[^:/]{0,}')", replace: "" }
+                    ],
+                    strict: true
                 }
             },
             {
