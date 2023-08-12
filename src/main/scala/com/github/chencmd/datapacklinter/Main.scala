@@ -41,8 +41,8 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 import scala.scalajs.js.JSON
 
-import typings.node.processMod.^ as process
 import typings.node.global.console
+import typings.node.processMod.^ as process
 
 import org.scalablytyped.runtime.StringDictionary
 import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.CacheFile

@@ -1,8 +1,8 @@
 package com.github.chencmd.datapacklinter.generic
 
 import cats.effect.Async
-import cats.implicits.*
 import cats.effect.implicits.*
+import cats.implicits.*
 
 import scala.scalajs.js
 

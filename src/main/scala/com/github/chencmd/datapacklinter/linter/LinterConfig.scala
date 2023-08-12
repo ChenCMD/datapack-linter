@@ -4,13 +4,13 @@ import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformReadKeyedConfigInstr
 import com.github.chencmd.datapacklinter.generic.RaiseNec
 import com.github.chencmd.datapacklinter.utils.JSObject
+import com.github.chencmd.datapacklinter.utils.Path
 
 import cats.effect.Async
 import cats.implicits.*
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
-import com.github.chencmd.datapacklinter.utils.Path
 
 final case class LinterConfig private (
   lintDirectory: Path,
