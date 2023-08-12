@@ -9,23 +9,26 @@ branding:
   color: green
 inputs:
   lintDirectory:
-    description: 'Lint base directory. default: "."'
+    description: 'Lint base directory.'
     required: false
+    default: '.'
   configPath:
-    description: 'Path of a configuration file. default: ".vscode/settings.json"'
+    description: 'Path of a configuration file.'
     required: false
-  outputDefine:
-    description: 'Displays the define/declare that match the input resource path.'
-    required: false
+    default: '.vscode/settings.json'
   forcePass:
-    description: 'If set to "true", it will not fail even if there are files that failed to be checked.'
+    description: 'If set to "true", the check will not fail if any files fail.'
     required: false
-  notOutputSuccess:
-    description: 'If set to "true", do not output the log of files that have been successfully checked.'
+    default: 'false'
+  muteSuccessResult:
+    description: 'If set to "true", the result of successfully checked files is not output.'
     required: false
+    default: 'false'
   ignoreLintPathPattern:
     description: 'Do not check for files that match the entered globPattern.'
     required: false
-  checkAlwaysAllFile:
+    default: ''
+  alwaysCheckAllFile:
     description: 'If set to "true", it will always check all files without using the cache.'
     required: false
+    default: 'false'
