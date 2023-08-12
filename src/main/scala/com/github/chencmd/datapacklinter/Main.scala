@@ -56,6 +56,7 @@ object Main extends IOApp {
   )
 
   val CACHE_DIRECTORY = Path.coerce(".cache")
+  val CACHE_VERSION = 1
 
   override def run(args: List[String]) = {
     def run[F[_]: Async]()(using R: RaiseNec[F, String]): F[ExitCode] = for {
@@ -175,7 +176,7 @@ object Main extends IOApp {
       manageCache <- Resource.eval {
         given CIPlatformInteractionInstr[F] = interaction
         context match {
-          case Platform.GitHubActions => GitHubManageCache.createInstr(1)
+          case Platform.GitHubActions => GitHubManageCache.createInstr(CACHE_VERSION)
           case Platform.Local         => LocalManageCache.createInstr().pure[F]
         }
       }
