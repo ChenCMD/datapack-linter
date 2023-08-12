@@ -35,7 +35,10 @@ import cats.effect.Async
 import cats.effect.ExitCode
 import cats.effect.IOApp
 import cats.effect.Resource
+import cats.effect.unsafe.IORuntimeConfig
 import cats.implicits.*
+
+import scala.concurrent.duration.Duration
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
@@ -48,6 +51,10 @@ import org.scalablytyped.runtime.StringDictionary
 import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.CacheFile
 
 object Main extends IOApp {
+  override protected def runtimeConfig: IORuntimeConfig = {
+    super.runtimeConfig.copy(cpuStarvationCheckInitialDelay = Duration.Inf)
+  }
+
   private case class CIPlatformContext[F[_]](
     interaction: CIPlatformInteractionInstr[F],
     inputReader: CIPlatformReadKeyedConfigInstr[F],
