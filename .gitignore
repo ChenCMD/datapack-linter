@@ -1,0 +1,16 @@
+.cache
+node_modules
+
+**/.bloop
+**/.bsp
+**/.metals
+
+project/**
+!project/build.properties
+!project/plugins.sbt
+
+target
+
+dist
+
+*.worksheet.sc
