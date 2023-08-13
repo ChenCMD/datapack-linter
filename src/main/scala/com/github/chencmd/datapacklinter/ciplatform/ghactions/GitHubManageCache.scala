@@ -12,7 +12,6 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 
 import typings.actionsCache.mod as cache
-import typings.octokitWebhooksTypes.mod.PushEvent
 
 object GitHubManageCache {
   def createInstr[F[_]: Async](cacheVersion: Int): F[CIPlatformManageCacheInstr[F]] = for {
@@ -42,18 +41,7 @@ object GitHubManageCache {
           }
         }
 
-        val prevBranch = {
-          val created = ghCtx.eventName == "push"
-            && ghCtx.payload.asInstanceOf[PushEvent].created
-          if (created) {
-            ghCtx.payload.get("base_ref").flatMap(_.asInstanceOf[js.UndefOr[js.Any]].toOption).map(_.toString)
-          } else {
-            Some(ghCtx.ref)
-          }
-        }
-
-        val fallbackKey = makeCacheKey()
-        prevBranch.map(makeCacheKey).fold(_restore(fallbackKey))(_restore(_, List(fallbackKey)))
+        _restore(makeCacheKey(ghCtx.ref), List(makeCacheKey()))
       }
 
       private def makeCacheKey(branch: String = "") = {
