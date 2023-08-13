@@ -64,18 +64,18 @@ object DLSHelper {
   }
 
   def genReferenceMap(dls: DatapackLanguageService): Map[Path, List[Path]] = Map.from {
+    def uriStringToPath(uriString: String): Path = URI.parse(uriString).fsPath
     for {
       (_, cacheWithCategory) <- JSObject.entries(dls.cacheFile.cache)
       (_, cacheWithId)       <- JSObject.entries(cacheWithCategory)
       cacheUnit              <- cacheWithId.toList
       declare                <- cacheUnit.dcl.orEmpty.toList ++ cacheUnit.`def`.orEmpty.toList
 
-      declareUri <- declare.uri.map(Path.coerce(_)).toList
-      referenceUris = cacheUnit.ref.orEmpty.toList
+      declarePath <- declare.uri.map(uriStringToPath).toList
+      referencePaths = cacheUnit.ref.orEmpty.toList
         .flatMap(_.uri.toList)
-        .map(URI.parse(_))
-        .map(_.fsPath)
-    } yield (declareUri, referenceUris)
+        .map(uriStringToPath)
+    } yield (declarePath, referencePaths)
   }
 
   def createDLS[F[_]: Async](dir: Path, cacheDir: Path, dlsConfig: DLSConfig, cache: Option[CacheFile])(using
