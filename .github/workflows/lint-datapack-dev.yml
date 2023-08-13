@@ -55,7 +55,7 @@ jobs:
 
       - name: Pre deploy
         if: ${{ github.ref == 'refs/heads/main' }}
-        run: cp action.yml LICENSE README.md dist/.
+        run: cp action.yml LICENSE README.md .gitignore dist/.
 
       - name: Deploy to dist
         if: ${{ github.ref == 'refs/heads/main' }}
@@ -64,4 +64,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: dist
           directory: ./dist
+          empty: true
           message: Compiled from ${{ github.SHA }}
