@@ -15,7 +15,6 @@ Compile / npmDependencies ++= Seq(
   "@actions/github"                    -> "5.1.1",
   "@spgoding/datapack-language-server" -> "3.4.16",
   "jsonc-parser"                       -> "3.2.0",
-  "minimatch"                          -> "9.0.3",
   "@octokit/webhooks-types"            -> "7.1.0",
   "object-hash"                        -> "3.0.0",
   "filter-console"                     -> "1.0.0"
