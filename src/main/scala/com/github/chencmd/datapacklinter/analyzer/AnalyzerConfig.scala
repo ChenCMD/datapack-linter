@@ -1,10 +1,22 @@
 package com.github.chencmd.datapacklinter.analyzer
 
-import typings.minimatch.mod.IOptions
-import typings.minimatch.mod.Minimatch
+import scala.util.matching.Regex
 
-final case class AnalyzerConfig(ignorePaths: List[String]) {
+final class AnalyzerConfig private (private val ignoreRegexps: List[Regex]) {
   def ignorePathsIncludes(path: String): Boolean = {
-    ignorePaths.exists(Minimatch(_, IOptions().setDot(true)).`match`(path))
+    ignoreRegexps.exists(r => r.matches(path))
+  }
+}
+
+object AnalyzerConfig {
+  private val REPLACERS = List(
+    "?"   -> "[^:/]",
+    "**/" -> ".{0,}",
+    "**"  -> ".{0,}",
+    "*"   -> "[^:/]{0,}"
+  )
+
+  def apply(ignorePaths: List[String]): AnalyzerConfig = {
+    new AnalyzerConfig(ignorePaths.map(p => s"^${REPLACERS.foldLeft(p)(_.replace.tupled(_))}$$".r))
   }
 }
