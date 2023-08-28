@@ -5,6 +5,9 @@ on:
       - dist
   pull_request:
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   test-run-and-deploy:
     runs-on: ubuntu-latest
@@ -55,7 +58,7 @@ jobs:
 
       - name: Pre deploy
         if: ${{ github.ref == 'refs/heads/main' }}
-        run: cp action.yml LICENSE README.md .gitignore dist/.
+        run: cp action.yml LICENSE README.md .gitignore dist/. # TODO fix concurrency
 
       - name: Deploy to dist
         if: ${{ github.ref == 'refs/heads/main' }}
