@@ -43,7 +43,7 @@ object LinterConfig {
       configPath          <- reader.readKeyOrElse("configPath", ".vscode/settings.json")
       forcePass           <- reader.readKeyOrElse("forcePass", false)
       muteSuccessResult   <- reader.readKeyOrElse("muteSuccessResult", false)
-      ignorePaths         <- reader.readKeyOrElse("ignoreLintPathPattern", List.empty)
+      ignorePaths         <- reader.readKeyOrElse("ignoreLintPathPattern", List.empty[String])
       alwaysCheckAllFiles <- reader.readKeyOrElse("alwaysCheckAllFiles", false)
       config              <- {
         (

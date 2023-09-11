@@ -63,7 +63,9 @@ object CIPlatformReadKeyedConfigInstr {
       Left(typeMismatchError(key, "Boolean"))
     }
   }
-  given ConfigValueType[List[String]] with {
-    def tryCast(key: String, value: String): Either[String, List[String]] = Right(value.split("\n").toList)
+
+  given [A](using A: ConfigValueType[A]): ConfigValueType[List[A]] with   {
+    def tryCast(key: String, value: String): Either[String, List[A]] =
+      value.split("\n").toList.traverse(A.tryCast(key, _))
   }
 }
