@@ -112,7 +112,7 @@ object Main extends IOApp {
           checksums   <- analyzer.fetchChecksums(targetFiles)
           fileUpdates <- {
             val refs = DLSHelper.genReferenceMap(dls)
-            val res  = FileUpdate.diff(checksumCache.getOrElse(Map.empty), checksums, refs)
+            val res  = FileUpdate.diff(dls)(checksumCache.getOrElse(Map.empty), checksums, refs)
             DatapackLinter.printFileUpdatesLog(res).as(res)
           }
 

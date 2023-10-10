@@ -1,5 +1,7 @@
 package com.github.chencmd.datapacklinter.analyzer
 
+import com.github.chencmd.datapacklinter.dls.DLSHelper
+import com.github.chencmd.datapacklinter.facade.DatapackLanguageService
 import com.github.chencmd.datapacklinter.generic.MapExtra.*
 import com.github.chencmd.datapacklinter.term.FileChecksums
 import com.github.chencmd.datapacklinter.utils.Path
@@ -7,6 +9,7 @@ import com.github.chencmd.datapacklinter.utils.Path
 import cats.Align
 import cats.data.Ior
 import cats.implicits.*
+import com.github.chencmd.datapacklinter.term.ResourcePath
 
 enum FileUpdate private () {
   case Created
@@ -26,16 +29,19 @@ object FileUpdate {
     }
   }
 
-  def diff(
+  def diff(dls: DatapackLanguageService)(
     prevChecksums: FileChecksums,
     nextCheckSums: FileChecksums,
-    refs: Map[Path, List[Path]]
+    refs: Map[ResourcePath, List[Path]]
   ): Map[Path, FileUpdate] = {
-    val fileUpdates          = Align[Map[Path, _]].alignWith(prevChecksums, nextCheckSums)(FileUpdate.apply)
+    val fileUpdates         = Align[Map[Path, _]].alignWith(prevChecksums, nextCheckSums)(FileUpdate.apply)
     val overrideRefsUpdated = fileUpdates.flatMap {
-      case (k, ContentUpdated | Deleted) =>
-        refs.getOrEmpty(k).filter(fileUpdates.get(_).contains(NotChanged)).map(_ -> RefsUpdated)
-      case _                             => List.empty
+      case (k, Created | ContentUpdated | Deleted) => DLSHelper
+          .getResourcePath(dls)(k)
+          .flatMap(refs.getOrEmpty)
+          .filter(fileUpdates.get(_).contains(NotChanged))
+          .map(_ -> RefsUpdated)
+      case _                                       => List.empty
     }
 
     fileUpdates ++ overrideRefsUpdated
