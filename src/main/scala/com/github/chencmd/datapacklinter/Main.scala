@@ -63,7 +63,7 @@ object Main extends IOApp {
   )
 
   val CACHE_DIRECTORY = Path.coerce(".cache")
-  val CACHE_VERSION = 1
+  val CACHE_VERSION   = 1
 
   override def run(args: List[String]) = {
     def run[F[_]: Async]()(using R: RaiseNec[F, String]): F[ExitCode] = for {
@@ -112,7 +112,7 @@ object Main extends IOApp {
           checksums   <- analyzer.fetchChecksums(targetFiles)
           fileUpdates <- {
             val refs = DLSHelper.genReferenceMap(dls)
-            val res  = FileUpdate.diff(checksumCache.getOrElse(Map.empty), checksums, refs)
+            val res  = FileUpdate.diff(dls)(checksumCache.getOrElse(Map.empty), checksums, refs)
             DatapackLinter.printFileUpdatesLog(res).as(res)
           }
 
@@ -280,7 +280,7 @@ object Main extends IOApp {
   ): F[(DLSConfig, LinterConfig, AnalyzerConfig)] = for {
     linterConfig <- LinterConfig.withReader(dir)
     analyzerConfig = AnalyzerConfig(linterConfig.ignorePaths)
-    dlsConfig    <- DLSConfig.readConfig(linterConfig.configPath)
+    dlsConfig <- DLSConfig.readConfig(linterConfig.configPath)
   } yield (dlsConfig, linterConfig, analyzerConfig)
 
   private def lint[F[_]: Async](

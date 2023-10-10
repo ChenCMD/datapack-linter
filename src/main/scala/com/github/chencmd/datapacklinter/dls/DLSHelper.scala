@@ -36,6 +36,7 @@ import typings.spgodingDatapackLanguageServer.libServicesDatapackLanguageService
 import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.CacheFile
 import typings.spgodingDatapackLanguageServer.libTypesDatapackDocumentMod.DatapackDocument
 import typings.spgodingDatapackLanguageServer.libTypesVersionInformationMod.VersionInformation
+import com.github.chencmd.datapacklinter.term.ResourcePath
 
 object DLSHelper {
   def parseDoc[F[_]: Async](dls: DatapackLanguageService)(doc: TextDocument): OptionT[F, DatapackDocument] = OptionT {
@@ -54,6 +55,14 @@ object DLSHelper {
     }
   }
 
+  def getResourcePath(dls: DatapackLanguageService)(abs: Path): Option[ResourcePath] = {
+    getFileInfoFromAbs(dls)(abs).flatMap(fi => getResourcePath(fi.rel))
+  }
+
+  def getResourcePath(rel: Path): Option[ResourcePath] = {
+    IdentityNode.fromRel(rel.toString).toOption.map(_.id.toString)
+  }
+
   case class FileInfo(root: Path, abs: Path, rel: Path)
 
   def getFileInfoFromAbs(dls: DatapackLanguageService)(abs: Path): Option[FileInfo] = {
@@ -63,19 +72,17 @@ object DLSHelper {
       .map(root => FileInfo(root, abs, Path.relative(root, abs)))
   }
 
-  def genReferenceMap(dls: DatapackLanguageService): Map[Path, List[Path]] = Map.from {
+  def genReferenceMap(dls: DatapackLanguageService): Map[ResourcePath, List[Path]] = Map.from {
     def uriStringToPath(uriString: String): Path = URI.parse(uriString).fsPath
     for {
-      (_, cacheWithCategory) <- JSObject.entries(dls.cacheFile.cache)
-      (_, cacheWithId)       <- JSObject.entries(cacheWithCategory)
-      cacheUnit              <- cacheWithId.toList
-      declare                <- cacheUnit.dcl.orEmpty.toList ++ cacheUnit.`def`.orEmpty.toList
+      (_, cacheWithCategory)      <- JSObject.entries(dls.cacheFile.cache)
+      (resourcePath, cacheWithId) <- JSObject.entries(cacheWithCategory)
+      cacheUnit                   <- cacheWithId.toList
 
-      declarePath <- declare.uri.map(uriStringToPath).toList
       referencePaths = cacheUnit.ref.orEmpty.toList
         .flatMap(_.uri.toList)
         .map(uriStringToPath)
-    } yield (declarePath, referencePaths)
+    } yield (resourcePath, referencePaths)
   }
 
   def createDLS[F[_]: Async](dir: Path, cacheDir: Path, dlsConfig: DLSConfig, cache: Option[CacheFile])(using
