@@ -58,7 +58,7 @@ jobs:
 
       - name: Pre deploy
         if: ${{ github.ref == 'refs/heads/main' }}
-        run: cp action.yml LICENSE README.md .gitignore dist/. # TODO fix concurrency
+        run: cp action.yml LICENSE README.md .gitignore dist
 
       - name: Deploy to dist
         if: ${{ github.ref == 'refs/heads/main' }}
