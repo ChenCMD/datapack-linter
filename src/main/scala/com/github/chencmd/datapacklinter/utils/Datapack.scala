@@ -14,7 +14,7 @@ import typings.spgodingDatapackLanguageServer.libServicesCommonMod as DLSCommon
 
 object Datapack {
   def findDatapackRoots[F[_]: Async](dir: Path, maxDepth: Int): F[List[URI]] = for {
-    rootCandidatePaths <- FSAsync.foreachDirRec(dir, dir, _ => true, maxDepth)(_.abs.pure[F])
+    rootCandidatePaths <- FSAsync.foreachDirRec(dir, dir, _ => true, maxDepth)(_.abs.pure[F]).map(x => dir :: x)
     rootPaths          <- rootCandidatePaths.filterA { p =>
       for {
         a <- FSAsync.pathAccessible(Path.join(p, "data"))
