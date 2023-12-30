@@ -13,7 +13,7 @@ Compile / npmDependencies ++= Seq(
   "@actions/cache"                     -> "3.2.2",
   "@actions/core"                      -> "1.10.1",
   "@actions/github"                    -> "6.0.0",
-  "@spgoding/datapack-language-server" -> "3.4.18",
+  "@spgoding/datapack-language-server" -> "3.4.19",
   "jsonc-parser"                       -> "3.2.0",
   "@octokit/webhooks-types"            -> "7.3.1",
   "object-hash"                        -> "3.0.0",

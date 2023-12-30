@@ -223,6 +223,11 @@
   resolved "https://registry.yarnpkg.com/@mcschema/core/-/core-0.12.40.tgz#4de1941be5d16a6eb4a7a8c9d19c9f36dbf3bd51"
   integrity sha512-XrC0mJxrTNhwcKDZ3rQnHAwWbH9zr0NEikb7jiMdrLygtjvxJB9vqLFvA6CAg6xJO2rAsLNx2j4rGg99llqBLw==
 
+"@mcschema/core@^0.12.41":
+  version "0.12.41"
+  resolved "https://registry.yarnpkg.com/@mcschema/core/-/core-0.12.41.tgz#2d01efcab0c0cdd7c41aaf8eb4740bdaafc0d061"
+  integrity sha512-NC+LZJTTgdiHjEyr69DlAvOLCpDHqrkgCsc/kXLwQV9rd2zMyfU1sH14+gI8u4f1dHF+WAHiI/vAbdgQhl+yyA==
+
 "@mcschema/java-1.16@^0.6.14":
   version "0.6.14"
   resolved "https://registry.yarnpkg.com/@mcschema/java-1.16/-/java-1.16-0.6.14.tgz#def10c2a8f33402e4c9ca8f65ff97ed3acd83287"
@@ -279,6 +284,13 @@
   dependencies:
     "@mcschema/core" "^0.12.40"
 
+"@mcschema/java-1.20.3@^0.0.5":
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/@mcschema/java-1.20.3/-/java-1.20.3-0.0.5.tgz#4c5e7a55ca98e1919f9e39851074b9dbf2cec21d"
+  integrity sha512-R/4mxuZOhUNwXjBBAZYzDfmRVotnJbfm8ym8tAFv4br9tN1d8Fgn3saXMa8o1VqiM88/veR8U989xaetaHowgg==
+  dependencies:
+    "@mcschema/core" "^0.12.41"
+
 "@mcschema/java-1.20@^0.0.12":
   version "0.0.12"
   resolved "https://registry.yarnpkg.com/@mcschema/java-1.20/-/java-1.20-0.0.12.tgz#9878cbe4c3d9115b78fc06e0334a01b1cd61bc9a"
@@ -286,10 +298,10 @@
   dependencies:
     "@mcschema/core" "^0.12.39"
 
-"@mcschema/locales@^0.1.88":
-  version "0.1.89"
-  resolved "https://registry.yarnpkg.com/@mcschema/locales/-/locales-0.1.89.tgz#bf150495a0cffc843b54d8086013ffe388e2c5f1"
-  integrity sha512-veFdi5ajeX0HtQVx/S1Gj1w2WBuw+WYfkn0LK0W6ew4EXS3d5Q8wwMjvHq26RX/B/g1Bzq/sH3fT3xO0JR1QbA==
+"@mcschema/locales@^0.1.92":
+  version "0.1.92"
+  resolved "https://registry.yarnpkg.com/@mcschema/locales/-/locales-0.1.92.tgz#3736a2d51cb4e2d7cf8d1f17362865b8cb563724"
+  integrity sha512-Dfvo1wwUCdV7hNeGJlj+dMt6nFC2+vEy70brJt8SAAzxfh1Kp+QVaYees8Q9Oim/m0XT1tJwGvi4NYrkAIPl2w==
 
 "@octokit/auth-token@^4.0.0":
   version "4.0.0"
@@ -383,10 +395,10 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.6.0.tgz#de2c6823203d6f319511898bb5de7e70f5267e19"
   integrity sha512-OWlrQAnWn9577PhVgqjUvMr1pg57Bc4jv0iL4w0PRuOSRvq67rvHW9Ie/dZVMvCzhSCB+UxhcY/PmCmFj33Q+g==
 
-"@spgoding/datapack-language-server@3.4.18":
-  version "3.4.18"
-  resolved "https://registry.yarnpkg.com/@spgoding/datapack-language-server/-/datapack-language-server-3.4.18.tgz#c32bd0acbf645e33608381a7a865b25e05e2bd84"
-  integrity sha512-RCe4IEknbcC6baCeEsgkN93hV896JkP2tjrGnfIrmTQpx7zjVr7u5++AKwY0nS6/JKnt18+HraOyv4r7/TOUjQ==
+"@spgoding/datapack-language-server@3.4.19":
+  version "3.4.19"
+  resolved "https://registry.yarnpkg.com/@spgoding/datapack-language-server/-/datapack-language-server-3.4.19.tgz#5b0969d3ce73b7080d0e35e2f42ad2a324a28042"
+  integrity sha512-dp1jcs9pkTM0dD6lkZwMR5Em20BKoV/4ccx5XF8/9kQRzN6hsaOCHSyeTS0UschD5375leyWHbcjdPMUd17YiQ==
   dependencies:
     "@mcschema/core" "^0.12.40"
     "@mcschema/java-1.16" "^0.6.14"
@@ -398,7 +410,8 @@
     "@mcschema/java-1.19.4" "^0.1.11"
     "@mcschema/java-1.20" "^0.0.12"
     "@mcschema/java-1.20.2" "^0.0.4"
-    "@mcschema/locales" "^0.1.88"
+    "@mcschema/java-1.20.3" "^0.0.5"
+    "@mcschema/locales" "^0.1.92"
     appdata-path "^1.0.0"
     clone "^2.1.2"
     fast-deep-equal "^3.1.3"
