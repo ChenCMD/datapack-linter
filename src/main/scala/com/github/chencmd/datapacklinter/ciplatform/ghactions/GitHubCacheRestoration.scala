@@ -102,6 +102,7 @@ object GitHubCacheRestoration {
                   import scala.scalajs.js.JSConverters.*
                   import typings.node.nodeColonconsoleMod.global.console.^ as console
                   for {
+                    _              <- Async[F].delay(console.log(js.JSON.stringify(ghCtx)))
                     prevPushCommitHash <- getPreviousPushCommitHash()
                     prevHash = prevPushCommitHash.getOrElse(payload.pull_request.base.sha)
                     _              <- Async[F].delay(console.log(prevHash))
