@@ -180,14 +180,15 @@ object Main extends IOApp {
         }
       }
 
+      given CIPlatformInteractionInstr[F] = interaction
       manageCache <- Resource.eval {
-        given CIPlatformInteractionInstr[F] = interaction
         context match {
           case Platform.GitHubActions => GitHubManageCache.createInstr(CACHE_VERSION)
           case Platform.Local         => LocalManageCache.createInstr().pure[F]
         }
       }
 
+      given CIPlatformReadKeyedConfigInstr[F] = inputReader
       cacheRestoration <- Resource.eval {
         context match {
           case Platform.GitHubActions => GitHubCacheRestoration.createInstr()
