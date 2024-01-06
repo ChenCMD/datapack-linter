@@ -19,7 +19,7 @@ import typings.octokitWebhooksTypes.mod.PushEvent
 
 import io.circe.generic.auto.*
 import org.http4s.*
-import org.http4s.blaze.client.BlazeClientBuilder
+import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.circe.*
 
 object GitHubCacheRestoration {
@@ -38,7 +38,7 @@ object GitHubCacheRestoration {
         import RestoreCacheOrSkip.*
         val program = for {
           commitMessages: List[String] <- EitherT.liftF {
-            BlazeClientBuilder[F].resource.use { client =>
+            EmberClientBuilder.default[F].build.use { client =>
               ghCtx.eventName match {
                 case "push" => ghCtx.payload.asInstanceOf[PushEvent].commits.toList.map(_.message).pure[F]
                 case "pull_request" if ghCtx.payload.action == "synchronize" =>

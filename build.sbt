@@ -59,6 +59,6 @@ libraryDependencies ++= Seq(
   "org.http4s"    %%% "http4s-client"       % "0.23.23",
   "org.http4s"    %%% "http4s-dsl"          % "0.23.23",
   "org.http4s"    %%% "http4s-circe"        % "0.23.23",
-  "org.http4s"     %% "http4s-blaze-client" % "0.23.10",
+  "org.http4s"    %%% "http4s-ember-client" % "0.23.25",
   "io.circe"      %%% "circe-generic"       % "0.14.6"
 )
