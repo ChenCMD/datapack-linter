@@ -56,8 +56,8 @@ jobs:
           ACTIONS_RUNTIME_TOKEN: ${{ steps.envs.outputs.ACTIONS_RUNTIME_TOKEN }}
           ACTIONS_CACHE_URL: ${{ steps.envs.outputs.ACTIONS_CACHE_URL }}
           INPUT_GITHUB_TOKEN: ${{ github.token }}
-          IGNORELINTPATHPATTERN: test:ignore/**
-          FORCEPASS: true
+          INPUT_IGNORELINTPATHPATTERN: test:ignore/**
+          INPUT_FORCEPASS: true
 
       - name: Pre deploy
         if: ${{ github.ref == 'refs/heads/main' }}
