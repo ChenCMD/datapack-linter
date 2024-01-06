@@ -14,6 +14,8 @@ import cats.implicits.*
 
 import scala.scalajs.js
 
+import typings.octokitWebhooksTypes.mod.PullRequestOpenedEvent
+import typings.octokitWebhooksTypes.mod.PullRequestReopenedEvent
 import typings.octokitWebhooksTypes.mod.PullRequestSynchronizeEvent
 import typings.octokitWebhooksTypes.mod.PushEvent
 
@@ -23,6 +25,9 @@ import org.http4s.*
 import org.http4s.circe.*
 import org.typelevel.ci.*
 import org.http4s.ember.client.EmberClientBuilder
+import typings.octokitWebhooksTypes.mod.Repository
+import typings.octokitWebhooksTypes.anon.Repo
+import typings.octokitWebhooksTypes.anon.Label
 
 object GitHubCacheRestoration {
   def createInstr[F[_]: Async]()(using
@@ -43,12 +48,8 @@ object GitHubCacheRestoration {
             given Network[F] = Network.forAsync
             EmberClientBuilder.default[F].build.use { client =>
               ghCtx.eventName match {
-                case "push" => ghCtx.payload.asInstanceOf[PushEvent].commits.toList.map(_.message).pure[F]
-                case "pull_request" if ghCtx.payload.action == "synchronize" =>
-                  val payload = ghCtx.payload.asInstanceOf[PullRequestSynchronizeEvent]
-                  val repos   = payload.repository
-                  val head    = payload.pull_request.head
-
+                case "push"         => ghCtx.payload.asInstanceOf[PushEvent].commits.toList.map(_.message).pure[F]
+                case "pull_request" =>
                   def makeGitHubAPIRequest(
                     method: Method,
                     endpoint: String,
@@ -67,48 +68,59 @@ object GitHubCacheRestoration {
                       .fold(fail => R.raiseOne(fail.message), _.pure[F])
                   }
 
-                  def getPreviousPushCommitHash(): F[Option[String]] = for {
-                    req <- makeGitHubAPIRequest(
-                      Method.GET,
-                      s"repos/${repos.full_name}/actions/runs",
-                      List("branch" -> head.ref, "event" -> "pull_request", "status" -> "completed")
-                    )
-                    res <- client
-                      .expect(req) {
-                        case class WorkflowRun(head_sha: String)
-                        case class RepoActionRunsResult(workflow_runs: List[WorkflowRun])
-                        jsonOf[F, RepoActionRunsResult]
-                      }
-                      .handleErrorWith(err => R.raiseOne(err.getMessage()))
-                  } yield res.workflow_runs.get(1).map(_.head_sha)
+                  def getCommitMessages(repos: Repository, base: Repo, head: Label): F[List[String]] = {
+                    def getPreviousPushCommitHash(): F[Option[String]] = for {
+                      req <- makeGitHubAPIRequest(
+                        Method.GET,
+                        s"repos/${repos.full_name}/actions/runs",
+                        List("branch" -> head.ref, "event" -> "pull_request", "status" -> "completed")
+                      )
+                      res <- client
+                        .expect(req) {
+                          case class WorkflowRun(head_sha: String)
+                          case class RepoActionRunsResult(workflow_runs: List[WorkflowRun])
+                          jsonOf[F, RepoActionRunsResult]
+                        }
+                        .handleErrorWith(err => R.raiseOne(err.getMessage()))
+                    } yield res.workflow_runs.get(1).map(_.head_sha)
 
-                  // TODO support api pagination
-                  def getTwoCommitBetweenCommitMessages(from: String, to: String): F[List[String]] = for {
-                    req <- makeGitHubAPIRequest(
-                      Method.GET,
-                      s"repos/${repos.full_name}/compare/$from...$to",
-                      List("per_page" -> "100")
-                    )
-                    res <- client
-                      .expect(req) {
-                        case class CommitDetail(message: String)
-                        case class Commit(commit: CommitDetail)
-                        case class RepoCompareResult(commits: List[Commit])
-                        jsonOf[F, RepoCompareResult]
-                      }
-                      .handleErrorWith(err => R.raiseOne(err.getMessage()))
-                  } yield res.commits.drop(1).map(_.commit.message)
+                    // TODO support api pagination
+                    def getTwoCommitBetweenCommitMessages(from: String, to: String): F[List[String]] = for {
+                      req <- makeGitHubAPIRequest(
+                        Method.GET,
+                        s"repos/${repos.full_name}/compare/$from...$to",
+                        List("per_page" -> "100")
+                      )
+                      res <- client
+                        .expect(req) {
+                          case class CommitDetail(message: String)
+                          case class Commit(commit: CommitDetail)
+                          case class RepoCompareResult(commits: List[Commit])
+                          jsonOf[F, RepoCompareResult]
+                        }
+                        .handleErrorWith(err => R.raiseOne(err.getMessage()))
+                    } yield res.commits.drop(1).map(_.commit.message)
 
-                  import scala.scalajs.js.JSConverters.*
-                  import typings.node.nodeColonconsoleMod.global.console.^ as console
-                  for {
-                    prevPushCommitHash <- getPreviousPushCommitHash()
-                    prevHash = prevPushCommitHash.getOrElse(payload.pull_request.base.sha)
-                    _              <- Async[F].delay(console.log(prevHash))
-                    commitMessages <- getTwoCommitBetweenCommitMessages(prevHash, head.sha)
-                    _              <- Async[F].delay(console.log(commitMessages.toJSArray))
-                  } yield commitMessages
-                case _                                                       => List.empty.pure[F]
+                    for {
+                      prevPushCommitHash <- getPreviousPushCommitHash()
+                      prevHash = prevPushCommitHash.getOrElse(base.sha)
+                      commitMessages <- getTwoCommitBetweenCommitMessages(prevHash, head.sha)
+                    } yield commitMessages
+                  }
+
+                  ghCtx.payload.action match {
+                    case "opened"      =>
+                      val payload = ghCtx.payload.asInstanceOf[PullRequestOpenedEvent]
+                      getCommitMessages(payload.repository, payload.pull_request.base, payload.pull_request.head)
+                    case "reopened"    =>
+                      val payload = ghCtx.payload.asInstanceOf[PullRequestReopenedEvent]
+                      getCommitMessages(payload.repository, payload.pull_request.base, payload.pull_request.head)
+                    case "synchronize" =>
+                      val payload = ghCtx.payload.asInstanceOf[PullRequestSynchronizeEvent]
+                      getCommitMessages(payload.repository, payload.pull_request.base, payload.pull_request.head)
+                    case _             => List.empty.pure[F]
+                  }
+                case _              => List.empty.pure[F]
               }
             }
           }
