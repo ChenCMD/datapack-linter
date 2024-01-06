@@ -1,7 +1,7 @@
 name                := "Datapack Linter"
 ThisBuild / version := "2.0.0-SNAPSHOT"
 
-ThisBuild / scalaVersion := "3.3.0"
+ThisBuild / scalaVersion := "3.3.1"
 
 enablePlugins(ScalaJSPlugin)
 enablePlugins(ScalaJSBundlerPlugin)
