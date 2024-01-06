@@ -21,6 +21,7 @@ import fs2.io.net.Network
 import io.circe.generic.auto.*
 import org.http4s.*
 import org.http4s.circe.*
+import org.typelevel.ci.*
 import org.http4s.ember.client.EmberClientBuilder
 
 object GitHubCacheRestoration {
@@ -48,18 +49,32 @@ object GitHubCacheRestoration {
                   val repos   = payload.repository
                   val head    = payload.pull_request.head
 
-                  def getPreviousPushCommitHash(): F[Option[String]] = for {
-                    uri <- Uri
-                      .fromString(
-                        s"""|${ghCtx.apiUrl}/repos/${repos.owner}/${repos.name}/actions/runs
-                            |?branch=${head.ref}
-                            |&event=pull_request
-                            |&status=completed
-                            |""".stripMargin
-                      )
+                  def makeGitHubAPIRequest(
+                    method: Method,
+                    endpoint: String,
+                    queryParams: List[(String, String)] = List.empty
+                  ): F[Request[F]] = {
+                    val qp = {
+                      if (queryParams.nonEmpty) {
+                        queryParams.foldLeft("?") { case (p, (k, v)) => s"$p&$k=$v" }
+                      } else {
+                        ""
+                      }
+                    }
+                    Uri
+                      .fromString(s"${ghCtx.apiUrl}/$endpoint$qp")
+                      .map(Request[F](method, _, headers = Headers(Header.Raw(ci"Authorization", token))))
                       .fold(fail => R.raiseOne(fail.message), _.pure[F])
+                  }
+
+                  def getPreviousPushCommitHash(): F[Option[String]] = for {
+                    req <- makeGitHubAPIRequest(
+                      Method.GET,
+                      s"repos/${repos.owner}/${repos.name}/actions/runs",
+                      List("branch" -> head.ref, "event" -> "pull_request", "status" -> "completed")
+                    )
                     res <- client
-                      .expect(Request[F](Method.GET, uri)) {
+                      .expect(req) {
                         case class WorkflowRun(head_sha: String)
                         case class RepoActionRunsResult(workflow_runs: List[WorkflowRun])
                         jsonOf[F, RepoActionRunsResult]
@@ -69,11 +84,13 @@ object GitHubCacheRestoration {
 
                   // TODO support api pagination
                   def getTwoCommitBetweenCommitMessages(from: String, to: String): F[List[String]] = for {
-                    uri <- Uri
-                      .fromString(s"${ghCtx.apiUrl}/repos/${repos.owner}/${repos.name}/compare/$from..$to?per_page=100")
-                      .fold(fail => R.raiseOne(fail.message), _.pure[F])
+                    req <- makeGitHubAPIRequest(
+                      Method.GET,
+                      s"repos/${repos.owner}/${repos.name}/compare/$from..$to",
+                      List("per_page" -> "100")
+                    )
                     res <- client
-                      .expect(Request[F](Method.GET, uri)) {
+                      .expect(req) {
                         case class CommitDetail(message: String)
                         case class Commit(commit: CommitDetail)
                         case class RepoCompareResult(commits: List[Commit])
