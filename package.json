@@ -12,6 +12,7 @@
     "build": "dotenv cross-var sbt fullOptJS/webpack && mv dist/datapack-linter-opt-bundle.js dist/index.js && mv target/scala-3.3.0/scalajs-bundler/main/datapack-linter-opt.js.map dist/index.js.map && mv dist/datapack-linter-opt-bundle.js.LICENSE.txt dist/index.js.LICENSE.txt",
     "build:dev": "dotenv cross-var sbt fastOptJS/webpack && mv dist/datapack-linter-fastopt-bundle.js dist/index.js && mv target/scala-3.3.0/scalajs-bundler/main/datapack-linter-fastopt.js.map dist/index.js.map",
     "test-run": "node dist/index.js test/linter-config.json",
+    "test-gh-run": "node dist/index.js",
     "dev": "yarn build:dev && rm -rf .cache/ && yarn test-run",
     "sfix": "sbt scalafix",
     "fmt": "sbt scalafmtAll"

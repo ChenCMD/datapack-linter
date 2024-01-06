@@ -51,11 +51,13 @@ jobs:
         id: envs
 
       - name: Run
-        run: yarn test-run
+        run: yarn test-gh-run
         env:
           ACTIONS_RUNTIME_TOKEN: ${{ steps.envs.outputs.ACTIONS_RUNTIME_TOKEN }}
           ACTIONS_CACHE_URL: ${{ steps.envs.outputs.ACTIONS_CACHE_URL }}
           INPUT_GITHUB_TOKEN: ${{ github.token }}
+          IGNORELINTPATHPATTERN: test:ignore/**
+          FORCEPASS: true
 
       - name: Pre deploy
         if: ${{ github.ref == 'refs/heads/main' }}
