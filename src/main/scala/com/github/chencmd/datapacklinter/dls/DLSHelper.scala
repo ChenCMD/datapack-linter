@@ -8,6 +8,7 @@ import com.github.chencmd.datapacklinter.generic.DLSConfigExtra.*
 import com.github.chencmd.datapacklinter.generic.Instances.given
 import com.github.chencmd.datapacklinter.generic.RaiseNec
 import com.github.chencmd.datapacklinter.generic.UndefOrExtra.*
+import com.github.chencmd.datapacklinter.term.ResourcePath
 import com.github.chencmd.datapacklinter.utils.Datapack
 import com.github.chencmd.datapacklinter.utils.FSAsync
 import com.github.chencmd.datapacklinter.utils.JSObject
@@ -36,7 +37,6 @@ import typings.spgodingDatapackLanguageServer.libServicesDatapackLanguageService
 import typings.spgodingDatapackLanguageServer.libTypesClientCacheMod.CacheFile
 import typings.spgodingDatapackLanguageServer.libTypesDatapackDocumentMod.DatapackDocument
 import typings.spgodingDatapackLanguageServer.libTypesVersionInformationMod.VersionInformation
-import com.github.chencmd.datapacklinter.term.ResourcePath
 
 object DLSHelper {
   def parseDoc[F[_]: Async](dls: DatapackLanguageService)(doc: TextDocument): OptionT[F, DatapackDocument] = OptionT {

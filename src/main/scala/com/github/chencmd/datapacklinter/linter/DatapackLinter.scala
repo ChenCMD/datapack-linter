@@ -13,7 +13,6 @@ import cats.implicits.*
 
 import scala.util.chaining.*
 
-
 object DatapackLinter {
   def printFileUpdatesLog[F[_]: Async](
     fileUpdates: FileUpdates

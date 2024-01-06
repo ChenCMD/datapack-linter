@@ -30,7 +30,7 @@ import typings.spgodingDatapackLanguageServer.spgodingDatapackLanguageServerStri
 import typings.spgodingDatapackLanguageServer.anon.GetText
 import typings.spgodingDatapackLanguageServer.libNodesIdentityNodeMod.IdentityNode
 
-final class DatapackAnalyzer (
+final class DatapackAnalyzer(
   private val dls: DatapackLanguageService,
   private val analyzerConfig: AnalyzerConfig,
   private val analyzeCache: AnalysisCache

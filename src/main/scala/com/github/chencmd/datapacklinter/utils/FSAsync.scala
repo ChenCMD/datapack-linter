@@ -22,7 +22,11 @@ object FSAsync {
       .handleError(_ => false)
   }
 
-  def writeFile[F[_]: Async](targetPath: Path, contents: String, encoding: BufferEncoding = BufferEncoding.utf8): F[Unit] = {
+  def writeFile[F[_]: Async](
+    targetPath: Path,
+    contents: String,
+    encoding: BufferEncoding = BufferEncoding.utf8
+  ): F[Unit] = {
     AsyncExtra.fromPromise(fsp.writeFile(targetPath, contents, encoding))
   }
 

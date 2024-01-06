@@ -4,12 +4,12 @@ import com.github.chencmd.datapacklinter.dls.DLSHelper
 import com.github.chencmd.datapacklinter.facade.DatapackLanguageService
 import com.github.chencmd.datapacklinter.generic.MapExtra.*
 import com.github.chencmd.datapacklinter.term.FileChecksums
+import com.github.chencmd.datapacklinter.term.ResourcePath
 import com.github.chencmd.datapacklinter.utils.Path
 
 import cats.Align
 import cats.data.Ior
 import cats.implicits.*
-import com.github.chencmd.datapacklinter.term.ResourcePath
 
 enum FileUpdate private () {
   case Created
