@@ -14,20 +14,20 @@ import cats.implicits.*
 
 import scala.scalajs.js
 
+import typings.octokitWebhooksTypes.anon.Label
+import typings.octokitWebhooksTypes.anon.Repo
 import typings.octokitWebhooksTypes.mod.PullRequestOpenedEvent
 import typings.octokitWebhooksTypes.mod.PullRequestReopenedEvent
 import typings.octokitWebhooksTypes.mod.PullRequestSynchronizeEvent
 import typings.octokitWebhooksTypes.mod.PushEvent
+import typings.octokitWebhooksTypes.mod.Repository
 
 import fs2.io.net.Network
 import io.circe.generic.auto.*
 import org.http4s.*
 import org.http4s.circe.*
-import org.typelevel.ci.*
 import org.http4s.ember.client.EmberClientBuilder
-import typings.octokitWebhooksTypes.mod.Repository
-import typings.octokitWebhooksTypes.anon.Repo
-import typings.octokitWebhooksTypes.anon.Label
+import org.typelevel.ci.*
 
 object GitHubCacheRestoration {
   def createInstr[F[_]: Async]()(using
