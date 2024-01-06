@@ -21,6 +21,7 @@ import io.circe.generic.auto.*
 import org.http4s.*
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.circe.*
+import fs2.io.net.Network
 
 object GitHubCacheRestoration {
   def createInstr[F[_]: Async]()(using
@@ -38,6 +39,7 @@ object GitHubCacheRestoration {
         import RestoreCacheOrSkip.*
         val program = for {
           commitMessages: List[String] <- EitherT.liftF {
+            given Network[F] = Network.forAsync
             EmberClientBuilder.default[F].build.use { client =>
               ghCtx.eventName match {
                 case "push" => ghCtx.payload.asInstanceOf[PushEvent].commits.toList.map(_.message).pure[F]
