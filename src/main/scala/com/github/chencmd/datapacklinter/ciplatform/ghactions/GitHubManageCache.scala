@@ -1,6 +1,7 @@
 package com.github.chencmd.datapacklinter.ciplatform.ghactions
 
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformManageCacheInstr
+import com.github.chencmd.datapacklinter.ciplatform.ghactions.utils.ActionsGitHub
 import com.github.chencmd.datapacklinter.generic.AsyncExtra
 import com.github.chencmd.datapacklinter.generic.RaiseNec
 import com.github.chencmd.datapacklinter.utils.Path
@@ -15,16 +16,15 @@ import typings.actionsCache.mod as cache
 
 object GitHubManageCache {
   def createInstr[F[_]: Async](cacheVersion: Int): F[CIPlatformManageCacheInstr[F]] = for {
-    ghCtx <- Async[F].delay {
-      import typings.actionsGithub.mod.context
-      context
-    }
+    ghCtx <- ActionsGitHub.getContext()
     instr = new CIPlatformManageCacheInstr[F] {
       override def store(paths: List[Path]): F[Unit] = AsyncExtra.fromPromise {
-        cache.saveCache(
-          paths.map(_.toString).toJSArray,
-          makeCacheKey(ghCtx.ref, js.Date.now())
-        ).`then`(_ => ())
+        cache
+          .saveCache(
+            paths.map(_.toString).toJSArray,
+            makeCacheKey(ghCtx.ref, js.Date.now())
+          )
+          .`then`(_ => ())
       }
 
       override def restore(paths: List[Path])(using R: RaiseNec[F, String]): F[Boolean] = {

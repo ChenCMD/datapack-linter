@@ -50,7 +50,15 @@ javaOptions ++= Seq(
   "-XX:+UseG1GC"
 )
 
+resolvers += Resolver.sonatypeRepo("snapshots")
+
 libraryDependencies ++= Seq(
-  "org.typelevel" %%% "cats-effect" % "3.4.8",
-  "org.typelevel" %%% "cats-mtl"    % "1.3.0"
+  "org.typelevel" %%% "cats-effect"         % "3.4.8",
+  "org.typelevel" %%% "cats-mtl"            % "1.3.0",
+  "org.http4s"    %%% "http4s-core"         % "0.23.23",
+  "org.http4s"    %%% "http4s-client"       % "0.23.23",
+  "org.http4s"    %%% "http4s-dsl"          % "0.23.23",
+  "org.http4s"    %%% "http4s-circe"        % "0.23.23",
+  "org.http4s"     %% "http4s-blaze-client" % "0.23.10",
+  "io.circe"      %%% "circe-generic"       % "0.14.6"
 )
