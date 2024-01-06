@@ -17,11 +17,11 @@ import scala.scalajs.js
 import typings.octokitWebhooksTypes.mod.PullRequestSynchronizeEvent
 import typings.octokitWebhooksTypes.mod.PushEvent
 
+import fs2.io.net.Network
 import io.circe.generic.auto.*
 import org.http4s.*
-import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.circe.*
-import fs2.io.net.Network
+import org.http4s.ember.client.EmberClientBuilder
 
 object GitHubCacheRestoration {
   def createInstr[F[_]: Async]()(using
