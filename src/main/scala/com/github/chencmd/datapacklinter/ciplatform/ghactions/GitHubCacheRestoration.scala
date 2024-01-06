@@ -70,7 +70,7 @@ object GitHubCacheRestoration {
                   def getPreviousPushCommitHash(): F[Option[String]] = for {
                     req <- makeGitHubAPIRequest(
                       Method.GET,
-                      s"repos/${repos.owner.name}/${repos.name}/actions/runs",
+                      s"repos/${repos.full_name}/actions/runs",
                       List("branch" -> head.ref, "event" -> "pull_request", "status" -> "completed")
                     )
                     res <- client
@@ -86,7 +86,7 @@ object GitHubCacheRestoration {
                   def getTwoCommitBetweenCommitMessages(from: String, to: String): F[List[String]] = for {
                     req <- makeGitHubAPIRequest(
                       Method.GET,
-                      s"repos/${repos.owner.name}/${repos.name}/compare/$from..$to",
+                      s"repos/${repos.full_name}/compare/$from..$to",
                       List("per_page" -> "100")
                     )
                     res <- client
