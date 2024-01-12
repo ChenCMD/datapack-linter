@@ -39,6 +39,8 @@ This GitHub Action performs a static analysis of the datapack document in which 
 
          - name: lint
            uses: ChenCMD/datapack-linter@v2
+           with:
+             GITHUB_TOKEN: ${{ github.token }}
    ```
 
 
@@ -55,6 +57,7 @@ It is also possible to load an arbitrary config file by specifying `configPath` 
 ## 入力 / Inputs
 |      名前  Name       | 想定する値 / Expect value | 必須 / Require |   デフォルト / Default    | 概要 / About                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | :-------------------: | :-----------------------: | :------------: | :-----------------------: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     GITHUB_TOKEN      |       GitHub token        |       x        |            N/A            | GitHub のトークン。このトークンは pull_request イベントで linter を使用する際に設定することを推奨します。<br>A GitHub token. It is recommended that this token be set when using linter in pull_request events.                                                                                                                                                                                                                |
 |     lintDirectory     |           path            |       x        |           `"."`           | チェックを行うディレクトリ<br>Directory to lint                                                                                                                                                                                                                                                                                                                                                                                |
 |      configPath       |           path            |       x        | `".vscode/settings.json"` | 校閲ルールを記載したコンフィグファイルのパス<br>Path to the config file containing the lint rules                                                                                                                                                                                                                                                                                                                              |
 |       forcePass       |          `true`           |       x        |          `false`          | チェックに失敗した Datapack ドキュメントが存在するときに step そのものを失敗させるか否か<br>Whether or not to fail the step itself when there is a Datapack document that fails the lint                                                                                                                                                                                                                                       |
