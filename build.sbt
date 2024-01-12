@@ -1,7 +1,7 @@
 name                := "Datapack Linter"
 ThisBuild / version := "2.0.0-SNAPSHOT"
 
-ThisBuild / scalaVersion := "3.3.0"
+ThisBuild / scalaVersion := "3.3.1"
 
 enablePlugins(ScalaJSPlugin)
 enablePlugins(ScalaJSBundlerPlugin)
@@ -50,7 +50,17 @@ javaOptions ++= Seq(
   "-XX:+UseG1GC"
 )
 
+resolvers ++= Resolver.sonatypeOssRepos("snapshots")
+
+val http4sVersion = "0.23.23"
+
 libraryDependencies ++= Seq(
-  "org.typelevel" %%% "cats-effect" % "3.4.8",
-  "org.typelevel" %%% "cats-mtl"    % "1.3.0"
+  "org.typelevel" %%% "cats-effect"         % "3.4.8",
+  "org.typelevel" %%% "cats-mtl"            % "1.3.0",
+  "org.http4s"    %%% "http4s-core"         % http4sVersion,
+  "org.http4s"    %%% "http4s-client"       % http4sVersion,
+  "org.http4s"    %%% "http4s-dsl"          % http4sVersion,
+  "org.http4s"    %%% "http4s-circe"        % http4sVersion,
+  "org.http4s"    %%% "http4s-ember-client" % http4sVersion,
+  "io.circe"      %%% "circe-generic"       % "0.14.6"
 )
