@@ -8,6 +8,10 @@ branding:
   icon: box
   color: green
 inputs:
+  GITHUB_TOKEN:
+    description: 'A GitHub token. It is recommended that this token be set when using linter in pull_request events.'
+    required: false
+    default: ''
   lintDirectory:
     description: 'Lint base directory.'
     required: false
