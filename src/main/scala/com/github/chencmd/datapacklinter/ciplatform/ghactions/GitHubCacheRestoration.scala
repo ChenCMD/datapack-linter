@@ -34,7 +34,10 @@ object GitHubCacheRestoration {
   ): F[CIPlatformCacheRestorationInstr[F]] = for {
     ghCtx <- ActionsGitHub.getContext()
 
+    _ <- ciInteraction.printInfo("meow1")
     token <- inputReader.readKey[String]("GITHUB_TOKEN")
+    _ <- ciInteraction.printInfo("meow2")
+    _ <- ciInteraction.printInfo(token.show)
 
     instr = new CIPlatformCacheRestorationInstr[F] {
       override def shouldRestoreCache(): F[RestoreCacheOrSkip] = {
@@ -44,7 +47,6 @@ object GitHubCacheRestoration {
             ghCtx.eventName match {
               case "push" => ghCtx.payload.asInstanceOf[PushEvent].commits.toList.map(_.message).pure[F]
               case "pull_request" if List("opened", "reopened", "synchronize").contains(ghCtx.payload.action) =>
-                ciInteraction.printInfo(token.show) *>
                 token.toOption.filter(_.nonEmpty).fold(
                     ciInteraction
                       .printWarning(
