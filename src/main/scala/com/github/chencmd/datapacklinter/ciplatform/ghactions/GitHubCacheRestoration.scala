@@ -44,7 +44,7 @@ object GitHubCacheRestoration {
             ghCtx.eventName match {
               case "push" => ghCtx.payload.asInstanceOf[PushEvent].commits.toList.map(_.message).pure[F]
               case "pull_request" if List("opened", "reopened", "synchronize").contains(ghCtx.payload.action) =>
-                token.fold(
+                token.toOption.filter(_.nonEmpty).fold(
                   _ => {
                     ciInteraction
                       .printWarning(
