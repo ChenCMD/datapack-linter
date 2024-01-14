@@ -56,11 +56,11 @@ object GitHubCacheRestoration {
                       .as(List.empty)
                 )(
                   t => {
-                    trait PullRequest        {
+                    trait PullRequest extends js.Object        {
                       val base: Repo
                       val head: Label
                     }
-                    trait PullRequestPayload {
+                    trait PullRequestPayload extends js.Object {
                       val repository: Repository
                       val pull_request: PullRequest
                     }
