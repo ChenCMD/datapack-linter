@@ -41,22 +41,19 @@ object GitHubCacheRestoration {
         import RestoreCacheOrSkip.*
         val program = for {
           commitMessages: List[String] <- EitherT.liftF {
-            ciInteraction.printInfo("meow1") *>
-            ciInteraction.printInfo(ghCtx.eventName) *>
-            ciInteraction.printInfo(js.JSON.stringify(ghCtx.payload.action)) *>(
             ghCtx.eventName match {
               case "push" => ghCtx.payload.asInstanceOf[PushEvent].commits.toList.map(_.message).pure[F]
               case "pull_request" if List("opened", "reopened", "synchronize").contains(ghCtx.payload.action) =>
-                ciInteraction.printInfo("meow2") *>
-                token.toOption.filter(_.nonEmpty).fold(
+                token.toOption
+                  .filter(_.nonEmpty)
+                  .fold(
                     ciInteraction
                       .printWarning(
                         "The check for commit messages in pull_request is skipped because GITHUB_TOKEN is not provided as input."
                       )
                       .as(List.empty)
-                )(
-                  t => {
-                    trait PullRequest extends js.Object        {
+                  )(t => {
+                    trait PullRequest        extends js.Object {
                       val base: Repo
                       val head: Label
                     }
@@ -66,11 +63,9 @@ object GitHubCacheRestoration {
                     }
                     val payload = ghCtx.payload.asInstanceOf[PullRequestPayload]
                     getCommitMessages(payload.repository, payload.pull_request.base, payload.pull_request.head, t)
-                  }
-                )
-
+                  })
               case _ => List.empty.pure[F]
-            })
+            }
           }
           _ <- EitherTExtra.exitWhenA(commitMessages.exists(_.toLowerCase().contains("[regenerate cache]"))) {
             Skip("The cache is not used because the commit message contains '[regenerate cache]'.")
