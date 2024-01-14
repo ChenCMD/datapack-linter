@@ -44,27 +44,26 @@ object GitHubCacheRestoration {
             ghCtx.eventName match {
               case "push" => ghCtx.payload.asInstanceOf[PushEvent].commits.toList.map(_.message).pure[F]
               case "pull_request" if List("opened", "reopened", "synchronize").contains(ghCtx.payload.action) =>
-                token.toOption.filter(_.nonEmpty).fold(
+                token.toOption
+                  .filter(_.nonEmpty)
+                  .fold(
                     ciInteraction
                       .printWarning(
                         "The check for commit messages in pull_request is skipped because GITHUB_TOKEN is not provided as input."
                       )
                       .as(List.empty)
-                )(
-                  t => {
-                    trait PullRequest        {
+                  )(t => {
+                    trait PullRequest        extends js.Object {
                       val base: Repo
                       val head: Label
                     }
-                    trait PullRequestPayload {
+                    trait PullRequestPayload extends js.Object {
                       val repository: Repository
                       val pull_request: PullRequest
                     }
                     val payload = ghCtx.payload.asInstanceOf[PullRequestPayload]
                     getCommitMessages(payload.repository, payload.pull_request.base, payload.pull_request.head, t)
-                  }
-                )
-
+                  })
               case _ => List.empty.pure[F]
             }
           }
