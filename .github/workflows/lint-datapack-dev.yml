@@ -44,7 +44,7 @@ jobs:
         run: yarn install
 
       - name: Build for production
-        run: yarn build
+        run: yarn build:dev
 
       - name: Export environments
         uses: peaceiris/actions-export-envs@v1.1.0
