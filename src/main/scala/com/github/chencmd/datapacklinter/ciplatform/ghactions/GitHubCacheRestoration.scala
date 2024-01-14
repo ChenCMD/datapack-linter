@@ -43,7 +43,7 @@ object GitHubCacheRestoration {
           commitMessages: List[String] <- EitherT.liftF {
             ciInteraction.printInfo("meow1") *>
             ciInteraction.printInfo(ghCtx.eventName) *>
-            ciInteraction.printInfo(ghCtx.payload.action) *>
+            ciInteraction.printInfo(js.JSON.stringify(ghCtx.payload.action)) *>(
             ghCtx.eventName match {
               case "push" => ghCtx.payload.asInstanceOf[PushEvent].commits.toList.map(_.message).pure[F]
               case "pull_request" if List("opened", "reopened", "synchronize").contains(ghCtx.payload.action) =>
@@ -70,7 +70,7 @@ object GitHubCacheRestoration {
                 )
 
               case _ => List.empty.pure[F]
-            }
+            })
           }
           _ <- EitherTExtra.exitWhenA(commitMessages.exists(_.toLowerCase().contains("[regenerate cache]"))) {
             Skip("The cache is not used because the commit message contains '[regenerate cache]'.")
