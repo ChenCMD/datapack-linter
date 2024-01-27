@@ -71,7 +71,39 @@ object AnalysisResult {
   }
 }
 
-type ErrorSeverity = 1 | 2 | 3 | 4
+opaque type ErrorSeverity = 1 | 2 | 3 | 4
+
+object ErrorSeverity {
+  val ERROR: ErrorSeverity       = 1
+  val WARNING: ErrorSeverity     = 2
+  val INFORMATION: ErrorSeverity = 3
+  val HINT: ErrorSeverity        = 4
+
+  extension (severity: ErrorSeverity) {
+    def toDiagnosticLevelString: String = {
+      severity match {
+        case 1 => "Error"
+        case 2 => "Warning"
+        case 3 => "Information"
+        case 4 => "Hint"
+      }
+    }
+
+    def severerThanOrEqualTo(other: ErrorSeverity): Boolean = {
+      severity <= other
+    }
+  }
+
+  def coerce(severity: Int): ErrorSeverity = {
+    severity match {
+      case 1 => ERROR
+      case 2 => WARNING
+      case 3 => INFORMATION
+      case 4 => HINT
+      case _ => throw new IllegalArgumentException(s"Invalid severity: $severity")
+    }
+  }
+}
 
 trait JSDocumentError extends js.Object {
   val message: String
@@ -99,7 +131,7 @@ object DocumentError {
   def apply(docError: ParsingError, rangeInfo: Range): DocumentError = {
     DocumentError(
       docError.message,
-      docError.severity.asInstanceOf[ErrorSeverity],
+      ErrorSeverity.coerce(docError.severity.asInstanceOf[Int]),
       rangeInfo
     )
   }

@@ -3,6 +3,7 @@ package com.github.chencmd.datapacklinter
 import com.github.chencmd.datapacklinter.analyzer.AnalysisResult
 import com.github.chencmd.datapacklinter.analyzer.AnalyzerConfig
 import com.github.chencmd.datapacklinter.analyzer.DatapackAnalyzer
+import com.github.chencmd.datapacklinter.analyzer.ErrorSeverity
 import com.github.chencmd.datapacklinter.analyzer.FileUpdate
 import com.github.chencmd.datapacklinter.analyzer.JSAnalysisResult
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformCacheRestorationInstr
@@ -297,8 +298,8 @@ object Main extends IOApp {
       )
       (lintSucceed, err, warn) = {
         val errors = DatapackLinter.extractErrorCount(result)
-        val e      = errors.getOrEmpty(1)
-        val w      = errors.getOrEmpty(2)
+        val e      = errors.getOrEmpty(ErrorSeverity.ERROR)
+        val w      = errors.getOrEmpty(ErrorSeverity.WARNING)
         (e + w == 0, e, w)
       }
 

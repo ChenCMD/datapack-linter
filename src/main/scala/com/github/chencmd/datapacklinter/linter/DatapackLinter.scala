@@ -6,29 +6,33 @@ import com.github.chencmd.datapacklinter.analyzer.FileUpdate
 import com.github.chencmd.datapacklinter.ciplatform.CIPlatformInteractionInstr
 import com.github.chencmd.datapacklinter.generic.MapExtra.*
 import com.github.chencmd.datapacklinter.term.FileUpdates
+import com.github.chencmd.datapacklinter.utils.AsciiColors
 
 import cats.Monad
 import cats.effect.Async
 import cats.implicits.*
 
-import scala.util.chaining.*
-
 object DatapackLinter {
   def printFileUpdatesLog[F[_]: Async](
     fileUpdates: FileUpdates
   )(using ciInteraction: CIPlatformInteractionInstr[F]): F[Unit] = {
-    fileUpdates
-      .groupMap(_._2)(t => t._1)
-      .map { case (k, v) => k -> v.toList }
-      .pipe { fm =>
-        def log(state: FileUpdate, stateMes: String) = fm.getOrEmpty(state).traverse_ { file =>
-          ciInteraction.printDebug(s"file $stateMes detected: $file")
-        }
-        log(FileUpdate.Created, "add")
-          >> log(FileUpdate.ContentUpdated, "change")
-          >> log(FileUpdate.RefsUpdated, "ref change")
-          >> log(FileUpdate.Deleted, "delete")
+    def getHumanReadableUpdateState(updateKind: FileUpdate): String = {
+      updateKind match {
+        case FileUpdate.Created        => "add"
+        case FileUpdate.ContentUpdated => "change"
+        case FileUpdate.Deleted        => "delete"
+        case FileUpdate.RefsUpdated    => "ref change"
+        case FileUpdate.NotChanged     => "no change"
       }
+    }
+
+    val updatedPaths = fileUpdates.preImages
+    List(FileUpdate.Created, FileUpdate.ContentUpdated, FileUpdate.RefsUpdated, FileUpdate.Deleted).traverse_ {
+      updateKind =>
+        updatedPaths.getOrEmpty(updateKind).traverse_ { path =>
+          ciInteraction.printDebug(s"file ${getHumanReadableUpdateState(updateKind)} detected: $path")
+        }
+    }
   }
 
   def printResult[F[_]: Async](res: AnalysisResult, muteSuccessResult: Boolean)(using
@@ -36,41 +40,32 @@ object DatapackLinter {
   ): F[Unit] = {
     val title = s"${res.resourcePath} (${res.dpFilePath})"
 
-    if (!res.errors.exists(_.severity <= 2)) {
+    if (!res.errors.exists(_.severity.severerThanOrEqualTo(ErrorSeverity.WARNING))) {
       Monad[F].unlessA(muteSuccessResult) {
-        ciInteraction.printInfo(s"\u001b[92m✓\u001b[39m  ${title}")
+        ciInteraction.printInfo(s"${AsciiColors.F_BlightGreen}✓${AsciiColors.Reset}  $title")
       }
     } else {
       for {
-        _ <- ciInteraction.printInfo(s"\u001b[91m✗\u001b[39m  ${title}")
+        _ <- ciInteraction.printInfo(s"${AsciiColors.F_Red}✗${AsciiColors.Reset}  $title")
         _ <- res.errors
-          .filter(_.severity <= 2)
-          .map { e =>
+          .filter(_.severity.severerThanOrEqualTo(ErrorSeverity.WARNING))
+          .traverse_ { e =>
             val pos                   = e.range.start
-            val paddedPosition        = f"${pos.line.asInstanceOf[Int]}%5d:${pos.character.asInstanceOf[Int]}%-5d"
-            val indentAdjuster        = " " * (if (e.severity == 1) then 2 else 0)
-            val humanReadableSeverity = {
-              val raw = e.severity match {
-                case 1 => "Error"
-                case 2 => "Warning"
-                case _ => "Unknown"
-              }
-              f"${raw}%-7s"
+            val paddedPosition        = f"${pos.line.toInt}%5d:${pos.character.toInt}%-5d"
+            val indentAdjuster        = if e.severity == ErrorSeverity.ERROR then "  " else ""
+            val humanReadableSeverity = e.severity.toDiagnosticLevelString
+            val formattedError        = f" $indentAdjuster$paddedPosition $humanReadableSeverity%-7s  ${e.message}"
+            e.severity match {
+              case ErrorSeverity.ERROR   => ciInteraction.printError(formattedError)
+              case ErrorSeverity.WARNING => ciInteraction.printWarning(formattedError)
+              case _                     => Monad[F].unit
             }
-            (e.severity, s" $indentAdjuster$paddedPosition $humanReadableSeverity ${e.message}")
-          }
-          .traverse_ {
-            case (1, res) => ciInteraction.printError(res)
-            case (2, res) => ciInteraction.printWarning(res)
-            case (_, res) => ciInteraction.printInfo(res)
           }
       } yield ()
     }
   }
 
   def extractErrorCount(result: List[AnalysisResult]): Map[ErrorSeverity, Int] = {
-    result.foldLeft(Map.empty[ErrorSeverity, Int]) { (map, r) =>
-      r.errors.foldLeft(map)((m, e) => m.updatedWith(e.severity)(a => Some(a.getOrElse(0) + 1)))
-    }
+    result.flatMap(_.errors).groupBy[ErrorSeverity](_.severity).mapV(_.size)
   }
 }
