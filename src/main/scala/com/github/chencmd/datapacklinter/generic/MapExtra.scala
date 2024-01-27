@@ -9,7 +9,7 @@ object MapExtra {
       m.get(key).orEmpty
     }
 
-    def mapKeys[K1](f: K => K1): Map[K1, V] = {
+    def mapK[K1](f: K => K1): Map[K1, V] = {
       m.map { case (k, v) => f(k) -> v }
     }
 

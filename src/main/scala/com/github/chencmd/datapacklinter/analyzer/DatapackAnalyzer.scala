@@ -41,25 +41,28 @@ final class DatapackAnalyzer(
     ciInteraction: CIPlatformInteractionInstr[F]
   ): AnalysisState[F, List[AnalysisResult]] = {
     import FileUpdate.*
-    fileUpdates.toList
-      .sortBy(_._1.toString)
-      .map { case (k, v) => DLSHelper.getFileInfoFromAbs(dls)(k) -> v }
+    fileUpdates
+      .mapK(DLSHelper.getFileInfoFromAbs(dls))
+      .collect { case (Some(k), v) => k -> v }
       .filter {
-        case (k, _) => k
-            .flatMap(a => IdentityNode.fromRel(a.rel.toString).toOption)
+        case (k, _) => IdentityNode
+            .fromRel(k.rel.toString)
+            .toOption
             .map(_.id.toString)
             .exists(!analyzerConfig.ignorePathsIncludes(_))
       }
       .collect {
-        case (Some(k), Created | ContentUpdated | RefsUpdated)     => AnalysisState.Waiting(k.root, k.abs, k.rel)
-        case (Some(k), NotChanged) if analyzeCache.contains(k.abs) => AnalysisState.Cached(analyzeCache(k.abs))
+        case (k, Created | ContentUpdated | RefsUpdated)     => k -> AnalysisState.Waiting(k.root, k.abs, k.rel)
+        case (k, NotChanged) if analyzeCache.contains(k.abs) => k -> AnalysisState.Cached(analyzeCache(k.abs))
       }
+      .toList
+      .sortBy(_._1.toString)
       .flatTraverse {
-        case AnalysisState.Waiting(root, abs, rel) => for {
+        case (_, AnalysisState.Waiting(root, abs, rel)) => for {
             res <- parseDoc(root, abs, rel)
             _   <- StateT.liftF(res.traverse_(analyzeCallback))
           } yield res.toList
-        case AnalysisState.Cached(res)             => StateT.liftF(analyzeCallback(res).as(List(res)))
+        case (_, AnalysisState.Cached(res))             => StateT.liftF(analyzeCallback(res).as(List(res)))
       }
   }
 
@@ -132,7 +135,7 @@ final class DatapackAnalyzer(
       }
     }
 
-    val uriFileUpdates = fileUpdates.mapKeys(URI.file(_))
+    val uriFileUpdates = fileUpdates.mapK(URI.file(_))
     for {
       time1 <- StateT.liftF(Async[F].delay(Date.now()))
       _     <- StateT.liftF(checkFilesInCache(uriFileUpdates))
