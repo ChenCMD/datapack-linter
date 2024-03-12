@@ -54,7 +54,7 @@ object LinterConfig {
           ignorePaths,
           alwaysCheckAllFiles
         )
-          .mapN(LinterConfig.apply)
+          .parMapN(LinterConfig.apply)
           .fold(R.raise, _.pure[F])
       }
     } yield config

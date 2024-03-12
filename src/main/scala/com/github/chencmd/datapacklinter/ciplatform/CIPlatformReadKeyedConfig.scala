@@ -1,7 +1,7 @@
 package com.github.chencmd.datapacklinter.ciplatform
 
 import cats.data.EitherT
-import cats.data.ValidatedNec
+import cats.data.EitherNec
 import cats.effect.Sync
 import cats.implicits.*
 
@@ -11,24 +11,24 @@ trait CIPlatformReadKeyedConfigInstr[F[_]: Sync] {
   final def readKeyOrElse[A](key: String, default: => A)(using
     ciInteraction: CIPlatformInteractionInstr[F],
     valueType: ConfigValueType[A]
-  ): F[ValidatedNec[String, A]] = readKey(key, false, Some(default))
+  ): F[EitherNec[String, A]] = readKey(key, false, Some(default))
 
   final def readKey[A](key: String)(using
     ciInteraction: CIPlatformInteractionInstr[F],
     valueType: ConfigValueType[A]
-  ): F[ValidatedNec[String, A]] = readKey(key, true, None)
+  ): F[EitherNec[String, A]] = readKey(key, true, None)
 
   private def readKey[A](key: String, required: Boolean, default: => Option[A])(using
     ciInteraction: CIPlatformInteractionInstr[F],
     valueType: ConfigValueType[A]
-  ): F[ValidatedNec[String, A]] = {
+  ): F[EitherNec[String, A]] = {
     val program = for {
       v <- EitherT.liftF(read(key))
       _ <- EitherT.liftF(ciInteraction.printDebug(s"read key: $key, result: $v"))
       _ <- EitherT.cond(v.isDefined || !required, (), s"Input required and not supplied: $key")
       b <- EitherT.fromEither(v.traverse(valueType.tryCast(key, _)))
     } yield b.getOrElse(default.get)
-    program.toValidatedNec
+    program.value.map(_.toEitherNec)
   }
 
   protected def read(key: String): F[Option[String]]
