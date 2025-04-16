@@ -40,11 +40,16 @@ jobs:
             ./target/scala-*/scalajs-bundler/node_modules
           key: ${{ runner.os }}-sbt-deps-${{ hashFiles('./build.sbt') }}
 
-      - name: Install Node dependencies
-        run: yarn install
-
       - name: Build for production
-        run: yarn build
+        run: sbt fullOptJS/webpack
+        env:
+          SBT_OPTS: "-Xmx4G -XX:+UseG1GC"
+
+      - name: Move build files
+        run: |
+          mv dist/datapack-linter-opt-bundle.js dist/index.js
+          mv target/scala-3.4.0/scalajs-bundler/main/datapack-linter-opt.js.map dist/index.js.map
+          mv dist/datapack-linter-opt-bundle.js.LICENSE.txt dist/index.js.LICENSE.txt
 
       - name: Export environments
         uses: peaceiris/actions-export-envs@v1.1.0
