@@ -11,6 +11,4 @@ project/**
 
 target
 
-dist
-
 *.worksheet.sc
