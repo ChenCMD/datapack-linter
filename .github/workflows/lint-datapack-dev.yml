@@ -24,6 +24,9 @@ jobs:
           ref: dist
           path: ./dist
 
+      - name: Setup SBT
+        uses: sbt/setup-sbt@v1
+
       - name: Cache Node dependencies
         uses: actions/cache@v3
         with:
